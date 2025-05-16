@@ -266,12 +266,19 @@ struct NFTCardView: View {
         return numbers[abs(index) % numbers.count]
     }
     
-    private var collectionNames: [String] {
-        ["Shadowverse", "Titans", "Raven", "Legends", "Ethereal"]
+    // Card titles (names)
+    private var cardTitles: [String] {
+        ["立体九宫格", "水印边框", "滤镜", "拼图", "AI消除", "3D人像"]
     }
     
-    private var creatorNames: [String] {
-        ["Umbra", "Nexus", "Void", "Stellar", "Prism"]
+    // Card descriptions
+    private var cardDescriptions: [String] {
+        ["立体人像 九宫格 朋友圈", 
+         "生成图片的边框水印，附带照片信息logo等", 
+         "给图片进行滤镜调整", 
+         "用于将多张照片按照不同的布局方式进行拼接", 
+         "采用AI进行物体消除", 
+         "通过对比边框，使得人像具有3D效果"]
     }
     
     var body: some View {
@@ -288,47 +295,17 @@ struct NFTCardView: View {
                 
                 // 底部信息区域 - 半透明黑色背景
                 VStack(alignment: .leading, spacing: 8) {
-                    // Collection name
-                    Text(collectionNames[abs(index) % collectionNames.count])
+                    // Card title (name)
+                    Text(cardTitles[currentIndex % cardTitles.count])
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                     
-                    // Creator info
-                    HStack {
-                        ForEach(0..<min(2, creatorNames.count), id: \.self) { i in
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(hex: photo.gradientStart),
-                                            Color(hex: photo.gradientEnd)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 30, height: 30)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                )
-                                .offset(x: CGFloat(i * -15))
-                                .zIndex(Double(2 - i))
-                        }
-                        
-                        Text(creatorNames[abs(index) % creatorNames.count])
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.leading, 5)
-                        
-                        if abs(index) % 2 == 0 {
-                            Text(creatorNames[(abs(index) + 1) % creatorNames.count])
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .padding(.leading, 2)
-                        }
-                    }
+                    // Card description
+                    Text(cardDescriptions[currentIndex % cardDescriptions.count])
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -338,32 +315,16 @@ struct NFTCardView: View {
                         .blur(radius: 0.5)
                 )
                 
-                // Position indicator pill - 放在右上角
-                if isFocused {
-                    HStack(spacing: 4) {
-                        Text("\(currentIndex + 1) of \(totalCount)")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(.ultraThinMaterial)
-                                    .opacity(0.7)
-                            )
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                    .padding(20)
-                }
+                // Removed the position indicator pill
             }
             .clipShape(RoundedRectangle(cornerRadius: 30))
             .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
             
-            // ID tag in corner
+            // Mode tag in corner
             if isFocused {
                 VStack {
                     HStack {
-                        Text("#\(randomNumber)")
+                        Text("模式 \(currentIndex + 1)")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)

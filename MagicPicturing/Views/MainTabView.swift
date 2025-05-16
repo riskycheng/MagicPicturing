@@ -13,17 +13,21 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                NFTGalleryView(viewModel: photoLibraryViewModel)
-                    .tag(0)
-                
-                WorksView()
-                    .tag(1)
-                
-                ProfileView()
-                    .tag(2)
+            // Custom tab content without swipe gestures
+            ZStack {
+                // Only show the selected view
+                if selectedTab == 0 {
+                    NFTGalleryView(viewModel: photoLibraryViewModel)
+                        .transition(.opacity)
+                } else if selectedTab == 1 {
+                    WorksView()
+                        .transition(.opacity)
+                } else if selectedTab == 2 {
+                    ProfileView()
+                        .transition(.opacity)
+                }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .animation(.default, value: selectedTab)
             .edgesIgnoringSafeArea(.all)
             
             // Custom Tab Bar
