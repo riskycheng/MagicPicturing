@@ -12,6 +12,8 @@ struct NFTGalleryView: View {
     @GestureState private var dragState = DragState.inactive
     @State private var cardOffset: CGFloat = 0
     @State private var currentIndex: Int = 0
+    @State private var navigateToDetailView = false
+    @State private var selectedMode: Int = 0
     
     // Constants for the NFT Gallery card stack
     private let cardWidth: CGFloat = 280
@@ -46,31 +48,56 @@ struct NFTGalleryView: View {
     }
     
     var body: some View {
-        ZStack {
-            // NFT Gallery background
+        NavigationView {
             ZStack {
-                // 浅绿色背景
-                Color(hex: "D1D7AB")
-                
-                // 标题文本 - 简化为只显示Magic Picturing
-                HStack(alignment: .lastTextBaseline, spacing: 0) {
-                    Text("Magic ")
-                        .font(.system(size: 45, weight: .bold))
-                        .foregroundColor(.black)
+                // NFT Gallery background
+                ZStack {
+                    // Navigation links to detail views based on selected mode
+                    NavigationLink(
+                        "",
+                        destination: Group {
+                            if selectedMode == 0 {
+                                ThreeDGridView()
+                            } else if selectedMode == 1 {
+                                Text("水印边框功能正在开发中...").font(.title)
+                            } else if selectedMode == 2 {
+                                Text("滤镜功能正在开发中...").font(.title)
+                            } else if selectedMode == 3 {
+                                Text("拼图功能正在开发中...").font(.title)
+                            } else if selectedMode == 4 {
+                                Text("AI消除功能正在开发中...").font(.title)
+                            } else if selectedMode == 5 {
+                                Text("3D人像功能正在开发中...").font(.title)
+                            }
+                        },
+                        isActive: $navigateToDetailView
+                    )
+                    .opacity(0)
                     
-                    Text("Picturing")
-                        .font(.custom("Times New Roman", size: 45))
-                        .italic()
-                        .foregroundColor(.black)
+                    // 浅绿色背景
+                    Color(hex: "D1D7AB")
+                    
+                    // 标题文本 - 简化为只显示Magic Picturing
+                    HStack(alignment: .lastTextBaseline, spacing: 0) {
+                        Text("Magic ")
+                            .font(.system(size: 45, weight: .bold))
+                            .foregroundColor(.black)
+                        
+                        Text("Picturing")
+                            .font(.custom("Times New Roman", size: 45))
+                            .italic()
+                            .foregroundColor(.black)
+                    }
+                    .padding(.bottom, 550) // 将标题放在更高的位置
                 }
-                .padding(.bottom, 550) // 将标题放在更高的位置
+                .edgesIgnoringSafeArea(.all)
+                
+                // Card Stack
+                cardStackView()
+                    .padding(.top, 80) // 整体往上移动，避免与底部导航栏重叠
+                    .padding(.bottom, 120)
             }
-            .edgesIgnoringSafeArea(.all)
-            
-            // Card Stack
-            cardStackView()
-                .padding(.top, 80) // 整体往上移动，避免与底部导航栏重叠
-                .padding(.bottom, 120)
+            .navigationBarHidden(true)
         }
     }
     
@@ -182,7 +209,14 @@ struct NFTGalleryView: View {
                             offset: dragState.translation.width,
                             index: index,
                             totalCount: viewModel.filteredPhotos.count,
-                            currentIndex: ringIndex
+                            currentIndex: ringIndex,
+                            onCardTap: {
+                                if isFocused {
+                                    print("Card tapped: \(ringIndex)")
+                                    selectedMode = ringIndex % 6 // Ensure it's within the range of our modes
+                                    navigateToDetailView = true
+                                }
+                            }
                         )
                         .scaleEffect(calculateScale(for: index, dragOffset: dragState.translation.width))
                         .rotation3DEffect(
@@ -247,6 +281,7 @@ struct NFTCardView: View {
     let index: Int
     let totalCount: Int
     let currentIndex: Int
+    let onCardTap: () -> Void
     
     private let cardWidth: CGFloat = 280
     private let cardHeight: CGFloat = 420
@@ -285,6 +320,15 @@ struct NFTCardView: View {
         ZStack {
             // Main card - 完全透明风格
             ZStack(alignment: .bottom) {
+                // Make the entire card clickable with a transparent overlay
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        print("Card tapped in NFTCardView")
+                        onCardTap()
+                    }
+                    .frame(width: cardWidth, height: dynamicCardHeight)
+                    .zIndex(10)
                 // 使用真实图片资源
                 Image(photo.imageName)
                     .resizable()
