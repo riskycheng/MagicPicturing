@@ -36,7 +36,7 @@ struct ThreeDGridView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color(hex: "D1D7AB")
+                Color("D1D7AB")
                     .edgesIgnoringSafeArea(.all)
                 
                 // Make the content scrollable

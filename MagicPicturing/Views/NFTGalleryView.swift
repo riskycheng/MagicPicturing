@@ -6,14 +6,15 @@
 //
 
 import SwiftUI
+import Combine
 
 struct NFTGalleryView: View {
     @ObservedObject var viewModel: PhotoLibraryViewModel
-    @GestureState private var dragState = DragState.inactive
-    @State private var cardOffset: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
     @State private var currentIndex: Int = 0
     @State private var navigateToDetailView = false
     @State private var selectedMode: Int = 0
+    @State private var isDragging = false
     
     // Constants for the NFT Gallery card stack
     private let cardWidth: CGFloat = 280
@@ -22,29 +23,47 @@ struct NFTGalleryView: View {
     private let cardSpacing: CGFloat = 40
     private let swipeThreshold: CGFloat = 50
     private let rotationRadius: CGFloat = 600 // 圆柱体半径
+    private let angularSpacing: Double = 0.35 // 卡片之间的角度间隔
     
-    // Drag state enum
-    enum DragState {
-        case inactive
-        case dragging(translation: CGSize)
-        
-        var translation: CGSize {
-            switch self {
-            case .inactive:
-                return .zero
-            case .dragging(let translation):
-                return translation
-            }
+    // Computed property for continuous angle offset based on drag
+    private var continuousAngleOffset: Double {
+        return Double(dragOffset) / (rotationRadius * 0.5)
+    }
+    
+    // Helper method to get the destination view based on selected mode
+    @ViewBuilder
+    private func destinationView() -> some View {
+        switch selectedMode {
+        case 0:
+            ThreeDGridView()
+        case 1:
+            Text("水印边框功能正在开发中...").font(.title)
+        case 2:
+            Text("滤镜功能正在开发中...").font(.title)
+        case 3:
+            Text("拼图功能正在开发中...").font(.title)
+        case 4:
+            Text("AI消除功能正在开发中...").font(.title)
+        case 5:
+            Text("3D人像功能正在开发中...").font(.title)
+        default:
+            Text("功能正在开发中...").font(.title)
         }
-        
-        var isDragging: Bool {
-            switch self {
-            case .inactive:
-                return false
-            case .dragging:
-                return true
-            }
+    }
+    
+    // Helper method for the title view
+    private func titleView() -> some View {
+        HStack(alignment: .lastTextBaseline, spacing: 0) {
+            Text("Magic ")
+                .font(.system(size: 45, weight: .bold))
+                .foregroundColor(.black)
+            
+            Text("Picturing")
+                .font(.custom("Times New Roman", size: 45))
+                .italic()
+                .foregroundColor(.black)
         }
+        .padding(.bottom, 550) // 将标题放在更高的位置
     }
     
     var body: some View {
@@ -52,43 +71,19 @@ struct NFTGalleryView: View {
             ZStack {
                 // NFT Gallery background
                 ZStack {
-                    // Navigation links to detail views based on selected mode
+                    // Navigation link to detail view
                     NavigationLink(
                         "",
-                        destination: Group {
-                            if selectedMode == 0 {
-                                ThreeDGridView()
-                            } else if selectedMode == 1 {
-                                Text("水印边框功能正在开发中...").font(.title)
-                            } else if selectedMode == 2 {
-                                Text("滤镜功能正在开发中...").font(.title)
-                            } else if selectedMode == 3 {
-                                Text("拼图功能正在开发中...").font(.title)
-                            } else if selectedMode == 4 {
-                                Text("AI消除功能正在开发中...").font(.title)
-                            } else if selectedMode == 5 {
-                                Text("3D人像功能正在开发中...").font(.title)
-                            }
-                        },
+                        destination: destinationView(),
                         isActive: $navigateToDetailView
                     )
                     .opacity(0)
                     
                     // 浅绿色背景
-                    Color(hex: "D1D7AB")
+                    Color(red: 0.82, green: 0.84, blue: 0.67)
                     
-                    // 标题文本 - 简化为只显示Magic Picturing
-                    HStack(alignment: .lastTextBaseline, spacing: 0) {
-                        Text("Magic ")
-                            .font(.system(size: 45, weight: .bold))
-                            .foregroundColor(.black)
-                        
-                        Text("Picturing")
-                            .font(.custom("Times New Roman", size: 45))
-                            .italic()
-                            .foregroundColor(.black)
-                    }
-                    .padding(.bottom, 550) // 将标题放在更高的位置
+                    // 标题文本
+                    titleView()
                 }
                 .edgesIgnoringSafeArea(.all)
                 
@@ -112,40 +107,35 @@ struct NFTGalleryView: View {
         return rawIndex < 0 ? rawIndex + totalCount : rawIndex
     }
     
+    // 计算卡片在圆柱体上的角度 - 更流畅的连续计算
+    private func calculateCardAngle(for index: Int) -> Double {
+        // 基础角度加上拖动产生的连续角度偏移
+        return Double(index) * angularSpacing + continuousAngleOffset
+    }
+    
     // 计算水平偏移量，实现圆柱体滚动效果
-    private func calculateHorizontalOffset(for index: Int, dragOffset: CGFloat) -> CGFloat {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
-        
+    private func calculateHorizontalOffset(for index: Int) -> CGFloat {
         // 使用三角函数计算水平偏移
-        return sin(totalAngle) * rotationRadius * 0.25
+        let angle = calculateCardAngle(for: index)
+        return sin(angle) * rotationRadius * 0.25
     }
     
     // 计算垂直偏移量，实现圆柱体滚动效果
-    private func calculateVerticalOffset(for index: Int, dragOffset: CGFloat) -> CGFloat {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
-        
+    private func calculateVerticalOffset(for index: Int) -> CGFloat {
         // 使用三角函数计算垂直偏移
-        return (1 - cos(totalAngle)) * 40
+        let angle = calculateCardAngle(for: index)
+        return (1 - cos(angle)) * 40
     }
     
     // 计算缩放比例，实现圆柱体滚动效果
-    private func calculateScale(for index: Int, dragOffset: CGFloat) -> CGFloat {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
+    private func calculateScale(for index: Int) -> CGFloat {
+        let angle = calculateCardAngle(for: index)
         
         // 基于角度计算缩放比例 - 增强3D效果，使背景卡片更小
-        let scale = cos(totalAngle) * 0.4 + 0.6
+        let scale = cos(angle) * 0.4 + 0.6
         
-        // 确保当前卡片更大，增强中央卡片与背景卡片的对比
-        if index == 0 && dragOffset.magnitude < 100 {
+        // 确保中心位置的卡片更大
+        if abs(angle) < 0.2 {
             return 1.0
         }
         
@@ -153,43 +143,79 @@ struct NFTGalleryView: View {
     }
     
     // 计算旋转角度，实现圆柱体滚动效果
-    private func calculateRotation(for index: Int, dragOffset: CGFloat) -> Double {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
-        
+    private func calculateRotation(for index: Int) -> Double {
         // 转换为度数
-        return totalAngle * 180 / .pi
+        return calculateCardAngle(for: index) * 180 / .pi
     }
     
     // 计算Z轴索引，确保正确的堆叠顺序
-    private func calculateZIndex(for index: Int, dragOffset: CGFloat) -> Double {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
-        
+    private func calculateZIndex(for index: Int) -> Double {
         // 基于余弦值计算Z轴索引
-        return cos(totalAngle) * 10
+        return cos(calculateCardAngle(for: index)) * 10
     }
     
     // 计算透明度，实现圆柱体滚动效果
-    private func calculateOpacity(for index: Int, dragOffset: CGFloat) -> Double {
-        // 计算卡片在圆柱体上的角度
-        let baseAngle = Double(index) * 0.35
-        let dragAngle = Double(dragOffset) / Double(rotationRadius)
-        let totalAngle = baseAngle + dragAngle
+    private func calculateOpacity(for index: Int) -> Double {
+        let angle = calculateCardAngle(for: index)
         
         // 基于角度计算透明度
-        let opacity = cos(totalAngle) * 0.3 + 0.7
+        let opacity = cos(angle) * 0.3 + 0.7
         
-        // 确保当前卡片完全不透明
-        if index == 0 && dragOffset.magnitude < 100 {
+        // 确保中心位置的卡片完全不透明
+        if abs(angle) < 0.2 {
             return 1.0
         }
         
         return opacity
+    }
+    
+    // Helper method to create a single card in the stack
+    private func cardView(for index: Int) -> some View {
+        let ringIndex = getRingIndex(baseIndex: currentIndex, offset: index)
+        let photo = viewModel.filteredPhotos[ringIndex]
+        let isFocused = abs(calculateCardAngle(for: index)) < 0.2
+        
+        // Pre-calculate all transformations
+        let scale = calculateScale(for: index)
+        let rotation = calculateRotation(for: index)
+        let xOffset = calculateHorizontalOffset(for: index)
+        let yOffset = calculateVerticalOffset(for: index)
+        let opacity = calculateOpacity(for: index)
+        let zIndex = calculateZIndex(for: index)
+        
+        return NFTCardView(
+            photo: photo,
+            isFocused: isFocused,
+            offset: dragOffset,
+            index: index,
+            totalCount: viewModel.filteredPhotos.count,
+            currentIndex: ringIndex,
+            onCardTap: {
+                // 任何卡片被点击时，立即将其设为中心卡片并导航
+                if !isFocused {
+                    // 如果点击的不是中心卡片，先将其移到中心
+                    currentIndex = ringIndex
+                    dragOffset = 0
+                    // 立即更新选中模式
+                    selectedMode = ringIndex % 6 // 确保在模式范围内
+                } else {
+                    // 如果点击的是中心卡片，直接导航
+                    print("Card tapped: \(ringIndex)")
+                    navigateToDetailView = true
+                }
+            }
+        )
+        .scaleEffect(scale)
+        .rotation3DEffect(
+            .degrees(rotation),
+            axis: (x: 0, y: 1, z: 0.1),
+            anchor: .center,
+            anchorZ: 0,
+            perspective: 0.3
+        )
+        .offset(x: xOffset, y: yOffset)
+        .opacity(opacity)
+        .zIndex(zIndex)
     }
     
     private func cardStackView() -> some View {
@@ -197,76 +223,42 @@ struct NFTGalleryView: View {
             ZStack {
                 if !viewModel.filteredPhotos.isEmpty {
                     // 显示更多卡片以实现更丝滑的效果
-                    ForEach(-2..<3, id: \.self) { index in
-                        // 使用环形索引获取正确的卡片
-                        let ringIndex = getRingIndex(baseIndex: currentIndex, offset: index)
-                        let photo = viewModel.filteredPhotos[ringIndex]
-                        let isFocused = index == 0
-                        
-                        NFTCardView(
-                            photo: photo,
-                            isFocused: isFocused,
-                            offset: dragState.translation.width,
-                            index: index,
-                            totalCount: viewModel.filteredPhotos.count,
-                            currentIndex: ringIndex,
-                            onCardTap: {
-                                if isFocused {
-                                    print("Card tapped: \(ringIndex)")
-                                    selectedMode = ringIndex % 6 // Ensure it's within the range of our modes
-                                    navigateToDetailView = true
-                                }
-                            }
-                        )
-                        .scaleEffect(calculateScale(for: index, dragOffset: dragState.translation.width))
-                        .rotation3DEffect(
-                            .degrees(calculateRotation(for: index, dragOffset: dragState.translation.width)),
-                            axis: (x: 0, y: 1, z: 0.1),
-                            anchor: .center,
-                            anchorZ: 0,
-                            perspective: 0.3
-                        )
-                        .offset(
-                            x: calculateHorizontalOffset(for: index, dragOffset: dragState.translation.width),
-                            y: calculateVerticalOffset(for: index, dragOffset: dragState.translation.width)
-                        )
-                        .opacity(calculateOpacity(for: index, dragOffset: dragState.translation.width))
-                        .zIndex(calculateZIndex(for: index, dragOffset: dragState.translation.width))
+                    ForEach(-3..<4, id: \.self) { index in
+                        cardView(for: index)
                     }
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture()
-                    .updating($dragState) { value, state, _ in
-                        state = .dragging(translation: value.translation)
+                DragGesture(minimumDistance: 5)
+                    .onChanged { value in
+                        // 直接将拖动位移量应用到偏移量，实现跟手效果
+                        isDragging = true
+                        dragOffset = value.translation.width
                     }
                     .onEnded { value in
-                        let predictedEndOffset = value.predictedEndTranslation.width
-                        let velocity = abs(value.predictedEndTranslation.width - value.translation.width)
+                        isDragging = false
+                        let velocity = value.predictedEndLocation.x - value.location.x
+                        let finalOffset = value.translation.width + velocity * 0.3
                         
-                        // 使用速度和方向来决定滑动行为
-                        if abs(predictedEndOffset) > swipeThreshold || velocity > 300 {
-                            if predictedEndOffset < 0 {
-                                // 向左滑动 - 下一张 (显示右边的卡片)
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    currentIndex = getRingIndex(baseIndex: currentIndex, offset: 1)
-                                    cardOffset = 0
-                                }
-                            } else {
-                                // 向右滑动 - 上一张 (显示左边的卡片)
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    currentIndex = getRingIndex(baseIndex: currentIndex, offset: -1)
-                                    cardOffset = 0
-                                }
-                            }
+                        // 计算最终应该停留在哪个卡片位置
+                        let angleOffset = Double(finalOffset) / (rotationRadius * 0.5)
+                        let cardIndexOffset = Int(round(angleOffset / angularSpacing))
+                        
+                        // 直接更新当前索引，不要动画
+                        if abs(cardIndexOffset) > 0 {
+                            // 立即更新当前索引，无需动画
+                            currentIndex = getRingIndex(baseIndex: currentIndex, offset: -cardIndexOffset)
+                            dragOffset = 0 // 直接重置偏移量，不使用动画
                         } else {
-                            // 回到原位
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                cardOffset = 0
-                            }
+                            // 如果偏移不够，直接重置而不使用动画
+                            dragOffset = 0
                         }
+                        
+                        // 如果当前卡片在中心位置，直接更新选中模式
+                        let centerCardIndex = getRingIndex(baseIndex: currentIndex, offset: 0)
+                        selectedMode = centerCardIndex % 6 // 确保在模式范围内
                     }
             )
         }
