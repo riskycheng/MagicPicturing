@@ -14,8 +14,8 @@ struct NFTGalleryView: View {
     @State private var currentIndex: Int = 0
     
     // Constants for the NFT Gallery card stack
-    private let cardWidth: CGFloat = 340
-    private let cardHeight: CGFloat = 500
+    private let cardWidth: CGFloat = 280
+    private let cardHeight: CGFloat = 420
     private let maxVisibleCards = 5
     private let cardSpacing: CGFloat = 40
     private let swipeThreshold: CGFloat = 50
@@ -52,28 +52,18 @@ struct NFTGalleryView: View {
                 // 浅绿色背景
                 Color(hex: "D1D7AB")
                 
-                // 标题文本
-                VStack {
-                    Text("Explore Your")
-                        .font(.system(size: 40, weight: .bold))
+                // 标题文本 - 简化为只显示Magic Picturing
+                HStack(alignment: .lastTextBaseline, spacing: 0) {
+                    Text("Magic ")
+                        .font(.system(size: 45, weight: .bold))
                         .foregroundColor(.black)
                     
-                    HStack(alignment: .lastTextBaseline, spacing: 0) {
-                        Text("NFT ")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.black)
-                        
-                        Text("gallery")
-                            .font(.custom("Times New Roman", size: 40))
-                            .italic()
-                            .foregroundColor(.black)
-                        
-                        Text(" Now")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.black)
-                    }
+                    Text("Picturing")
+                        .font(.custom("Times New Roman", size: 45))
+                        .italic()
+                        .foregroundColor(.black)
                 }
-                .padding(.bottom, 450) // 将标题放在顶部区域
+                .padding(.bottom, 550) // 将标题放在更高的位置
             }
             .edgesIgnoringSafeArea(.all)
             
@@ -124,12 +114,12 @@ struct NFTGalleryView: View {
         let dragAngle = Double(dragOffset) / Double(rotationRadius)
         let totalAngle = baseAngle + dragAngle
         
-        // 基于角度计算缩放比例
-        let scale = cos(totalAngle) * 0.3 + 0.7
+        // 基于角度计算缩放比例 - 增强3D效果，使背景卡片更小
+        let scale = cos(totalAngle) * 0.4 + 0.6
         
-        // 确保当前卡片更大
+        // 确保当前卡片更大，增强中央卡片与背景卡片的对比
         if index == 0 && dragOffset.magnitude < 100 {
-            return max(scale, 1.0)
+            return 1.0
         }
         
         return scale
@@ -258,8 +248,18 @@ struct NFTCardView: View {
     let totalCount: Int
     let currentIndex: Int
     
-    private let cardWidth: CGFloat = 340
-    private let cardHeight: CGFloat = 500
+    private let cardWidth: CGFloat = 280
+    private let cardHeight: CGFloat = 420
+    
+    // Calculate height based on focus state - background cards will be shorter
+    private var dynamicCardHeight: CGFloat {
+        isFocused ? cardHeight : cardHeight * 0.85
+    }
+    
+    // Calculate opacity based on focus state - background cards will be dimmed
+    private var cardOpacity: Double {
+        isFocused ? 1.0 : 0.7
+    }
     
     private var randomNumber: Int {
         let numbers = [4032, 6721, 8901, 1234, 5678]
@@ -282,8 +282,9 @@ struct NFTCardView: View {
                 Image(photo.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: cardWidth, height: cardHeight)
+                    .frame(width: cardWidth, height: dynamicCardHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 30))
+                    .opacity(cardOpacity)
                 
                 // 底部信息区域 - 半透明黑色背景
                 VStack(alignment: .leading, spacing: 8) {
