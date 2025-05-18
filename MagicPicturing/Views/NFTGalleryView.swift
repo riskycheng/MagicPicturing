@@ -13,6 +13,7 @@ struct NFTGalleryView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var currentIndex: Int = 0
     @State private var navigateToDetailView = false
+    @State private var showThreeDGridView = false
     @State private var selectedMode: Int = 0
     @State private var isDragging = false
     
@@ -71,7 +72,7 @@ struct NFTGalleryView: View {
             ZStack {
                 // NFT Gallery background
                 ZStack {
-                    // Navigation link to detail view
+                    // Navigation link to detail view for modes other than ThreeDGridView
                     NavigationLink(
                         "",
                         destination: destinationView(),
@@ -93,6 +94,9 @@ struct NFTGalleryView: View {
                     .padding(.bottom, 120)
             }
             .navigationBarHidden(true)
+        }
+        .fullScreenCover(isPresented: $showThreeDGridView) {
+            ThreeDGridView()
         }
     }
     
@@ -201,7 +205,12 @@ struct NFTGalleryView: View {
                 } else {
                     // 如果点击的是中心卡片，直接导航
                     print("Card tapped: \(ringIndex)")
-                    navigateToDetailView = true
+                    // 如果是3D九宫格模式，使用全屏sheet呈现
+                    if ringIndex % 6 == 0 {
+                        showThreeDGridView = true
+                    } else {
+                        navigateToDetailView = true
+                    }
                 }
             }
         )
