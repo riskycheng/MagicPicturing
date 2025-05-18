@@ -189,31 +189,31 @@ struct ThreeDGridView: View {
                                         }
                                     }
                                     .padding(.horizontal)
+                                    .padding(.bottom, 30) // Add more space between grid and result section
                                     
-                                    // Main subject photo selection
-                                    VStack(spacing: 12) {
+                                    // Side-by-side layout for main subject photo and result preview
+                                    HStack(spacing: 5) {
+                                        // Left side: Main subject photo selection (portrait orientation)
                                         ZStack {
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
-                                                .frame(height: 150)
+                                                .aspectRatio(0.7, contentMode: .fit) // Portrait aspect ratio (taller than wide)
                                                 .cornerRadius(12)
                                             
                                             if let image = viewModel.mainSubjectPhoto {
                                                 #if canImport(UIKit)
                                                 Image(uiImage: image)
                                                     .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(height: 150)
+                                                    .aspectRatio(contentMode: .fill)
                                                     .cornerRadius(12)
                                                 #elseif canImport(AppKit)
                                                 Image(nsImage: image)
                                                     .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(height: 150)
+                                                    .aspectRatio(contentMode: .fill)
                                                     .cornerRadius(12)
                                                 #endif
                                             } else {
-                                                VStack {
+                                                VStack(spacing: 10) {
                                                     Image(systemName: "person.fill")
                                                         .font(.system(size: 40))
                                                         .foregroundColor(.gray)
@@ -226,18 +226,91 @@ struct ThreeDGridView: View {
                                         .onTapGesture {
                                             isShowingMainSubjectPicker = true
                                         }
-                                        .padding(.horizontal)
-                                    }
-                                    
-                                    // Add more grid cells to fill space
-                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
-                                        ForEach(0..<6, id: \.self) { _ in
-                                            Rectangle()
-                                                .fill(Color.clear)
-                                                .aspectRatio(1, contentMode: .fit)
+                                        .frame(maxWidth: .infinity)
+                                        
+                                        // Vibrant, colorful arrow with premium design
+                                        ZStack {
+                                            // Colorful outer glow
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 48, height: 48)
+                                                .blur(radius: 8)
+                                                .opacity(0.6)
+                                            
+                                            // Glass-like background with colorful border
+                                            Circle()
+                                                .fill(Color.black.opacity(0.3))
+                                                .frame(width: 42, height: 42)
+                                                .overlay(
+                                                    Circle()
+                                                        .strokeBorder(
+                                                            LinearGradient(
+                                                                gradient: Gradient(colors: [Color.blue, Color.purple, Color.pink]),
+                                                                startPoint: .topLeading,
+                                                                endPoint: .bottomTrailing
+                                                            ),
+                                                            lineWidth: 2.5
+                                                        )
+                                                )
+                                                .shadow(color: Color.purple.opacity(0.4), radius: 5, x: 0, y: 2)
+                                            
+                                            // Thicker, colorful arrow
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                            .mask(
+                                                Image(systemName: "arrow.right")
+                                                    .font(.system(size: 18, weight: .bold))
+                                            )
+                                            .frame(width: 22, height: 22)
                                         }
+                                        .frame(width: 42)
+                                        
+                                        // Right side: Result preview area (portrait orientation)
+                                        ZStack {
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.2))
+                                                .aspectRatio(0.7, contentMode: .fit) // Portrait aspect ratio (taller than wide)
+                                                .cornerRadius(12)
+                                            
+                                            if let resultImage = viewModel.resultImage {
+                                                #if canImport(UIKit)
+                                                Image(uiImage: resultImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .cornerRadius(12)
+                                                #elseif canImport(AppKit)
+                                                Image(nsImage: resultImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .cornerRadius(12)
+                                                #endif
+                                            } else {
+                                                VStack(spacing: 10) {
+                                                    Image(systemName: "photo.on.rectangle")
+                                                        .font(.system(size: 40))
+                                                        .foregroundColor(.gray)
+                                                    Text("生成结果图片")
+                                                        .font(.system(size: 14))
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity)
                                     }
                                     .padding(.horizontal)
+                                    
+                                    // Spacer to push content up against the button
+                                    Spacer()
+                                        .frame(minHeight: 50)
                                 }
                             }
                             .padding(.bottom, 70) // Space for the button
