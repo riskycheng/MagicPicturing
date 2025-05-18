@@ -186,13 +186,23 @@ struct ThreeDGridView: View {
     @State private var isShowingGridPicker = false
     @State private var isShowingMainSubjectPicker = false
     
-    // 固定的图片容器尺寸
+    // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
-    private let imageWidth: CGFloat = UIScreen.main.bounds.width * 0.45
-    private let imageHeight: CGFloat = UIScreen.main.bounds.width * 0.45 / 0.7
+    private let horizontalPadding: CGFloat = 25 // Increased horizontal padding
+    private let gridSpacing: CGFloat = 4
+    private let imageWidth: CGFloat = UIScreen.main.bounds.width * 0.38 // Smaller grid images
+    private let imageHeight: CGFloat = UIScreen.main.bounds.width * 0.38 / 0.7
+    private let personImageWidth: CGFloat = UIScreen.main.bounds.width * 0.36 // Smaller person images
+    private let personImageHeight: CGFloat = UIScreen.main.bounds.width * 0.36 / 0.7
+    private let verticalSpacing: CGFloat = 20 // Reduced vertical spacing
     #elseif canImport(AppKit)
-    private let imageWidth: CGFloat = 160
-    private let imageHeight: CGFloat = 160 / 0.7
+    private let horizontalPadding: CGFloat = 25
+    private let gridSpacing: CGFloat = 4
+    private let imageWidth: CGFloat = 140
+    private let imageHeight: CGFloat = 140 / 0.7
+    private let personImageWidth: CGFloat = 130
+    private let personImageHeight: CGFloat = 130 / 0.7
+    private let verticalSpacing: CGFloat = 20
     #endif
     
     var body: some View {
@@ -237,7 +247,7 @@ struct ThreeDGridView: View {
                         Text("")
                             .frame(width: 70)
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, horizontalPadding)
                     .padding(.top, 10)
                     .padding(.bottom, 20)
                     
@@ -270,7 +280,7 @@ struct ThreeDGridView: View {
                                             }
                                             .foregroundColor(.white)
                                             .padding(.vertical, 12)
-                                            .padding(.horizontal, 20)
+                                            .padding(.horizontal, horizontalPadding)
                                             .background(Color.blue)
                                             .cornerRadius(25)
                                         }
@@ -278,7 +288,7 @@ struct ThreeDGridView: View {
                                     .padding()
                                 } else {
                                     // 3x3 Grid
-                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
+                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
                                         ForEach(0..<9, id: \.self) { index in
                                             ZStack {
                                                 Rectangle()
@@ -312,17 +322,18 @@ struct ThreeDGridView: View {
                                             }
                                         }
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.bottom, 30) // Add more space between grid and result section
+                                    .padding(.horizontal, horizontalPadding)
+                                    .padding(.bottom, verticalSpacing) // Reduced vertical spacing between grid and person images
                                     
                                     // Side-by-side layout for main subject photo and result preview
-                                    HStack(spacing: 5) {
+                                    HStack(spacing: 10) {
                                         // Left side: Main subject photo selection (portrait orientation)
                                         ZStack {
                                             // 固定尺寸的占位符
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
                                                 .frame(width: imageWidth, height: imageHeight)
+                                                .clipped()
                                                 .cornerRadius(12)
                                             
                                             if let image = viewModel.mainSubjectPhoto {
@@ -330,13 +341,15 @@ struct ThreeDGridView: View {
                                                 Image(uiImage: image)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .frame(width: imageWidth, height: imageHeight)
+                                                    .frame(width: personImageWidth, height: personImageHeight)
+                                                    .clipped()
                                                     .cornerRadius(12)
                                                 #elseif canImport(AppKit)
                                                 Image(nsImage: image)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .frame(width: imageWidth, height: imageHeight)
+                                                    .frame(width: personImageWidth, height: personImageHeight)
+                                                    .clipped()
                                                     .cornerRadius(12)
                                                 #endif
                                             } else {
@@ -355,50 +368,35 @@ struct ThreeDGridView: View {
                                         }
                                         .frame(maxWidth: .infinity)
                                         
-                                        // Middle: Animated arrow with processing indicator
+                                        // Middle: Improved arrow with better visibility
                                         ZStack {
-                                            // Outer glow
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                            .mask(
-                                                Circle()
-                                                    .frame(width: 42, height: 42)
-                                            )
-                                            .opacity(0.7)
-                                            .blur(radius: 4)
+                                            // White background circle for better contrast
+                                            Circle()
+                                                .fill(Color.white)
+                                                .frame(width: 40, height: 40)
+                                                .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
                                             
-                                            // Background circle
+                                            // Colored circle with smaller size
                                             Circle()
                                                 .fill(
                                                     LinearGradient(
-                                                        gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                        gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)]),
                                                         startPoint: .topLeading,
                                                         endPoint: .bottomTrailing
                                                     )
                                                 )
-                                                .frame(width: 36, height: 36)
-                                                .shadow(color: Color.purple.opacity(0.4), radius: 5, x: 0, y: 2)
+                                                .frame(width: 32, height: 32)
                                             
                                             if viewModel.isProcessingSegmentation {
                                                 // Show processing indicator
                                                 ProgressView()
                                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                    .scaleEffect(1.2)
+                                                    .scaleEffect(1.0)
                                             } else {
-                                                // Thicker, colorful arrow
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                                .mask(
-                                                    Image(systemName: "arrow.right")
-                                                        .font(.system(size: 18, weight: .bold))
-                                                )
-                                                .frame(width: 22, height: 22)
+                                                // White arrow for better visibility
+                                                Image(systemName: "arrow.right")
+                                                    .font(.system(size: 16, weight: .bold))
+                                                    .foregroundColor(.white)
                                             }
                                         }
                                         .frame(width: 42)
@@ -409,6 +407,7 @@ struct ThreeDGridView: View {
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
                                                 .frame(width: imageWidth, height: imageHeight)
+                                                .clipped()
                                                 .cornerRadius(12)
                                             
                                             if viewModel.isProcessingSegmentation {
@@ -426,7 +425,8 @@ struct ThreeDGridView: View {
                                                 Image(uiImage: resultImage)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .frame(width: imageWidth, height: imageHeight)
+                                                    .frame(width: personImageWidth, height: personImageHeight)
+                                                    .clipped()
                                                     .cornerRadius(12)
                                                     .overlay(
                                                         Text("人物分割完成")
@@ -443,7 +443,8 @@ struct ThreeDGridView: View {
                                                 Image(nsImage: resultImage)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .frame(width: imageWidth, height: imageHeight)
+                                                    .frame(width: personImageWidth, height: personImageHeight)
+                                                    .clipped()
                                                     .cornerRadius(12)
                                                     .overlay(
                                                         Text("人物分割完成")
@@ -485,7 +486,7 @@ struct ThreeDGridView: View {
                                         }
                                         .frame(maxWidth: .infinity)
                                     }
-                                    .padding(.horizontal)
+                                    .padding(.horizontal, horizontalPadding)
                                     
                                     // Spacer to push content up against the button
                                     Spacer()
@@ -519,10 +520,10 @@ struct ThreeDGridView: View {
                                         .foregroundColor(.white)
                                 }
                             }
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, horizontalPadding)
                         }
                         .disabled(!viewModel.isReadyToGenerate || viewModel.isGenerating)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, horizontalPadding)
                         .padding(.bottom, 20)
                     }
                 }
