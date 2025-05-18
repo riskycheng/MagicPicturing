@@ -291,25 +291,31 @@ struct ThreeDGridView: View {
                                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
                                         ForEach(0..<9, id: \.self) { index in
                                             ZStack {
+                                                // 固定大小的正方形占位符
                                                 Rectangle()
                                                     .fill(Color.gray.opacity(0.2))
                                                     .aspectRatio(1, contentMode: .fit)
                                                     .cornerRadius(8)
                                                 
                                                 if let image = viewModel.gridPhotos[index] {
-                                                    #if canImport(UIKit)
-                                                    Image(uiImage: image)
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fill)
-                                                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                                                        .cornerRadius(8)
-                                                    #elseif canImport(AppKit)
-                                                    Image(nsImage: image)
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fill)
-                                                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-                                                        .cornerRadius(8)
-                                                    #endif
+                                                    GeometryReader { geometry in
+                                                        #if canImport(UIKit)
+                                                        Image(uiImage: image)
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                            .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                            .clipped() // 裁剪超出部分
+                                                            .cornerRadius(8)
+                                                        #elseif canImport(AppKit)
+                                                        Image(nsImage: image)
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                            .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                            .clipped() // 裁剪超出部分
+                                                            .cornerRadius(8)
+                                                        #endif
+                                                    }
+                                                    .aspectRatio(1, contentMode: .fit) // 确保 GeometryReader 也是正方形
                                                 } else {
                                                     Image(systemName: "plus")
                                                         .font(.system(size: 30))
@@ -329,11 +335,10 @@ struct ThreeDGridView: View {
                                     HStack(spacing: 10) {
                                         // Left side: Main subject photo selection (portrait orientation)
                                         ZStack {
-                                            // 固定尺寸的占位符
+                                            // 固定尺寸的占位符 - consistent container size
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
-                                                .frame(width: imageWidth, height: imageHeight)
-                                                .clipped()
+                                                .frame(width: personImageWidth, height: personImageHeight)
                                                 .cornerRadius(12)
                                             
                                             if let image = viewModel.mainSubjectPhoto {
@@ -342,14 +347,14 @@ struct ThreeDGridView: View {
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
                                                     .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped()
+                                                    .clipped() // 确保图片严格裁剪在占位符边界内
                                                     .cornerRadius(12)
                                                 #elseif canImport(AppKit)
                                                 Image(nsImage: image)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
                                                     .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped()
+                                                    .clipped() // 确保图片严格裁剪在占位符边界内
                                                     .cornerRadius(12)
                                                 #endif
                                             } else {
@@ -403,11 +408,10 @@ struct ThreeDGridView: View {
                                         
                                         // Right side: Result preview area (portrait orientation)
                                         ZStack {
-                                            // 固定尺寸的占位符
+                                            // 固定尺寸的占位符 - consistent container size
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
-                                                .frame(width: imageWidth, height: imageHeight)
-                                                .clipped()
+                                                .frame(width: personImageWidth, height: personImageHeight)
                                                 .cornerRadius(12)
                                             
                                             if viewModel.isProcessingSegmentation {
@@ -426,7 +430,7 @@ struct ThreeDGridView: View {
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
                                                     .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped()
+                                                    .clipped() // 确保图片严格裁剪在占位符边界内
                                                     .cornerRadius(12)
                                                     .overlay(
                                                         Text("人物分割完成")
@@ -444,7 +448,7 @@ struct ThreeDGridView: View {
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
                                                     .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped()
+                                                    .clipped() // 确保图片严格裁剪在占位符边界内
                                                     .cornerRadius(12)
                                                     .overlay(
                                                         Text("人物分割完成")
