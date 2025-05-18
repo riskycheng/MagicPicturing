@@ -8,35 +8,93 @@
 import SwiftUI
 
 #if canImport(UIKit)
+import UIKit
 import PhotosUI
 #elseif canImport(AppKit)
 import AppKit
 #endif
 
+// Custom modifier to handle rotation animation that properly stops when isAnimating is false
+struct RotationAnimationModifier: ViewModifier {
+    let isAnimating: Bool
+    
+    @State private var angle: Double = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(Angle(degrees: angle))
+            .onAppear {
+                // Reset angle when not animating
+                if !isAnimating {
+                    angle = 0
+                }
+            }
+            .onChange(of: isAnimating) { _, newValue in
+                if newValue {
+                    // Start continuous rotation
+                    withAnimation(Animation.linear(duration: 2).repeatForever(autoreverses: false)) {
+                        angle = 360
+                    }
+                } else {
+                    // Stop at current position and then reset to 0 with a short animation
+                    withAnimation(Animation.linear(duration: 0.3)) {
+                        angle = 0
+                    }
+                }
+            }
+    }
+}
+
 // View model to handle the 3D grid effect logic - moved outside the View struct to avoid ViewBuilder issues
 class ThreeDGridViewModel: ObservableObject {
     @Published var gridPhotos: [PlatformImage?] = Array(repeating: nil, count: 9)
-    @Published var mainSubjectPhoto: PlatformImage? = nil
+    @Published var mainSubjectPhoto: PlatformImage? = nil {
+        didSet {
+            if mainSubjectPhoto != nil && oldValue == nil {
+                // Automatically start person segmentation when a main subject photo is selected
+                processPersonSegmentation()
+            }
+        }
+    }
     @Published var resultImage: PlatformImage? = nil
+    @Published var segmentedPersonImage: PlatformImage? = nil
     @Published var isGenerating = false
+    @Published var isProcessingSegmentation = false
     @Published var showingResult = false
     @Published var showSaveSuccess = false
     @Published var currentGridIndex: Int = 0
     
     var isReadyToGenerate: Bool {
         let hasAllGridPhotos = !gridPhotos.contains(where: { $0 == nil })
-        return hasAllGridPhotos && mainSubjectPhoto != nil
+        return hasAllGridPhotos && segmentedPersonImage != nil
+    }
+    
+    // Process person segmentation when main subject photo is selected
+    func processPersonSegmentation() {
+        guard let mainPhoto = mainSubjectPhoto else { return }
+        
+        isProcessingSegmentation = true
+        
+        // Simulate processing time for person segmentation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            guard let self = self else { return }
+            
+            // Fake person segmentation result (using the original image for now)
+            // In a real implementation, this would use Vision SDK for person segmentation
+            self.segmentedPersonImage = mainPhoto
+            self.isProcessingSegmentation = false
+        }
     }
     
     func generateThreeDGrid() {
         isGenerating = true
         
-        // Simulate processing time
+        // Simulate processing time for blending segmented person with 9-grid
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self = self else { return }
-            // In a real app, this would combine the photos and apply the 3D effect
-            // For now, we'll just use the main subject photo as the result
-            self.resultImage = self.mainSubjectPhoto
+            // In a real app, this would combine the segmented person with the 9-grid photos
+            // For now, we'll just use the segmented person image as the result
+            self.resultImage = self.segmentedPersonImage
             self.isGenerating = false
             self.showingResult = true
         }
@@ -228,20 +286,17 @@ struct ThreeDGridView: View {
                                         }
                                         .frame(maxWidth: .infinity)
                                         
-                                        // Vibrant, colorful arrow with premium design
+                                        // Middle: Animated arrow with processing indicator
                                         ZStack {
-                                            // Colorful outer glow
-                                            Circle()
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                                .frame(width: 48, height: 48)
-                                                .blur(radius: 8)
-                                                .opacity(0.6)
+                                            // Outer glow
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            .frame(width: 48, height: 48)
+                                            .blur(radius: 8)
+                                            .opacity(0.6)
                                             
                                             // Glass-like background with colorful border
                                             Circle()
@@ -259,18 +314,26 @@ struct ThreeDGridView: View {
                                                         )
                                                 )
                                                 .shadow(color: Color.purple.opacity(0.4), radius: 5, x: 0, y: 2)
+                                                .modifier(RotationAnimationModifier(isAnimating: $viewModel.isProcessingSegmentation.wrappedValue))
                                             
-                                            // Thicker, colorful arrow
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                            .mask(
-                                                Image(systemName: "arrow.right")
-                                                    .font(.system(size: 18, weight: .bold))
-                                            )
-                                            .frame(width: 22, height: 22)
+                                            if viewModel.isProcessingSegmentation {
+                                                // Show processing indicator
+                                                ProgressView()
+                                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                                    .scaleEffect(0.7)
+                                            } else {
+                                                // Thicker, colorful arrow
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                                .mask(
+                                                    Image(systemName: "arrow.right")
+                                                        .font(.system(size: 18, weight: .bold))
+                                                )
+                                                .frame(width: 22, height: 22)
+                                            }
                                         }
                                         .frame(width: 42)
                                         
@@ -282,6 +345,7 @@ struct ThreeDGridView: View {
                                                 .cornerRadius(12)
                                             
                                             if let resultImage = viewModel.resultImage {
+                                                // Final blended result after clicking "生成立体九宫格"
                                                 #if canImport(UIKit)
                                                 Image(uiImage: resultImage)
                                                     .resizable()
@@ -293,7 +357,53 @@ struct ThreeDGridView: View {
                                                     .aspectRatio(contentMode: .fill)
                                                     .cornerRadius(12)
                                                 #endif
+                                            } else if let segmentedImage = viewModel.segmentedPersonImage {
+                                                // Show segmented person mask when ready
+                                                #if canImport(UIKit)
+                                                Image(uiImage: segmentedImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .cornerRadius(12)
+                                                    .overlay(
+                                                        Text("人物分割完成")
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 8)
+                                                            .padding(.vertical, 4)
+                                                            .background(Color.black.opacity(0.6))
+                                                            .cornerRadius(8)
+                                                            .padding(8),
+                                                        alignment: .bottom
+                                                    )
+                                                #elseif canImport(AppKit)
+                                                Image(nsImage: segmentedImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .cornerRadius(12)
+                                                    .overlay(
+                                                        Text("人物分割完成")
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 8)
+                                                            .padding(.vertical, 4)
+                                                            .background(Color.black.opacity(0.6))
+                                                            .cornerRadius(8)
+                                                            .padding(8),
+                                                        alignment: .bottom
+                                                    )
+                                                #endif
+                                            } else if viewModel.isProcessingSegmentation {
+                                                // Show processing state
+                                                VStack(spacing: 10) {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle())
+                                                        .scaleEffect(1.2)
+                                                    Text("处理中...")
+                                                        .font(.system(size: 14))
+                                                        .foregroundColor(.gray)
+                                                }
                                             } else {
+                                                // Initial empty state
                                                 VStack(spacing: 10) {
                                                     Image(systemName: "photo.on.rectangle")
                                                         .font(.system(size: 40))
