@@ -63,6 +63,14 @@ class ThreeDGridViewModel: ObservableObject {
     @Published var showingResult = false
     @Published var showSaveSuccess = false
     @Published var currentGridIndex: Int = 0
+    @Published var segmentationError: String? = nil
+    
+    // Dependencies
+    private let segmentationService: PersonSegmentationServiceProtocol
+    
+    init(segmentationService: PersonSegmentationServiceProtocol = PersonSegmentationService()) {
+        self.segmentationService = segmentationService
+    }
     
     var isReadyToGenerate: Bool {
         let hasAllGridPhotos = !gridPhotos.contains(where: { $0 == nil })
@@ -73,21 +81,64 @@ class ThreeDGridViewModel: ObservableObject {
     func processPersonSegmentation() {
         guard let mainPhoto = mainSubjectPhoto else { return }
         
+        print("[ThreeDGridViewModel] Starting person segmentation for image: \(mainPhoto.size.width) x \(mainPhoto.size.height)")
         isProcessingSegmentation = true
+        segmentationError = nil
         
-        // Simulate processing time for person segmentation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-            guard let self = self else { return }
-            
-            // Fake person segmentation result (using the original image for now)
-            // In a real implementation, this would use Vision SDK for person segmentation
-            self.segmentedPersonImage = mainPhoto
+        Task {
+            do {
+                print("[ThreeDGridViewModel] Calling segmentation service")
+                // Use the actual person segmentation service
+                let segmentedImage = try await segmentationService.segmentPerson(from: mainPhoto)
+                print("[ThreeDGridViewModel] Segmentation completed successfully")
+                
+                await MainActor.run {
+                    print("[ThreeDGridViewModel] Updating UI with segmented image")
+                    self.segmentedPersonImage = segmentedImage
+                    self.isProcessingSegmentation = false
+                }
+            } catch {
+                print("[ThreeDGridViewModel] ERROR: Segmentation failed: \(error.localizedDescription)")
+                print("[ThreeDGridViewModel] Error details: \(String(describing: error))")
+                
+                // Check specifically for FileProvider error
+                let errorDescription = error.localizedDescription
+                if errorDescription.contains("FileProvider") || errorDescription.contains("bookmark") {
+                    print("[ThreeDGridViewModel] Detected FileProvider error, using alternative approach")
+                    // Try a simpler approach without Vision framework
+                    await handleFileProviderError(mainPhoto)
+                } else {
+                    await MainActor.run {
+                        self.segmentationError = error.localizedDescription
+                        self.isProcessingSegmentation = false
+                        
+                        // Fallback to using the original image if segmentation fails
+                        print("[ThreeDGridViewModel] Falling back to original image")
+                        self.segmentedPersonImage = mainPhoto
+                    }
+                }
+            }
+        }
+    }
+    
+    // Handle FileProvider error with a fallback approach
+    private func handleFileProviderError(_ image: PlatformImage) async {
+        print("[ThreeDGridViewModel] Using fallback segmentation method")
+        
+        // Simple fallback: just use the original image for now
+        // In a real implementation, you could implement a simpler segmentation approach here
+        // that doesn't rely on the Vision framework
+        
+        await MainActor.run {
+            self.segmentationError = "使用备用方法处理图像"
+            self.segmentedPersonImage = image
             self.isProcessingSegmentation = false
+            print("[ThreeDGridViewModel] Fallback segmentation completed")
         }
     }
     
     func generateThreeDGrid() {
-        isGenerating = true
+        self.isGenerating = true
         
         // Simulate processing time for blending segmented person with 9-grid
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -103,9 +154,9 @@ class ThreeDGridViewModel: ObservableObject {
     func saveToAlbum() {
         // Simulate saving to album
         #if canImport(UIKit)
-        if let image = resultImage {
+        if let image = self.resultImage {
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            showSaveSuccess = true
+            self.showSaveSuccess = true
         }
         #endif
     }
@@ -314,7 +365,7 @@ struct ThreeDGridView: View {
                                                         )
                                                 )
                                                 .shadow(color: Color.purple.opacity(0.4), radius: 5, x: 0, y: 2)
-                                                .modifier(RotationAnimationModifier(isAnimating: $viewModel.isProcessingSegmentation.wrappedValue))
+                                                .modifier(RotationAnimationModifier(isAnimating: viewModel.isProcessingSegmentation))
                                             
                                             if viewModel.isProcessingSegmentation {
                                                 // Show processing indicator
@@ -401,6 +452,23 @@ struct ThreeDGridView: View {
                                                     Text("处理中...")
                                                         .font(.system(size: 14))
                                                         .foregroundColor(.gray)
+                                                }
+                                            } else if let errorMessage = viewModel.segmentationError {
+                                                // Show error state
+                                                VStack(spacing: 10) {
+                                                    Image(systemName: "exclamationmark.triangle")
+                                                        .font(.system(size: 40))
+                                                        .foregroundColor(.orange)
+                                                    Text("分割失败")
+                                                        .font(.system(size: 14, weight: .medium))
+                                                        .foregroundColor(.orange)
+                                                    Text(errorMessage)
+                                                        .font(.system(size: 12))
+                                                        .foregroundColor(.gray)
+                                                        .multilineTextAlignment(.center)
+                                                        .lineLimit(2)
+                                                        .frame(maxWidth: .infinity)
+                                                        .padding(.horizontal, 8)
                                                 }
                                             } else {
                                                 // Initial empty state
