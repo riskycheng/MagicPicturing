@@ -56,6 +56,13 @@ struct RotationAnimationModifier: ViewModifier {
 // View model to handle the 3D grid effect logic - moved outside the View struct to avoid ViewBuilder issues
 class ThreeDGridViewModel: ObservableObject {
     @Published var gridPhotos: [PlatformImage?] = Array(repeating: nil, count: 9)
+    
+    // Position for the draggable person image
+    @Published var personOffsetX: CGFloat = 0
+    @Published var personOffsetY: CGFloat = 0
+    @Published var personScale: CGFloat = 1.0
+    @Published var lastScaleValue: CGFloat = 1.0 // For tracking pinch gesture
+    
     @Published var mainSubjectPhoto: PlatformImage? = nil {
         didSet {
             if mainSubjectPhoto != nil {
@@ -129,7 +136,10 @@ class ThreeDGridViewModel: ObservableObject {
                         backgroundImages: backgroundImages, 
                         personImage: segmentedPerson,
                         horizontalPadding: self.horizontalPadding,
-                        gridSpacing: self.gridSpacing
+                        gridSpacing: self.gridSpacing,
+                        personOffsetX: self.personOffsetX,
+                        personOffsetY: self.personOffsetY,
+                        personScale: self.personScale
                     )
                 } else {
                     // Fallback if no grid images
@@ -151,10 +161,13 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     // Create a 3D collage with the segmented person overlaid on the original grid view
-    private func createCollageImage(backgroundImages: [UIImage], personImage: UIImage, horizontalPadding: CGFloat, gridSpacing: CGFloat) -> UIImage {
+    private func createCollageImage(backgroundImages: [UIImage], personImage: UIImage, horizontalPadding: CGFloat, gridSpacing: CGFloat, personOffsetX: CGFloat, personOffsetY: CGFloat, personScale: CGFloat) -> UIImage {
         // Use screen dimensions for the final image
         let screenWidth = UIScreen.main.bounds.width
-        let screenHeight = UIScreen.main.bounds.height * 0.8 // Leave some space for buttons
+        // Adjust height to match content exactly as requested
+        let contentGridHeight = screenWidth // Grid is square
+        let textHeight: CGFloat = 40 // Height for the text at the bottom
+        let screenHeight = contentGridHeight + textHeight // Exact height to match content
         
         // Create a context to draw the collage
         UIGraphicsBeginImageContextWithOptions(CGSize(width: screenWidth, height: screenHeight), false, 0)
@@ -168,21 +181,21 @@ class ThreeDGridViewModel: ObservableObject {
         context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: screenWidth, y: screenHeight), options: [])
         
         // Instead of drawing each grid image individually, capture the entire grid as one screenshot
-        // First, create a grid view with the same layout as in the UI
-        let gridView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenWidth))
-        gridView.backgroundColor = .clear
+        // First, create a grid view with the same layout as in the UI - but centered with space around it
+        let gridWidth = screenWidth * 0.8 // Make grid 80% of screen width to leave space around it
+        let gridViewHeight = gridWidth // Keep it square
+        let gridView = UIView(frame: CGRect(x: (screenWidth - gridWidth) / 2, y: (screenHeight - gridViewHeight) / 2, 
+                                           width: gridWidth, height: gridViewHeight))
+        gridView.backgroundColor = UIColor.clear
         
-        // Add a green border around the grid (as seen in the reference image)
-        let borderView = UIView(frame: CGRect(x: horizontalPadding - 5, y: -5, 
-                                             width: screenWidth - (horizontalPadding * 2) + 10, 
-                                             height: screenWidth - (horizontalPadding * 2) + 10))
-        borderView.layer.borderWidth = 2
-        borderView.layer.borderColor = UIColor.green.cgColor
-        borderView.layer.cornerRadius = 12
-        gridView.addSubview(borderView)
+        // Add a blue background for the entire result view
+        let backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
+        backgroundView.backgroundColor = UIColor.blue
+        context.saveGState()
+        UIRectFill(backgroundView.frame)
+        context.restoreGState()
         
-        // Calculate grid dimensions
-        let gridWidth = screenWidth - (horizontalPadding * 2)
+        // Calculate grid dimensions - using the smaller grid size
         let cellWidth = (gridWidth - (gridSpacing * 2)) / 3
         let cellHeight = cellWidth // Square cells
         
@@ -191,7 +204,8 @@ class ThreeDGridViewModel: ObservableObject {
             let row = CGFloat(i / 3)
             let col = CGFloat(i % 3)
             
-            let x = horizontalPadding + col * (cellWidth + gridSpacing)
+            // Position relative to the grid view's origin
+            let x = col * (cellWidth + gridSpacing)
             let y = row * (cellHeight + gridSpacing)
             
             let imageView = UIImageView(frame: CGRect(x: x, y: y, width: cellWidth, height: cellHeight))
@@ -231,12 +245,13 @@ class ThreeDGridViewModel: ObservableObject {
         gridImage.draw(in: CGRect(x: 0, y: 0, width: screenWidth, height: screenWidth))
         
         // Calculate the position for the segmented person
-        // Place it in the middle-right area, overlapping some grid cells
-        let personWidth = cellWidth * 1.8
+        // Make the person image larger as requested
+        let personWidth = cellWidth * 2.5 * personScale
         let personHeight = personWidth * 1.5 // Maintain aspect ratio but make it taller
         
-        let personX = screenWidth - personWidth - horizontalPadding
-        let personY = cellHeight * 1.2 // Position it to overlap with middle row
+        // Use the draggable offset values to position the person
+        let personX = screenWidth - personWidth - (horizontalPadding * 0.5) + personOffsetX
+        let personY = cellHeight * 0.8 + personOffsetY // Apply user's drag offset
         
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
         
@@ -409,34 +424,71 @@ struct ThreeDGridView: View {
                                     // Display result
                                     VStack(spacing: 15) {
                                         #if canImport(UIKit)
-                                        Image(uiImage: resultImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .cornerRadius(15)
-                                            .shadow(color: Color.purple.opacity(0.5), radius: 10, x: 0, y: 5)
+                                        ZStack {
+                                            // Background color for the result view
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .fill(Color.blue)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.horizontal, 20)
+                                            
+                                            // Result image with gesture support
+                                            Image(uiImage: resultImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .cornerRadius(10)
+                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+                                                .padding(.horizontal, 40) // More padding to allow person to extend beyond grid
+                                                // Combined gestures for dragging and pinching
+                                                .gesture(
+                                                    DragGesture(minimumDistance: 1)
+                                                        .onChanged { value in
+                                                            viewModel.personOffsetX += value.translation.width / 2
+                                                            viewModel.personOffsetY += value.translation.height / 2
+                                                        }
+                                                        .onEnded { _ in
+                                                            viewModel.generateThreeDGrid()
+                                                        }
+                                                )
+                                                // Use a separate gesture for scaling
+                                                // We need to use a state variable to track the last scale value
+                                                .gesture(
+                                                    MagnificationGesture(minimumScaleDelta: 0.01)
+                                                        .onChanged { value in
+                                                            let delta = value / viewModel.lastScaleValue
+                                                            viewModel.lastScaleValue = value
+                                                            viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
+                                                        }
+                                                        .onEnded { _ in
+                                                            viewModel.lastScaleValue = 1.0
+                                                            viewModel.generateThreeDGrid()
+                                                        }
+                                                )
+                                        }
                                         #elseif canImport(AppKit)
                                         Image(nsImage: resultImage)
                                             .resizable()
                                             .aspectRatio(contentMode: .fit)
-                                            .cornerRadius(15)
-                                            .shadow(color: Color.purple.opacity(0.5), radius: 10, x: 0, y: 5)
+                                            .cornerRadius(10)
+                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+                                            .padding(.horizontal)
                                         #endif
                                         
-                                        Button(action: {
-                                            viewModel.saveToAlbum()
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "square.and.arrow.down")
-                                                Text("保存到相册")
-                                            }
+                                        // Display instructions for gestures
+                                        Text("拖拽调整位置，捏合调整大小")
+                                            .font(.caption)
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .padding(.vertical, 5)
+                                        
+                                        Text("立体九宫格")
+                                            .font(.title2)
+                                            .fontWeight(.medium)
                                             .foregroundColor(.white)
-                                            .padding(.vertical, 12)
-                                            .padding(.horizontal, horizontalPadding)
-                                            .background(Color.blue)
-                                            .cornerRadius(25)
-                                        }
+                                            .padding(.top, 5)
                                     }
-                                    .padding()
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, horizontalPadding)
+                                    .background(Color.blue)
+                                    .cornerRadius(25)
                                 } else {
                                     // 3x3 Grid
                                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
@@ -651,9 +703,19 @@ struct ThreeDGridView: View {
                             .padding(.bottom, 70) // Space for the button
                         }
                         
-                        // Generate button at the bottom
+                        // Button at the bottom - changes functionality based on state
                         Button(action: {
-                            viewModel.generateThreeDGrid()
+                            if viewModel.showingResult {
+                                // Save to photo album functionality
+                                #if canImport(UIKit)
+                                if let resultImage = viewModel.resultImage {
+                                    UIImageWriteToSavedPhotosAlbum(resultImage, nil, nil, nil)
+                                }
+                                #endif
+                            } else {
+                                // Generate functionality
+                                viewModel.generateThreeDGrid()
+                            }
                         }) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 25)
@@ -670,14 +732,14 @@ struct ThreeDGridView: View {
                                             .foregroundColor(.white)
                                     }
                                 } else {
-                                    Text("生成立体九宫格")
+                                    Text(viewModel.showingResult ? "保存到相册" : "生成立体九宫格")
                                         .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
                             }
                             .padding(.horizontal, horizontalPadding)
                         }
-                        .disabled(!viewModel.isReadyToGenerate || viewModel.isGenerating)
+                        .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
                         .padding(.horizontal, horizontalPadding)
                         .padding(.bottom, 20)
                     }
