@@ -98,18 +98,49 @@ class ThreeDGridViewModel: ObservableObject {
         return gridPhotos.contains(where: { $0 != nil }) && mainSubjectPhoto != nil
     }
     
+    // Add properties to store layout values
+    var horizontalPadding: CGFloat = 25
+    var gridSpacing: CGFloat = 4
+    
     func generateThreeDGrid() {
         guard isReadyToGenerate else { return }
         
         // Set generating state
         self.isGenerating = true
         
-        // Simulate processing time
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            // Create a mock result image (in a real app, this would be the actual generated image)
+        // Use a Timer instead of DispatchQueue to avoid syntax issues
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            
             #if canImport(UIKit)
-            self.resultImage = self.mainSubjectPhoto
+            // Create a composite image with the segmented person overlaid on the grid
+            if let segmentedPerson = self.segmentedPersonImage {
+                // Get background images from the grid
+                var backgroundImages: [UIImage] = []
+                for image in self.gridPhotos {
+                    if let img = image {
+                        backgroundImages.append(img)
+                    }
+                }
+                
+                if !backgroundImages.isEmpty {
+                    // Create a collage with the segmented person overlaid on the grid images
+                    self.resultImage = self.createCollageImage(
+                        backgroundImages: backgroundImages, 
+                        personImage: segmentedPerson,
+                        horizontalPadding: self.horizontalPadding,
+                        gridSpacing: self.gridSpacing
+                    )
+                } else {
+                    // Fallback if no grid images
+                    self.resultImage = segmentedPerson
+                }
+            } else {
+                // Fallback to main subject photo if segmentation failed
+                self.resultImage = self.mainSubjectPhoto
+            }
             #elseif canImport(AppKit)
+            // For macOS, just use the main photo as a placeholder
             self.resultImage = self.mainSubjectPhoto
             #endif
             
@@ -117,6 +148,125 @@ class ThreeDGridViewModel: ObservableObject {
             self.showingResult = true
         }
     }
+    
+    #if canImport(UIKit)
+    // Create a 3D collage with the segmented person overlaid on the original grid view
+    private func createCollageImage(backgroundImages: [UIImage], personImage: UIImage, horizontalPadding: CGFloat, gridSpacing: CGFloat) -> UIImage {
+        // Use screen dimensions for the final image
+        let screenWidth = UIScreen.main.bounds.width
+        let screenHeight = UIScreen.main.bounds.height * 0.8 // Leave some space for buttons
+        
+        // Create a context to draw the collage
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: screenWidth, height: screenHeight), false, 0)
+        
+        // Fill background with a gradient
+        let context = UIGraphicsGetCurrentContext()!
+        let colors = [UIColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 1.0).cgColor, UIColor(red: 0.1, green: 0.05, blue: 0.2, alpha: 1.0).cgColor]
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let colorLocations: [CGFloat] = [0.0, 1.0]
+        let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: colorLocations)!
+        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: screenWidth, y: screenHeight), options: [])
+        
+        // Instead of drawing each grid image individually, capture the entire grid as one screenshot
+        // First, create a grid view with the same layout as in the UI
+        let gridView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenWidth))
+        gridView.backgroundColor = .clear
+        
+        // Add a green border around the grid (as seen in the reference image)
+        let borderView = UIView(frame: CGRect(x: horizontalPadding - 5, y: -5, 
+                                             width: screenWidth - (horizontalPadding * 2) + 10, 
+                                             height: screenWidth - (horizontalPadding * 2) + 10))
+        borderView.layer.borderWidth = 2
+        borderView.layer.borderColor = UIColor.green.cgColor
+        borderView.layer.cornerRadius = 12
+        gridView.addSubview(borderView)
+        
+        // Calculate grid dimensions
+        let gridWidth = screenWidth - (horizontalPadding * 2)
+        let cellWidth = (gridWidth - (gridSpacing * 2)) / 3
+        let cellHeight = cellWidth // Square cells
+        
+        // Add all grid images to the view
+        for i in 0..<min(backgroundImages.count, 9) {
+            let row = CGFloat(i / 3)
+            let col = CGFloat(i % 3)
+            
+            let x = horizontalPadding + col * (cellWidth + gridSpacing)
+            let y = row * (cellHeight + gridSpacing)
+            
+            let imageView = UIImageView(frame: CGRect(x: x, y: y, width: cellWidth, height: cellHeight))
+            imageView.contentMode = .scaleAspectFill
+            imageView.layer.cornerRadius = 8
+            imageView.clipsToBounds = true
+            imageView.image = backgroundImages[i % backgroundImages.count]
+            
+            // Add the "立体九宫格" text overlay on each cell (as seen in the reference image)
+            let textLabel = UILabel(frame: CGRect(x: 0, y: cellHeight - 40, width: cellWidth, height: 20))
+            textLabel.text = "立体九宫格"
+            textLabel.textColor = .white
+            textLabel.textAlignment = .center
+            textLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+            textLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            imageView.addSubview(textLabel)
+            
+            // Add small text at the bottom (as seen in the reference image)
+            let smallLabel = UILabel(frame: CGRect(x: 0, y: cellHeight - 20, width: cellWidth, height: 20))
+            smallLabel.text = "点击查看更多作品"
+            smallLabel.textColor = .white
+            smallLabel.textAlignment = .center
+            smallLabel.font = UIFont.systemFont(ofSize: 8, weight: .regular)
+            smallLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            imageView.addSubview(smallLabel)
+            
+            gridView.addSubview(imageView)
+        }
+        
+        // Render the grid view to an image
+        let renderer = UIGraphicsImageRenderer(bounds: gridView.bounds)
+        let gridImage = renderer.image { _ in
+            gridView.drawHierarchy(in: gridView.bounds, afterScreenUpdates: true)
+        }
+        
+        // Draw the grid image in the context
+        gridImage.draw(in: CGRect(x: 0, y: 0, width: screenWidth, height: screenWidth))
+        
+        // Calculate the position for the segmented person
+        // Place it in the middle-right area, overlapping some grid cells
+        let personWidth = cellWidth * 1.8
+        let personHeight = personWidth * 1.5 // Maintain aspect ratio but make it taller
+        
+        let personX = screenWidth - personWidth - horizontalPadding
+        let personY = cellHeight * 1.2 // Position it to overlap with middle row
+        
+        let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
+        
+        // Draw the person with a slight shadow for depth
+        context.saveGState()
+        context.setShadow(offset: CGSize(width: 3, height: 3), blur: 5, color: UIColor.black.withAlphaComponent(0.5).cgColor)
+        personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+        context.restoreGState()
+        
+        // Add the "立体九宫格" text at the bottom
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
+            .foregroundColor: UIColor.white,
+            .paragraphStyle: paragraphStyle
+        ]
+        
+        let text = "立体九宫格"
+        let textRect = CGRect(x: 0, y: screenHeight - 40, width: screenWidth, height: 30)
+        text.draw(in: textRect, withAttributes: attributes)
+        
+        // Get the final image
+        let finalImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        return finalImage
+    }
+    #endif
     
     func resetView() {
         showingResult = false
@@ -206,6 +356,7 @@ struct ThreeDGridView: View {
     #endif
     
     var body: some View {
+        // Initialize view model with layout values
         NavigationView {
             ZStack {
                 // Background
@@ -539,6 +690,10 @@ struct ThreeDGridView: View {
                 // Set status bar style to light
                 UIApplication.shared.statusBarStyle = .lightContent
                 #endif
+                
+                // Pass layout values to view model
+                viewModel.horizontalPadding = self.horizontalPadding
+                viewModel.gridSpacing = self.gridSpacing
             }
         }
         .sheet(isPresented: $isShowingGridPicker) {
