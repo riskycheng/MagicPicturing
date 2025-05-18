@@ -21,7 +21,7 @@ protocol PersonSegmentationServiceProtocol {
 /// Service responsible for person segmentation using Vision framework
 class PersonSegmentationService: PersonSegmentationServiceProtocol {
     
-    enum SegmentationError: Error, LocalizedError {
+    enum PersonSegmentationError: Error, LocalizedError {
         case invalidImage
         case noSegmentationMask
         case graphicsContextCreationFailed
@@ -96,7 +96,7 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         
         guard let cgImage = normalizedImage.cgImage else {
             print("[PersonSegmentation] ERROR: Failed to get CGImage from normalized image")
-            throw SegmentationError.invalidImage
+            throw PersonSegmentationError.invalidImage
         }
         print("[PersonSegmentation] CGImage obtained: \(cgImage.width) x \(cgImage.height)")
         
@@ -131,7 +131,7 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         
         guard let mask = request.results?.first?.pixelBuffer else {
             print("[PersonSegmentation] ERROR: No pixelBuffer in segmentation results")
-            throw SegmentationError.noSegmentationMask
+            throw PersonSegmentationError.noSegmentationMask
         }
         print("[PersonSegmentation] Successfully obtained segmentation mask")
         print("[PersonSegmentation] Mask dimensions: \(CVPixelBufferGetWidth(mask)) x \(CVPixelBufferGetHeight(mask))")
@@ -205,7 +205,7 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
                                       space: CGColorSpaceCreateDeviceRGB(),
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
             print("[PersonSegmentation] ERROR: Failed to create graphics context")
-            throw SegmentationError.graphicsContextCreationFailed
+            throw PersonSegmentationError.graphicsContextCreationFailed
         }
         print("[PersonSegmentation] CGContext created successfully")
         
@@ -213,17 +213,17 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         print("[PersonSegmentation] Accessing original image data")
         guard let originalImageProvider = image.dataProvider else {
             print("[PersonSegmentation] ERROR: Failed to get image data provider")
-            throw SegmentationError.invalidImage
+            throw PersonSegmentationError.invalidImage
         }
         
         guard let originalImageData = originalImageProvider.data else {
             print("[PersonSegmentation] ERROR: Failed to get image data from provider")
-            throw SegmentationError.invalidImage
+            throw PersonSegmentationError.invalidImage
         }
         
         guard let originalPixels = CFDataGetBytePtr(originalImageData) else {
             print("[PersonSegmentation] ERROR: Failed to get byte pointer from image data")
-            throw SegmentationError.invalidImage
+            throw PersonSegmentationError.invalidImage
         }
         
         print("[PersonSegmentation] Successfully accessed original image data")
@@ -240,7 +240,7 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         print("[PersonSegmentation] Getting mask base address")
         guard let maskData = CVPixelBufferGetBaseAddress(mask) else {
             print("[PersonSegmentation] ERROR: Failed to get mask base address")
-            throw SegmentationError.maskDataAccessFailed
+            throw PersonSegmentationError.maskDataAccessFailed
         }
         
         // 获取遮罩属性
@@ -322,7 +322,7 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         print("[PersonSegmentation] Creating result image from context")
         guard let resultCGImage = context.makeImage() else {
             print("[PersonSegmentation] ERROR: Failed to create result image from context")
-            throw SegmentationError.resultImageCreationFailed
+            throw PersonSegmentationError.resultImageCreationFailed
         }
         print("[PersonSegmentation] Result CGImage created successfully")
         

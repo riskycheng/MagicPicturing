@@ -8,44 +8,10 @@
 import Foundation
 import SwiftUI
 
-/// Represents the current state of the segmentation process
+/// 简单的分割状态枚举，不带关联值
 enum SegmentationState: Equatable {
     case idle
     case loading
-    case success(PlatformImage)
-    case failure(String)
-    
-    var isLoading: Bool {
-        if case .loading = self {
-            return true
-        }
-        return false
-    }
-    
-    var resultImage: PlatformImage? {
-        if case .success(let image) = self {
-            return image
-        }
-        return nil
-    }
-    
-    var errorMessage: String? {
-        if case .failure(let message) = self {
-            return message
-        }
-        return nil
-    }
-    
-    static func == (lhs: SegmentationState, rhs: SegmentationState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle), (.loading, .loading):
-            return true
-        case (.success(let lhsImage), .success(let rhsImage)):
-            return lhsImage === rhsImage
-        case (.failure(let lhsMessage), .failure(let rhsMessage)):
-            return lhsMessage == rhsMessage
-        default:
-            return false
-        }
-    }
+    case success
+    case failure
 }

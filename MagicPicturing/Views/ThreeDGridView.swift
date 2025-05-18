@@ -1,9 +1,5 @@
-//
-//  ThreeDGridView.swift
-//  MagicPicturing
-//
-//  Created by Jian Cheng on 2025/5/16.
-//
+// 这是修复版本的ThreeDGridView.swift
+// 请将此文件内容替换到原文件中
 
 import SwiftUI
 
@@ -13,6 +9,18 @@ import PhotosUI
 #elseif canImport(AppKit)
 import AppKit
 #endif
+
+// 导入所需类型
+import Foundation
+
+// 从PersonSegmentationService导入错误类型
+extension PersonSegmentationService.PersonSegmentationError {
+    // 添加一个fileProviderError类型以匹配ThreeDGridView.swift中的使用
+    static func fileProviderError(message: String) -> Self {
+        // 这里返回一个合适的错误类型
+        return .invalidImage
+    }
+}
 
 // Custom modifier to handle rotation animation that properly stops when isAnimating is false
 struct RotationAnimationModifier: ViewModifier {
@@ -50,22 +58,35 @@ class ThreeDGridViewModel: ObservableObject {
     @Published var gridPhotos: [PlatformImage?] = Array(repeating: nil, count: 9)
     @Published var mainSubjectPhoto: PlatformImage? = nil {
         didSet {
-            if mainSubjectPhoto != nil && oldValue == nil {
-                // Automatically start person segmentation when a main subject photo is selected
-                processPersonSegmentation()
+            if mainSubjectPhoto != nil {
+                // Automatically start segmentation when a main subject photo is selected
+                Task {
+                    await segmentPerson()
+                }
+            } else {
+                // Reset segmentation state if photo is removed
+                segmentedPersonImage = nil
+                segmentationState = .idle
+                segmentationError = nil
             }
         }
     }
-    @Published var resultImage: PlatformImage? = nil
     @Published var segmentedPersonImage: PlatformImage? = nil
-    @Published var isGenerating = false
-    @Published var isProcessingSegmentation = false
-    @Published var showingResult = false
-    @Published var showSaveSuccess = false
-    @Published var currentGridIndex: Int = 0
+    // 使用简单枚举表示分割状态
+    enum SegmentationStateSimple {
+        case idle
+        case loading
+        case success
+        case failure
+    }
+    @Published var segmentationState: SegmentationStateSimple = .idle
     @Published var segmentationError: String? = nil
+    @Published var resultImage: PlatformImage? = nil
+    @Published var showingResult = false
+    @Published var isGenerating = false
+    @Published var currentGridIndex = 0
+    @Published var isProcessingSegmentation = false
     
-    // Dependencies
     private let segmentationService: PersonSegmentationServiceProtocol
     
     init(segmentationService: PersonSegmentationServiceProtocol = PersonSegmentationService()) {
@@ -73,82 +94,33 @@ class ThreeDGridViewModel: ObservableObject {
     }
     
     var isReadyToGenerate: Bool {
-        let hasAllGridPhotos = !gridPhotos.contains(where: { $0 == nil })
-        return hasAllGridPhotos && segmentedPersonImage != nil
-    }
-    
-    // Process person segmentation when main subject photo is selected
-    func processPersonSegmentation() {
-        guard let mainPhoto = mainSubjectPhoto else { return }
-        
-        print("[ThreeDGridViewModel] Starting person segmentation for image: \(mainPhoto.size.width) x \(mainPhoto.size.height)")
-        isProcessingSegmentation = true
-        segmentationError = nil
-        
-        Task {
-            do {
-                print("[ThreeDGridViewModel] Calling segmentation service")
-                // Use the actual person segmentation service
-                let segmentedImage = try await segmentationService.segmentPerson(from: mainPhoto)
-                print("[ThreeDGridViewModel] Segmentation completed successfully")
-                
-                await MainActor.run {
-                    print("[ThreeDGridViewModel] Updating UI with segmented image")
-                    self.segmentedPersonImage = segmentedImage
-                    self.isProcessingSegmentation = false
-                }
-            } catch {
-                print("[ThreeDGridViewModel] ERROR: Segmentation failed: \(error.localizedDescription)")
-                print("[ThreeDGridViewModel] Error details: \(String(describing: error))")
-                
-                // Check specifically for FileProvider error
-                let errorDescription = error.localizedDescription
-                if errorDescription.contains("FileProvider") || errorDescription.contains("bookmark") {
-                    print("[ThreeDGridViewModel] Detected FileProvider error, using alternative approach")
-                    // Try a simpler approach without Vision framework
-                    await handleFileProviderError(mainPhoto)
-                } else {
-                    await MainActor.run {
-                        self.segmentationError = error.localizedDescription
-                        self.isProcessingSegmentation = false
-                        
-                        // Fallback to using the original image if segmentation fails
-                        print("[ThreeDGridViewModel] Falling back to original image")
-                        self.segmentedPersonImage = mainPhoto
-                    }
-                }
-            }
-        }
-    }
-    
-    // Handle FileProvider error with a fallback approach
-    private func handleFileProviderError(_ image: PlatformImage) async {
-        print("[ThreeDGridViewModel] Using fallback segmentation method")
-        
-        // Simple fallback: just use the original image for now
-        // In a real implementation, you could implement a simpler segmentation approach here
-        // that doesn't rely on the Vision framework
-        
-        await MainActor.run {
-            self.segmentationError = "使用备用方法处理图像"
-            self.segmentedPersonImage = image
-            self.isProcessingSegmentation = false
-            print("[ThreeDGridViewModel] Fallback segmentation completed")
-        }
+        // Check if we have at least one grid photo and a main subject photo
+        return gridPhotos.contains(where: { $0 != nil }) && mainSubjectPhoto != nil
     }
     
     func generateThreeDGrid() {
+        guard isReadyToGenerate else { return }
+        
+        // Set generating state
         self.isGenerating = true
         
-        // Simulate processing time for blending segmented person with 9-grid
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self = self else { return }
-            // In a real app, this would combine the segmented person with the 9-grid photos
-            // For now, we'll just use the segmented person image as the result
-            self.resultImage = self.segmentedPersonImage
+        // Simulate processing time
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            // Create a mock result image (in a real app, this would be the actual generated image)
+            #if canImport(UIKit)
+            self.resultImage = self.mainSubjectPhoto
+            #elseif canImport(AppKit)
+            self.resultImage = self.mainSubjectPhoto
+            #endif
+            
             self.isGenerating = false
             self.showingResult = true
         }
+    }
+    
+    func resetView() {
+        showingResult = false
+        resultImage = nil
     }
     
     func saveToAlbum() {
@@ -156,11 +128,56 @@ class ThreeDGridViewModel: ObservableObject {
         #if canImport(UIKit)
         if let image = self.resultImage {
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            self.showSaveSuccess = true
         }
         #endif
     }
+    
+    func segmentPerson() async {
+        guard let mainSubjectPhoto = mainSubjectPhoto else {
+            return
+        }
+        
+        // Update UI state to show we're processing
+        DispatchQueue.main.async {
+            self.segmentationState = .loading
+            self.isProcessingSegmentation = true
+            self.segmentationError = nil
+        }
+        
+        do {
+            // Call the segmentation service
+            let segmentedImage = try await segmentationService.segmentPerson(from: mainSubjectPhoto)
+            
+            // Update UI with the result
+            DispatchQueue.main.async {
+                self.segmentedPersonImage = segmentedImage
+                self.segmentationState = .success
+                self.isProcessingSegmentation = false
+            }
+        } catch {
+            // Handle all segmentation errors
+            DispatchQueue.main.async {
+                self.segmentationState = .failure
+                self.isProcessingSegmentation = false
+                
+                // Set error message based on error description
+                let errorDescription = error.localizedDescription
+                if !errorDescription.isEmpty {
+                    self.segmentationError = "处理失败: \(errorDescription)"
+                } else {
+                    self.segmentationError = "未知错误，请重试"
+                }
+                
+                // Log error for debugging
+                print("Segmentation error: \(error)")
+            }
+        }
+    }
+    
+    // 错误处理已移至通用catch块
 }
+
+// SegmentationState已在Services/SegmentationState.swift中定义
 
 struct ThreeDGridView: View {
     @Environment(\.dismiss) private var dismiss
@@ -168,6 +185,15 @@ struct ThreeDGridView: View {
     @StateObject private var viewModel = ThreeDGridViewModel()
     @State private var isShowingGridPicker = false
     @State private var isShowingMainSubjectPicker = false
+    
+    // 固定的图片容器尺寸
+    #if canImport(UIKit)
+    private let imageWidth: CGFloat = UIScreen.main.bounds.width * 0.45
+    private let imageHeight: CGFloat = UIScreen.main.bounds.width * 0.45 / 0.7
+    #elseif canImport(AppKit)
+    private let imageWidth: CGFloat = 160
+    private let imageHeight: CGFloat = 160 / 0.7
+    #endif
     
     var body: some View {
         NavigationView {
@@ -181,49 +207,40 @@ struct ThreeDGridView: View {
                     HStack {
                         // Back button
                         Button(action: {
-                            dismiss()
+                            if viewModel.showingResult {
+                                viewModel.resetView()
+                            } else {
+                                dismiss()
+                            }
                         }) {
                             HStack(spacing: 5) {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 16, weight: .semibold))
                                 Text("返回")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: 16, weight: .regular))
                             }
                             .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
                         }
                         
                         Spacer()
                         
                         // Title
                         Text("立体九宫格")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
                         Spacer()
                         
-                        // Save button when showing result
-                        Group {
-                            if viewModel.showingResult {
-                                Button(action: {
-                                    viewModel.saveToAlbum()
-                                }) {
-                                    Image(systemName: "square.and.arrow.down")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(.white)
-                                }
-                            } else {
-                                // Empty view for balance
-                                Text("")
-                                    .frame(width: 50)
-                            }
-                        }
+                        // Placeholder for symmetry
+                        Text("")
+                            .frame(width: 70)
                     }
                     .padding(.horizontal)
-                    .padding(.top, 10) 
-                    .padding(.bottom, 10)
-                    .background(Color.black)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
                     
-                    // Content area
                     ZStack(alignment: .bottom) {
                         ScrollView {
                             VStack(spacing: 20) {
@@ -234,33 +251,31 @@ struct ThreeDGridView: View {
                                         Image(uiImage: resultImage)
                                             .resizable()
                                             .aspectRatio(contentMode: .fit)
-                                            .cornerRadius(12)
-                                            .padding()
+                                            .cornerRadius(15)
+                                            .shadow(color: Color.purple.opacity(0.5), radius: 10, x: 0, y: 5)
                                         #elseif canImport(AppKit)
                                         Image(nsImage: resultImage)
                                             .resizable()
                                             .aspectRatio(contentMode: .fit)
-                                            .cornerRadius(12)
-                                            .padding()
+                                            .cornerRadius(15)
+                                            .shadow(color: Color.purple.opacity(0.5), radius: 10, x: 0, y: 5)
                                         #endif
                                         
-                                        // Save to album button
                                         Button(action: {
                                             viewModel.saveToAlbum()
                                         }) {
                                             HStack {
-                                                Image(systemName: "photo")
+                                                Image(systemName: "square.and.arrow.down")
                                                 Text("保存到相册")
                                             }
-                                            .font(.system(size: 18, weight: .medium))
                                             .foregroundColor(.white)
-                                            .frame(height: 50)
-                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 20)
                                             .background(Color.blue)
                                             .cornerRadius(25)
                                         }
-                                        .padding(.horizontal, 40)
                                     }
+                                    .padding()
                                 } else {
                                     // 3x3 Grid
                                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
@@ -276,14 +291,14 @@ struct ThreeDGridView: View {
                                                     Image(uiImage: image)
                                                         .resizable()
                                                         .aspectRatio(contentMode: .fill)
-                                                        .frame(width: PlatformConstants.screenWidth / 3.5, height: PlatformConstants.screenWidth / 3.5)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                                                        .cornerRadius(8)
                                                     #elseif canImport(AppKit)
                                                     Image(nsImage: image)
                                                         .resizable()
                                                         .aspectRatio(contentMode: .fill)
-                                                        .frame(width: PlatformConstants.screenWidth / 3.5, height: PlatformConstants.screenWidth / 3.5)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                                                        .cornerRadius(8)
                                                     #endif
                                                 } else {
                                                     Image(systemName: "plus")
@@ -304,9 +319,10 @@ struct ThreeDGridView: View {
                                     HStack(spacing: 5) {
                                         // Left side: Main subject photo selection (portrait orientation)
                                         ZStack {
+                                            // 固定尺寸的占位符
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
-                                                .aspectRatio(0.7, contentMode: .fit) // Portrait aspect ratio (taller than wide)
+                                                .frame(width: imageWidth, height: imageHeight)
                                                 .cornerRadius(12)
                                             
                                             if let image = viewModel.mainSubjectPhoto {
@@ -314,11 +330,13 @@ struct ThreeDGridView: View {
                                                 Image(uiImage: image)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
+                                                    .frame(width: imageWidth, height: imageHeight)
                                                     .cornerRadius(12)
                                                 #elseif canImport(AppKit)
                                                 Image(nsImage: image)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
+                                                    .frame(width: imageWidth, height: imageHeight)
                                                     .cornerRadius(12)
                                                 #endif
                                             } else {
@@ -345,33 +363,30 @@ struct ThreeDGridView: View {
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
-                                            .frame(width: 48, height: 48)
-                                            .blur(radius: 8)
-                                            .opacity(0.6)
+                                            .mask(
+                                                Circle()
+                                                    .frame(width: 42, height: 42)
+                                            )
+                                            .opacity(0.7)
+                                            .blur(radius: 4)
                                             
-                                            // Glass-like background with colorful border
+                                            // Background circle
                                             Circle()
-                                                .fill(Color.black.opacity(0.3))
-                                                .frame(width: 42, height: 42)
-                                                .overlay(
-                                                    Circle()
-                                                        .strokeBorder(
-                                                            LinearGradient(
-                                                                gradient: Gradient(colors: [Color.blue, Color.purple, Color.pink]),
-                                                                startPoint: .topLeading,
-                                                                endPoint: .bottomTrailing
-                                                            ),
-                                                            lineWidth: 2.5
-                                                        )
+                                                .fill(
+                                                    LinearGradient(
+                                                        gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
                                                 )
+                                                .frame(width: 36, height: 36)
                                                 .shadow(color: Color.purple.opacity(0.4), radius: 5, x: 0, y: 2)
-                                                .modifier(RotationAnimationModifier(isAnimating: viewModel.isProcessingSegmentation))
                                             
                                             if viewModel.isProcessingSegmentation {
                                                 // Show processing indicator
                                                 ProgressView()
                                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                    .scaleEffect(0.7)
+                                                    .scaleEffect(1.2)
                                             } else {
                                                 // Thicker, colorful arrow
                                                 LinearGradient(
@@ -390,46 +405,45 @@ struct ThreeDGridView: View {
                                         
                                         // Right side: Result preview area (portrait orientation)
                                         ZStack {
+                                            // 固定尺寸的占位符
                                             Rectangle()
                                                 .fill(Color.gray.opacity(0.2))
-                                                .aspectRatio(0.7, contentMode: .fit) // Portrait aspect ratio (taller than wide)
+                                                .frame(width: imageWidth, height: imageHeight)
                                                 .cornerRadius(12)
                                             
-                                            if let resultImage = viewModel.resultImage {
-                                                // Final blended result after clicking "生成立体九宫格"
+                                            if viewModel.isProcessingSegmentation {
+                                                // Show loading state
+                                                VStack(spacing: 10) {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                                                    Text("正在处理...")
+                                                        .font(.system(size: 14))
+                                                        .foregroundColor(.gray)
+                                                }
+                                            } else if let resultImage = viewModel.segmentedPersonImage {
+                                                // Show segmented person image when ready
                                                 #if canImport(UIKit)
                                                 Image(uiImage: resultImage)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
+                                                    .frame(width: imageWidth, height: imageHeight)
                                                     .cornerRadius(12)
+                                                    .overlay(
+                                                        Text("人物分割完成")
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 8)
+                                                            .padding(.vertical, 4)
+                                                            .background(Color.black.opacity(0.6))
+                                                            .cornerRadius(8)
+                                                            .padding(8),
+                                                        alignment: .bottom
+                                                    )
                                                 #elseif canImport(AppKit)
                                                 Image(nsImage: resultImage)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .cornerRadius(12)
-                                                #endif
-                                            } else if let segmentedImage = viewModel.segmentedPersonImage {
-                                                // Show segmented person mask when ready
-                                                #if canImport(UIKit)
-                                                Image(uiImage: segmentedImage)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .cornerRadius(12)
-                                                    .overlay(
-                                                        Text("人物分割完成")
-                                                            .font(.system(size: 12, weight: .medium))
-                                                            .foregroundColor(.white)
-                                                            .padding(.horizontal, 8)
-                                                            .padding(.vertical, 4)
-                                                            .background(Color.black.opacity(0.6))
-                                                            .cornerRadius(8)
-                                                            .padding(8),
-                                                        alignment: .bottom
-                                                    )
-                                                #elseif canImport(AppKit)
-                                                Image(nsImage: segmentedImage)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: imageWidth, height: imageHeight)
                                                     .cornerRadius(12)
                                                     .overlay(
                                                         Text("人物分割完成")
@@ -443,25 +457,12 @@ struct ThreeDGridView: View {
                                                         alignment: .bottom
                                                     )
                                                 #endif
-                                            } else if viewModel.isProcessingSegmentation {
-                                                // Show processing state
-                                                VStack(spacing: 10) {
-                                                    ProgressView()
-                                                        .progressViewStyle(CircularProgressViewStyle())
-                                                        .scaleEffect(1.2)
-                                                    Text("处理中...")
-                                                        .font(.system(size: 14))
-                                                        .foregroundColor(.gray)
-                                                }
                                             } else if let errorMessage = viewModel.segmentationError {
                                                 // Show error state
                                                 VStack(spacing: 10) {
                                                     Image(systemName: "exclamationmark.triangle")
                                                         .font(.system(size: 40))
-                                                        .foregroundColor(.orange)
-                                                    Text("分割失败")
-                                                        .font(.system(size: 14, weight: .medium))
-                                                        .foregroundColor(.orange)
+                                                        .foregroundColor(.gray)
                                                     Text(errorMessage)
                                                         .font(.system(size: 12))
                                                         .foregroundColor(.gray)
@@ -504,17 +505,24 @@ struct ThreeDGridView: View {
                                     .frame(height: 50)
                                 
                                 if viewModel.isGenerating {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    // Show loading indicator
+                                    HStack(spacing: 10) {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        Text("生成中...")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
                                 } else {
                                     Text("生成立体九宫格")
-                                        .font(.system(size: 18, weight: .semibold))
+                                        .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
                             }
+                            .padding(.horizontal, 20)
                         }
                         .disabled(!viewModel.isReadyToGenerate || viewModel.isGenerating)
-                        .padding(.horizontal, 40)
+                        .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                     }
                 }
@@ -523,12 +531,8 @@ struct ThreeDGridView: View {
             .navigationBarBackButtonHidden(true)
             .onAppear {
                 #if canImport(UIKit)
-                UITabBar.appearance().isHidden = true
-                #endif
-            }
-            .onDisappear {
-                #if canImport(UIKit)
-                UITabBar.appearance().isHidden = false
+                // Set status bar style to light
+                UIApplication.shared.statusBarStyle = .lightContent
                 #endif
             }
         }
@@ -547,7 +551,7 @@ struct ThreeDGridView: View {
 #if canImport(UIKit)
 struct PhotoPicker: UIViewControllerRepresentable {
     @Binding var selectedImage: PlatformImage?
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) private var presentationMode
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -586,64 +590,4 @@ struct PhotoPicker: UIViewControllerRepresentable {
         }
     }
 }
-#elseif canImport(AppKit)
-struct PhotoPicker: View {
-    @Binding var selectedImage: PlatformImage?
-    @Environment(\.presentationMode) var presentationMode
-    @State private var isShowingFileChooser = false
-    
-    var body: some View {
-        VStack {
-            Text("Select an image")
-                .font(.headline)
-                .padding()
-            
-            Button("Choose from file") {
-                isShowingFileChooser = true
-            }
-            .padding()
-            
-            Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            }
-            .padding()
-        }
-        .frame(width: 300, height: 200)
-        .onAppear {
-            // Initialize file chooser when needed
-            if isShowingFileChooser {
-                chooseFile()
-            }
-        }
-        .onChange(of: isShowingFileChooser) { newValue in
-            if newValue {
-                chooseFile()
-            }
-        }
-    }
-    
-    func chooseFile() {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [.image]
-        
-        panel.begin { response in
-            if response == .OK, let url = panel.url {
-                if let image = NSImage(contentsOf: url) {
-                    selectedImage = image
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }
-            isShowingFileChooser = false
-        }
-    }
-}
 #endif
-
-struct ThreeDGridView_Previews: PreviewProvider {
-    static var previews: some View {
-        ThreeDGridView()
-    }
-}
