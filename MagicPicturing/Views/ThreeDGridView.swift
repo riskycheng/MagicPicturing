@@ -180,11 +180,13 @@ class ThreeDGridViewModel: ObservableObject {
         let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: colorLocations)!
         context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: screenWidth, y: screenHeight), options: [])
         
-        // Instead of drawing each grid image individually, capture the entire grid as one screenshot
-        // First, create a grid view with the same layout as in the UI - but centered with space around it
-        let gridWidth = screenWidth * 0.8 // Make grid 80% of screen width to leave space around it
+        // Make the grid larger to match the previous page layout
+        let gridWidth = screenWidth * 0.9 // Make grid 90% of screen width to match previous page
         let gridViewHeight = gridWidth // Keep it square
-        let gridView = UIView(frame: CGRect(x: (screenWidth - gridWidth) / 2, y: (screenHeight - gridViewHeight) / 2, 
+        
+        // Center the grid in the view
+        let gridView = UIView(frame: CGRect(x: (screenWidth - gridWidth) / 2, 
+                                           y: (screenHeight - gridViewHeight) / 2,
                                            width: gridWidth, height: gridViewHeight))
         gridView.backgroundColor = UIColor.clear
         
@@ -212,8 +214,8 @@ class ThreeDGridViewModel: ObservableObject {
             gradientImage?.draw(in: backgroundView.bounds)
         }
         
-        // Calculate grid dimensions - using the smaller grid size
-        let cellWidth = (gridWidth - (gridSpacing * 2)) / 3
+        // Calculate grid dimensions - without spacing between cells
+        let cellWidth = gridWidth / 3
         let cellHeight = cellWidth // Square cells
         
         // Add all grid images to the view
@@ -221,9 +223,9 @@ class ThreeDGridViewModel: ObservableObject {
             let row = CGFloat(i / 3)
             let col = CGFloat(i % 3)
             
-            // Position relative to the grid view's origin
-            let x = col * (cellWidth + gridSpacing)
-            let y = row * (cellHeight + gridSpacing)
+            // Position relative to the grid view's origin - no spacing between cells
+            let x = col * cellWidth
+            let y = row * cellHeight
             
             let imageView = UIImageView(frame: CGRect(x: x, y: y, width: cellWidth, height: cellHeight))
             imageView.contentMode = .scaleAspectFill
@@ -244,17 +246,25 @@ class ThreeDGridViewModel: ObservableObject {
             gridView.drawHierarchy(in: gridView.bounds, afterScreenUpdates: true)
         }
         
-        // Draw the grid image in the context
-        gridImage.draw(in: CGRect(x: 0, y: 0, width: screenWidth, height: screenWidth))
+        // Draw the grid image in the context - centered with margins
+        let gridDrawRect = CGRect(x: (screenWidth - gridWidth) / 2, 
+                                 y: (screenHeight - gridViewHeight) / 2,
+                                 width: gridWidth, height: gridViewHeight)
+        gridImage.draw(in: gridDrawRect)
         
         // Calculate the position for the segmented person
-        // Make the person image larger as requested
-        let personWidth = cellWidth * 2.5 * personScale
-        let personHeight = personWidth * 1.5 // Maintain aspect ratio but make it taller
+        // Size the person to occupy approximately 4 cells in the top right
+        let personWidth = cellWidth * 2.0 * personScale  // Width of 2 cells
+        let personHeight = cellHeight * 2.0 * personScale // Height of 2 cells
         
-        // Use the draggable offset values to position the person
-        let personX = screenWidth - personWidth - (horizontalPadding * 0.5) + personOffsetX
-        let personY = cellHeight * 0.8 + personOffsetY // Apply user's drag offset
+        // Position the person at the top right to occupy 4 cells (cells at indices 1,2,4,5)
+        // Calculate the position to center the person over the 4 cells in the top right
+        let topRightX = gridDrawRect.minX + cellWidth * 1.5 // Center horizontally over columns 1 and 2
+        let topRightY = gridDrawRect.minY + cellHeight * 0.5 // Center vertically over rows 0 and 1
+        
+        // Default position is at the top right, then apply user's drag offset
+        let personX = topRightX + personOffsetX
+        let personY = topRightY + personOffsetY
         
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
         
@@ -272,19 +282,7 @@ class ThreeDGridViewModel: ObservableObject {
         personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
         context.restoreGState()
         
-        // Add the "立体九宫格" text at the bottom
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
-        
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
-            .foregroundColor: UIColor.white,
-            .paragraphStyle: paragraphStyle
-        ]
-        
-        let text = "立体九宫格"
-        let textRect = CGRect(x: 0, y: screenHeight - 40, width: screenWidth, height: 30)
-        text.draw(in: textRect, withAttributes: attributes)
+        // No text at the bottom as requested
         
         // Get the final image
         let finalImage = UIGraphicsGetImageFromCurrentImageContext()!
@@ -498,17 +496,7 @@ struct ThreeDGridView: View {
                                             .padding(.horizontal)
                                         #endif
                                         
-                                        // Display instructions for gestures
-                                        Text("拖拽调整位置，捏合调整大小")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                            .padding(.vertical, 5)
-                                        
-                                        Text("立体九宫格")
-                                            .font(.title2)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.white)
-                                            .padding(.top, 5)
+                                        // No text as requested
                                     }
                                     .padding(.vertical, 12)
                                     .padding(.horizontal, horizontalPadding)
