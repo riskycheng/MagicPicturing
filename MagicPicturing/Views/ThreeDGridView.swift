@@ -188,12 +188,29 @@ class ThreeDGridViewModel: ObservableObject {
                                            width: gridWidth, height: gridViewHeight))
         gridView.backgroundColor = UIColor.clear
         
-        // Add a blue background for the entire result view
+        // Add an elegant dark gradient background for the entire result view
         let backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
-        backgroundView.backgroundColor = UIColor.blue
-        context.saveGState()
-        UIRectFill(backgroundView.frame)
-        context.restoreGState()
+        
+        // Create a gradient layer with elegant dark colors
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = backgroundView.bounds
+        gradientLayer.colors = [
+            UIColor(red: 0.08, green: 0.08, blue: 0.15, alpha: 1.0).cgColor,  // Dark navy blue
+            UIColor(red: 0.15, green: 0.15, blue: 0.25, alpha: 1.0).cgColor   // Slightly lighter navy blue
+        ]
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        
+        // Render the gradient to the context
+        UIGraphicsBeginImageContextWithOptions(backgroundView.bounds.size, false, 0)
+        if let gradientContext = UIGraphicsGetCurrentContext() {
+            gradientLayer.render(in: gradientContext)
+            let gradientImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            
+            // Draw the gradient image to the main context
+            gradientImage?.draw(in: backgroundView.bounds)
+        }
         
         // Calculate grid dimensions - using the smaller grid size
         let cellWidth = (gridWidth - (gridSpacing * 2)) / 3
@@ -214,23 +231,9 @@ class ThreeDGridViewModel: ObservableObject {
             imageView.clipsToBounds = true
             imageView.image = backgroundImages[i % backgroundImages.count]
             
-            // Add the "立体九宫格" text overlay on each cell (as seen in the reference image)
-            let textLabel = UILabel(frame: CGRect(x: 0, y: cellHeight - 40, width: cellWidth, height: 20))
-            textLabel.text = "立体九宫格"
-            textLabel.textColor = .white
-            textLabel.textAlignment = .center
-            textLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-            textLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            imageView.addSubview(textLabel)
+            // No text overlay on each cell as requested
             
-            // Add small text at the bottom (as seen in the reference image)
-            let smallLabel = UILabel(frame: CGRect(x: 0, y: cellHeight - 20, width: cellWidth, height: 20))
-            smallLabel.text = "点击查看更多作品"
-            smallLabel.textColor = .white
-            smallLabel.textAlignment = .center
-            smallLabel.font = UIFont.systemFont(ofSize: 8, weight: .regular)
-            smallLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            imageView.addSubview(smallLabel)
+            // No text labels as requested by the user
             
             gridView.addSubview(imageView)
         }
@@ -255,9 +258,17 @@ class ThreeDGridViewModel: ObservableObject {
         
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
         
-        // Draw the person with a slight shadow for depth
+        // Draw the person with enhanced shadow effects for depth and elegance
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 3, height: 3), blur: 5, color: UIColor.black.withAlphaComponent(0.5).cgColor)
+        
+        // First draw a subtle outer glow/shadow
+        context.setShadow(offset: CGSize.zero, blur: 12, color: UIColor.white.withAlphaComponent(0.3).cgColor)
+        personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+        
+        // Then draw a sharper shadow for depth
+        context.restoreGState()
+        context.saveGState()
+        context.setShadow(offset: CGSize(width: 2, height: 2), blur: 6, color: UIColor.black.withAlphaComponent(0.5).cgColor)
         personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
         context.restoreGState()
         
@@ -425,9 +436,23 @@ struct ThreeDGridView: View {
                                     VStack(spacing: 15) {
                                         #if canImport(UIKit)
                                         ZStack {
-                                            // Background color for the result view
+                                            // Elegant dark gradient background with subtle glow
                                             RoundedRectangle(cornerRadius: 15)
-                                                .fill(Color.blue)
+                                                .fill(
+                                                    LinearGradient(
+                                                        gradient: Gradient(colors: [
+                                                            Color(red: 0.08, green: 0.08, blue: 0.15),  // Dark navy blue
+                                                            Color(red: 0.15, green: 0.15, blue: 0.25)   // Slightly lighter navy blue
+                                                        ]),
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 15)
+                                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                )
+                                                .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.horizontal, 20)
                                             
@@ -487,8 +512,22 @@ struct ThreeDGridView: View {
                                     }
                                     .padding(.vertical, 12)
                                     .padding(.horizontal, horizontalPadding)
-                                    .background(Color.blue)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(red: 0.08, green: 0.08, blue: 0.15),  // Dark navy blue
+                                                Color(red: 0.15, green: 0.15, blue: 0.25)   // Slightly lighter navy blue
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
                                     .cornerRadius(25)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                    .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                                 } else {
                                     // 3x3 Grid
                                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
