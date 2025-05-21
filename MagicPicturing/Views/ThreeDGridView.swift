@@ -109,31 +109,59 @@ class ThreeDGridViewModel: ObservableObject {
     var horizontalPadding: CGFloat = 25
     var gridSpacing: CGFloat = 4
     
+    // Generate the grid image only (no person mask) for interactive adjustment
+    func generateGridOnlyResult() {
+        guard isReadyToGenerate else { return }
+        self.isGenerating = true
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            #if canImport(UIKit)
+            // Get background images from the grid
+            var backgroundImages: [UIImage] = []
+            for image in self.gridPhotos {
+                if let img = image {
+                    backgroundImages.append(img)
+                }
+            }
+            if !backgroundImages.isEmpty {
+                // Create a collage WITHOUT the person mask
+                self.resultImage = self.createCollageImage(
+                    backgroundImages: backgroundImages,
+                    personImage: nil,
+                    horizontalPadding: self.horizontalPadding,
+                    gridSpacing: self.gridSpacing,
+                    personOffsetX: 0,
+                    personOffsetY: 0,
+                    personScale: 1.0
+                )
+            } else {
+                self.resultImage = nil
+            }
+            #elseif canImport(AppKit)
+            self.resultImage = self.mainSubjectPhoto
+            #endif
+            self.isGenerating = false
+            self.showingResult = true
+        }
+    }
+
+    // Generate the final composited image with the person mask
     func generateThreeDGrid() {
         guard isReadyToGenerate else { return }
-        
-        // Set generating state
         self.isGenerating = true
-        
-        // Use a Timer instead of DispatchQueue to avoid syntax issues
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
             guard let self = self else { return }
-            
             #if canImport(UIKit)
-            // Create a composite image with the segmented person overlaid on the grid
             if let segmentedPerson = self.segmentedPersonImage {
-                // Get background images from the grid
                 var backgroundImages: [UIImage] = []
                 for image in self.gridPhotos {
                     if let img = image {
                         backgroundImages.append(img)
                     }
                 }
-                
                 if !backgroundImages.isEmpty {
-                    // Create a collage with the segmented person overlaid on the grid images
                     self.resultImage = self.createCollageImage(
-                        backgroundImages: backgroundImages, 
+                        backgroundImages: backgroundImages,
                         personImage: segmentedPerson,
                         horizontalPadding: self.horizontalPadding,
                         gridSpacing: self.gridSpacing,
@@ -142,18 +170,14 @@ class ThreeDGridViewModel: ObservableObject {
                         personScale: self.personScale
                     )
                 } else {
-                    // Fallback if no grid images
                     self.resultImage = segmentedPerson
                 }
             } else {
-                // Fallback to main subject photo if segmentation failed
                 self.resultImage = self.mainSubjectPhoto
             }
             #elseif canImport(AppKit)
-            // For macOS, just use the main photo as a placeholder
             self.resultImage = self.mainSubjectPhoto
             #endif
-            
             self.isGenerating = false
             self.showingResult = true
         }
@@ -161,7 +185,7 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     // Create a 3D collage with the segmented person overlaid on the original grid view
-    private func createCollageImage(backgroundImages: [UIImage], personImage: UIImage, horizontalPadding: CGFloat, gridSpacing: CGFloat, personOffsetX: CGFloat, personOffsetY: CGFloat, personScale: CGFloat) -> UIImage {
+    private func createCollageImage(backgroundImages: [UIImage], personImage: UIImage?, horizontalPadding: CGFloat, gridSpacing: CGFloat, personOffsetX: CGFloat, personOffsetY: CGFloat, personScale: CGFloat) -> UIImage {
         // Use screen dimensions for the final image
         let screenWidth = UIScreen.main.bounds.width
         // Adjust height to match content exactly as requested
@@ -261,27 +285,29 @@ class ThreeDGridViewModel: ObservableObject {
         // Calculate the position to center the person over the 4 cells in the top right
         let topRightX = gridDrawRect.minX + cellWidth * 1.5 // Center horizontally over columns 1 and 2
         let topRightY = gridDrawRect.minY + cellHeight * 0.5 // Center vertically over rows 0 and 1
-        
-        // Default position is at the top right, then apply user's drag offset
-        let personX = topRightX + personOffsetX
-        let personY = topRightY + personOffsetY
-        
-        let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
-        
-        // Draw the person with enhanced shadow effects for depth and elegance
-        context.saveGState()
-        
-        // First draw a subtle outer glow/shadow
-        context.setShadow(offset: CGSize.zero, blur: 12, color: UIColor.white.withAlphaComponent(0.3).cgColor)
-        personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
-        
-        // Then draw a sharper shadow for depth
-        context.restoreGState()
-        context.saveGState()
-        context.setShadow(offset: CGSize(width: 2, height: 2), blur: 6, color: UIColor.black.withAlphaComponent(0.5).cgColor)
-        personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
-        context.restoreGState()
-        
+        // Calculate the position to center the person over the 4 cells in the top right
+        let personRect = CGRect(x: gridDrawRect.minX + gridDrawRect.width / 2 + personOffsetX - personWidth / 2,
+                                y: gridDrawRect.minY + gridDrawRect.height / 2 + personOffsetY - personHeight / 2,
+                                width: personWidth, height: personHeight)
+
+        // Draw the person image (segmented mask) if present
+        if let personImage = personImage {
+            // Main person image
+            personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+
+            // First draw a subtle outer glow/shadow
+            context.saveGState()
+            context.setShadow(offset: CGSize.zero, blur: 12, color: UIColor.white.withAlphaComponent(0.3).cgColor)
+            personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            context.restoreGState()
+
+            // Then draw a sharper shadow for depth
+            context.saveGState()
+            context.setShadow(offset: CGSize(width: 2, height: 2), blur: 6, color: UIColor.black.withAlphaComponent(0.5).cgColor)
+            personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            context.restoreGState()
+        }
+
         // No text at the bottom as requested
         
         // Get the final image
@@ -743,15 +769,14 @@ ZStack {
                         // Button at the bottom - changes functionality based on state
                         Button(action: {
                             if viewModel.showingResult {
-                                // Save to photo album functionality
-                                #if canImport(UIKit)
+                                // Save: composite the person mask and save
+                                viewModel.generateThreeDGrid()
                                 if let resultImage = viewModel.resultImage {
                                     UIImageWriteToSavedPhotosAlbum(resultImage, nil, nil, nil)
                                 }
-                                #endif
                             } else {
-                                // Generate functionality
-                                viewModel.generateThreeDGrid()
+                                // Show result: only generate grid background (no person mask)
+                                viewModel.generateGridOnlyResult()
                             }
                         }) {
                             ZStack {
