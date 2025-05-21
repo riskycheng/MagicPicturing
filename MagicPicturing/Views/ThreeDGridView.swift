@@ -353,6 +353,50 @@ class ThreeDGridViewModel: ObservableObject {
 
 // SegmentationState已在Services/SegmentationState.swift中定义
 
+// Overlay for the person mask that tracks drag start and follows the finger
+struct PersonMaskOverlay: View {
+    let personMask: UIImage
+    @ObservedObject var viewModel: ThreeDGridViewModel
+    @State private var dragStartOffset: CGSize = .zero
+
+    var body: some View {
+        Image(uiImage: personMask)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: (UIScreen.main.bounds.width - 2 * 20) * viewModel.personScale)
+            .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        viewModel.personOffsetX = dragStartOffset.width + value.translation.width
+                        viewModel.personOffsetY = dragStartOffset.height + value.translation.height
+                    }
+                    .onEnded { value in
+                        dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                        viewModel.generateThreeDGrid()
+                    }
+                    .onChanged { value in
+                        if value.startLocation == value.location {
+                            // On drag start, record the offset
+                            dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                        }
+                    }
+            )
+            .gesture(
+                MagnificationGesture(minimumScaleDelta: 0.01)
+                    .onChanged { value in
+                        let delta = value / viewModel.lastScaleValue
+                        viewModel.lastScaleValue = value
+                        viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
+                    }
+                    .onEnded { _ in
+                        viewModel.lastScaleValue = 1.0
+                        viewModel.generateThreeDGrid()
+                    }
+            )
+    }
+}
+
 struct ThreeDGridView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.presentationMode) var presentationMode
@@ -433,60 +477,26 @@ struct ThreeDGridView: View {
                                     // Display result
                                     VStack(spacing: 15) {
                                         #if canImport(UIKit)
-                                        ZStack {
-                                            // Elegant dark gradient background with subtle glow
-                                            RoundedRectangle(cornerRadius: 15)
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [
-                                                            Color(red: 0.08, green: 0.08, blue: 0.15),  // Dark navy blue
-                                                            Color(red: 0.15, green: 0.15, blue: 0.25)   // Slightly lighter navy blue
-                                                        ]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 15)
-                                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                                )
-                                                .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
-                                                .frame(maxWidth: .infinity)
-                                                .padding(.horizontal, 20)
-                                            
-                                            // Result image with gesture support
-                                            Image(uiImage: resultImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .cornerRadius(10)
-                                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
-                                                .padding(.horizontal, 40) // More padding to allow person to extend beyond grid
-                                                // Combined gestures for dragging and pinching
-                                                .gesture(
-                                                    DragGesture(minimumDistance: 1)
-                                                        .onChanged { value in
-                                                            viewModel.personOffsetX += value.translation.width / 2
-                                                            viewModel.personOffsetY += value.translation.height / 2
-                                                        }
-                                                        .onEnded { _ in
-                                                            viewModel.generateThreeDGrid()
-                                                        }
-                                                )
-                                                // Use a separate gesture for scaling
-                                                // We need to use a state variable to track the last scale value
-                                                .gesture(
-                                                    MagnificationGesture(minimumScaleDelta: 0.01)
-                                                        .onChanged { value in
-                                                            let delta = value / viewModel.lastScaleValue
-                                                            viewModel.lastScaleValue = value
-                                                            viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
-                                                        }
-                                                        .onEnded { _ in
-                                                            viewModel.lastScaleValue = 1.0
-                                                            viewModel.generateThreeDGrid()
-                                                        }
-                                                )
-                                        }
+ZStack {
+    // Result grid as static background (no extra backgrounds)
+    Image(uiImage: resultImage)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: UIScreen.main.bounds.width - 2 * 20)
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+        .padding(.top, 32)
+        .padding(.bottom, 32)
+
+    // Overlay the person mask for gesture
+    if let personMask = viewModel.segmentedPersonImage {
+        PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
+    }
+}
+.padding(.top, 24)
+.padding(.bottom, 24)
+
+
                                         #elseif canImport(AppKit)
                                         Image(nsImage: resultImage)
                                             .resizable()
@@ -498,7 +508,7 @@ struct ThreeDGridView: View {
                                         
                                         // No text as requested
                                     }
-                                    .padding(.vertical, 12)
+                                    .padding(.vertical, 24)
                                     .padding(.horizontal, horizontalPadding)
                                     .background(
                                         LinearGradient(
