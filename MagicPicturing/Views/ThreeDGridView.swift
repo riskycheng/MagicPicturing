@@ -57,6 +57,18 @@ struct RotationAnimationModifier: ViewModifier {
 
 // View model to handle the 3D grid effect logic - moved outside the View struct to avoid ViewBuilder issues
 class ThreeDGridViewModel: ObservableObject {
+    // Store grid cell frames for drag and drop
+    var cellFrames: [GridCellPreference] = []
+    
+    // Find the target cell for a drop location
+    func findTargetCell(for location: CGPoint) -> Int? {
+        for cell in cellFrames {
+            if cell.frame.contains(location) {
+                return cell.index
+            }
+        }
+        return nil
+    }
     @Published var gridPhotos: [PlatformImage?] = Array(repeating: nil, count: 9)
     
     // Position for the draggable person image
@@ -64,7 +76,14 @@ class ThreeDGridViewModel: ObservableObject {
     @Published var personOffsetY: CGFloat = 0
     @Published var personScale: CGFloat = 1.0
     @Published var lastScaleValue: CGFloat = 1.0 // For tracking pinch gesture
-    @Published var showGridActionSheet: Bool = false
+    
+    // Properties for drag and drop functionality
+    @Published var isDragging: Bool = false
+    @Published var draggedImage: PlatformImage? = nil
+    @Published var dragSourceIndex: Int = 0
+    @Published var dragPosition: CGPoint = .zero
+    @Published var dragOffset: CGSize = .zero
+    @Published var dragStartLocation: CGPoint = .zero
     
     @Published var mainSubjectPhoto: PlatformImage? = nil {
         didSet {
@@ -456,6 +475,20 @@ struct ThreeDGridView: View {
     @State private var isShowingMainSubjectPicker = false
     @State private var isShowingMultiplePhotoPicker = false
     
+    // Preference key to track grid cell frames
+    struct GridCellPreference: Equatable {
+        let index: Int
+        let frame: CGRect
+    }
+    
+    struct GridCellPreferenceKey: PreferenceKey {
+        static var defaultValue: [GridCellPreference] = []
+        
+        static func reduce(value: inout [GridCellPreference], nextValue: () -> [GridCellPreference]) {
+            value.append(contentsOf: nextValue())
+        }
+    }
+    
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
     private let horizontalPadding: CGFloat = 25 // Increased horizontal padding
@@ -581,78 +614,168 @@ ZStack {
                                 } else {
                                     // 3x3 Grid with drag-to-reorder functionality
                                     VStack {
-                                        // Add a button to select multiple images at once
-                                        Button(action: {
-                                            isShowingMultiplePhotoPicker = true
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "photo.on.rectangle.angled")
-                                                Text("选择多张图片")
-                                            }
-                                            .font(.system(size: 14, weight: .medium))
-                                            .foregroundColor(.white)
-                                            .padding(.vertical, 8)
-                                            .padding(.horizontal, 12)
-                                            .background(Color.blue.opacity(0.7))
-                                            .cornerRadius(8)
-                                        }
-                                        .padding(.bottom, 10)
+                                        // Removed the multiple image selection button as requested
                                         
-                                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
-                                            ForEach(0..<9, id: \.self) { index in
-                                                ZStack {
-                                                    // 固定大小的正方形占位符
-                                                    Rectangle()
-                                                        .fill(Color.gray.opacity(0.2))
-                                                        .aspectRatio(1, contentMode: .fit)
-                                                        .cornerRadius(8)
-                                                    
-                                                    if let image = viewModel.gridPhotos[index] {
-                                                        GeometryReader { geometry in
-                                                            #if canImport(UIKit)
-                                                            Image(uiImage: image)
-                                                                .resizable()
-                                                                .aspectRatio(contentMode: .fill)
-                                                                .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
-                                                                .clipped() // 裁剪超出部分
-                                                                .cornerRadius(8)
-                                                            #elseif canImport(AppKit)
-                                                            Image(nsImage: image)
-                                                                .resizable()
-                                                                .aspectRatio(contentMode: .fill)
-                                                                .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
-                                                                .clipped() // 裁剪超出部分
-                                                                .cornerRadius(8)
-                                                            #endif
+                                        GeometryReader { gridGeometry in
+                                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
+                                                // Grid with drag and drop functionality similar to WeChat Moments
+                                                ForEach(0..<9, id: \.self) { index in
+                                                    ZStack {
+                                                        // Grid cell that supports drag and drop
+                                                        // 固定大小的正方形占位符
+                                                        Rectangle()
+                                                            .fill(Color.gray.opacity(0.2))
+                                                            .aspectRatio(1, contentMode: .fit)
+                                                            .cornerRadius(8)
+                                                        
+                                                        if let image = viewModel.gridPhotos[index], !(viewModel.isDragging && viewModel.dragSourceIndex == index) {
+                                                            GeometryReader { geometry in
+                                                                #if canImport(UIKit)
+                                                                Image(uiImage: image)
+                                                                    .resizable()
+                                                                    .aspectRatio(contentMode: .fill)
+                                                                    .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                                    .clipped() // 裁剪超出部分
+                                                                    .cornerRadius(8)
+                                                                #elseif canImport(AppKit)
+                                                                Image(nsImage: image)
+                                                                    .resizable()
+                                                                    .aspectRatio(contentMode: .fill)
+                                                                    .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                                    .clipped() // 裁剪超出部分
+                                                                    .cornerRadius(8)
+                                                                #endif
+                                                                
+                                                                // Store the cell position for drag calculations
+                                                                Color.clear.preference(
+                                                                    key: GridCellPreferenceKey.self,
+                                                                    value: [GridCellPreference(index: index, frame: geometry.frame(in: .named("grid")))])
+                                                            }
+                                                            .aspectRatio(1, contentMode: .fit) // 确保 GeometryReader 也是正方形
+                                                            .overlay(
+                                                                Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                                                                    .font(.system(size: 16))
+                                                                    .foregroundColor(.white)
+                                                                    .padding(6)
+                                                                    .background(Color.black.opacity(0.5))
+                                                                    .cornerRadius(8)
+                                                                    .padding(4),
+                                                                alignment: .topTrailing
+                                                            )
+                                                        } else if !viewModel.isDragging {
+                                                            // Empty cell or placeholder
+                                                            Image(systemName: "plus")
+                                                                .font(.system(size: 30))
+                                                                .foregroundColor(.gray)
+                                                            
+                                                            // Store the cell position for drag calculations
+                                                            GeometryReader { geometry in
+                                                                Color.clear.preference(
+                                                                    key: GridCellPreferenceKey.self,
+                                                                    value: [GridCellPreference(index: index, frame: geometry.frame(in: .named("grid")))])
+                                                            }
                                                         }
-                                                        .aspectRatio(1, contentMode: .fit) // 确保 GeometryReader 也是正方形
-                                                        .overlay(
-                                                            Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
-                                                                .font(.system(size: 16))
-                                                                .foregroundColor(.white)
-                                                                .padding(6)
-                                                                .background(Color.black.opacity(0.5))
-                                                                .cornerRadius(8)
-                                                                .padding(4),
-                                                            alignment: .topTrailing
-                                                        )
-                                                    } else {
-                                                        Image(systemName: "plus")
-                                                            .font(.system(size: 30))
-                                                            .foregroundColor(.gray)
+                                                    }
+                                                    .onTapGesture {
+                                                        viewModel.currentGridIndex = index
+                                                        isShowingMultiplePhotoPicker = true
+                                                    }
+                                                    // Use a long press gesture for drag and drop similar to WeChat Moments
+                                                    .gesture(
+                                                        LongPressGesture(minimumDuration: 0.2)
+                                                            .sequenced(before: DragGesture()
+                                                                .onChanged { value in
+                                                                    if !viewModel.isDragging {
+                                                                        // Start dragging
+                                                                        viewModel.isDragging = true
+                                                                        viewModel.dragSourceIndex = index
+                                                                        viewModel.draggedImage = viewModel.gridPhotos[index]
+                                                                        viewModel.dragStartLocation = value.startLocation
+                                                                        
+                                                                        // Provide haptic feedback to indicate drag started
+                                                                        #if canImport(UIKit)
+                                                                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                                                                        generator.impactOccurred()
+                                                                        #endif
+                                                                    }
+                                                                    
+                                                                    // Update drag position
+                                                                    viewModel.dragOffset = value.translation
+                                                                }
+                                                                .onEnded { value in
+                                                                    if viewModel.isDragging {
+                                                                        // Find the cell we're over
+                                                                        let dropLocation = CGPoint(
+                                                                            x: value.startLocation.x + value.translation.width,
+                                                                            y: value.startLocation.y + value.translation.height
+                                                                        )
+                                                                        
+                                                                        // Find target cell based on stored cell frames
+                                                                        if let targetIndex = viewModel.findTargetCell(for: dropLocation), 
+                                                                           targetIndex != viewModel.dragSourceIndex {
+                                                                            // Swap the images with animation
+                                                                            withAnimation(.spring()) {
+                                                                                let sourceIndex = viewModel.dragSourceIndex
+                                                                                let tempImage = viewModel.gridPhotos[sourceIndex]
+                                                                                viewModel.gridPhotos[sourceIndex] = viewModel.gridPhotos[targetIndex]
+                                                                                viewModel.gridPhotos[targetIndex] = tempImage
+                                                                            }
+                                                                            
+                                                                            // Provide haptic feedback for successful swap
+                                                                            #if canImport(UIKit)
+                                                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                                                            generator.impactOccurred()
+                                                                            #endif
+                                                                        }
+                                                                        
+                                                                        // Reset drag state
+                                                                        withAnimation(.spring()) {
+                                                                            viewModel.isDragging = false
+                                                                            viewModel.draggedImage = nil
+                                                                            viewModel.dragOffset = .zero
+                                                                        }
+                                                                    }
+                                                                }
+                                                            )
+                                                    )
                                                     }
                                                 }
-                                                .onTapGesture {
-                                                    viewModel.currentGridIndex = index
-                                                    isShowingGridPicker = true
-                                                }
-                                                // Use a long press gesture instead of drag and drop for simplicity
-                                                .onLongPressGesture {
-                                                    // Show an action sheet to select a position to swap with
-                                                    viewModel.currentGridIndex = index
-                                                    viewModel.showGridActionSheet = true
-                                                }
                                             }
+                                        }
+                                        .coordinateSpace(name: "grid")
+                                        .onPreferenceChange(GridCellPreferenceKey.self) { preferences in
+                                            viewModel.cellFrames = preferences
+                                        }
+                                        
+                                        // Floating dragged image that follows the finger
+                                        if viewModel.isDragging, let draggedImage = viewModel.draggedImage {
+                                            // Calculate the size of a grid cell
+                                            let cellSize = (gridGeometry.size.width - (2 * gridSpacing)) / 3
+                                            
+                                            // Position the dragged image at the finger location
+                                            ZStack {
+                                                #if canImport(UIKit)
+                                                Image(uiImage: draggedImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: cellSize, height: cellSize)
+                                                    .clipped()
+                                                    .cornerRadius(8)
+                                                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                                                #elseif canImport(AppKit)
+                                                Image(nsImage: draggedImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(width: cellSize, height: cellSize)
+                                                    .clipped()
+                                                    .cornerRadius(8)
+                                                    .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+                                                #endif
+                                            }
+                                            .position(x: viewModel.dragStartLocation.x + viewModel.dragOffset.width, 
+                                                    y: viewModel.dragStartLocation.y + viewModel.dragOffset.height)
+                                            .opacity(0.9)
+                                            .scaleEffect(1.05)
                                         }
                                     }
                                     .padding(.horizontal, horizontalPadding)
@@ -891,32 +1014,7 @@ ZStack {
         .sheet(isPresented: $isShowingMultiplePhotoPicker) {
             MultiplePhotoPicker(gridPhotos: $viewModel.gridPhotos)
         }
-        .actionSheet(isPresented: $viewModel.showGridActionSheet) {
-            var buttons: [ActionSheet.Button] = []
-            
-            // Add options to swap with other positions
-            for i in 0..<9 {
-                if i != viewModel.currentGridIndex {
-                    let positionName = "位置 \(i+1)"
-                    buttons.append(.default(Text(positionName)) {
-                        // Swap the images
-                        let currentIndex = viewModel.currentGridIndex
-                        let tempImage = viewModel.gridPhotos[currentIndex]
-                        viewModel.gridPhotos[currentIndex] = viewModel.gridPhotos[i]
-                        viewModel.gridPhotos[i] = tempImage
-                    })
-                }
-            }
-            
-            // Add cancel button
-            buttons.append(.cancel(Text("取消")))
-            
-            return ActionSheet(
-                title: Text("移动图片"),
-                message: Text("选择要交换的位置"),
-                buttons: buttons
-            )
-        }
+        // Removed action sheet in favor of drag and drop functionality
     }
     
 
