@@ -130,9 +130,9 @@ class ThreeDGridViewModel: ObservableObject {
                     personImage: nil,
                     horizontalPadding: self.horizontalPadding,
                     gridSpacing: self.gridSpacing,
-                    personOffsetX: 0,
-                    personOffsetY: 0,
-                    personScale: 1.0
+                    personOffsetX: self.personOffsetX,
+                    personOffsetY: self.personOffsetY,
+                    personScale: self.personScale
                 )
             } else {
                 self.resultImage = nil
@@ -141,37 +141,37 @@ class ThreeDGridViewModel: ObservableObject {
             self.resultImage = self.mainSubjectPhoto
             #endif
             self.isGenerating = false
-            self.showingResult = true
+            self.showingResult = false // Don't show the result yet, wait for the final generation
         }
     }
 
-    // Generate the final composited image with the person mask
+    // Generate the grid image without the person mask for preview
     func generateThreeDGrid() {
         guard isReadyToGenerate else { return }
         self.isGenerating = true
         Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
             guard let self = self else { return }
             #if canImport(UIKit)
-            if let segmentedPerson = self.segmentedPersonImage {
-                var backgroundImages: [UIImage] = []
-                for image in self.gridPhotos {
-                    if let img = image {
-                        backgroundImages.append(img)
-                    }
+            // Get background images from the grid
+            var backgroundImages: [UIImage] = []
+            for image in self.gridPhotos {
+                if let img = image {
+                    backgroundImages.append(img)
                 }
-                if !backgroundImages.isEmpty {
-                    self.resultImage = self.createCollageImage(
-                        backgroundImages: backgroundImages,
-                        personImage: segmentedPerson,
-                        horizontalPadding: self.horizontalPadding,
-                        gridSpacing: self.gridSpacing,
-                        personOffsetX: self.personOffsetX,
-                        personOffsetY: self.personOffsetY,
-                        personScale: self.personScale
-                    )
-                } else {
-                    self.resultImage = segmentedPerson
-                }
+            }
+            
+            if !backgroundImages.isEmpty {
+                // For the preview, we only show the grid without the person mask
+                // The person mask will be shown as an overlay for interaction
+                self.resultImage = self.createCollageImage(
+                    backgroundImages: backgroundImages,
+                    personImage: nil, // Don't include the person mask in the background image
+                    horizontalPadding: self.horizontalPadding,
+                    gridSpacing: self.gridSpacing,
+                    personOffsetX: self.personOffsetX,
+                    personOffsetY: self.personOffsetY,
+                    personScale: self.personScale
+                )
             } else {
                 self.resultImage = self.mainSubjectPhoto
             }
@@ -324,9 +324,31 @@ class ThreeDGridViewModel: ObservableObject {
     }
     
     func saveToAlbum() {
-        // Simulate saving to album
         #if canImport(UIKit)
-        if let image = self.resultImage {
+        // Generate the final image with the person mask blended onto the background
+        var backgroundImages: [UIImage] = []
+        for image in self.gridPhotos {
+            if let img = image {
+                backgroundImages.append(img)
+            }
+        }
+        
+        if !backgroundImages.isEmpty && self.segmentedPersonImage != nil {
+            // Create the final image WITH the person mask
+            let finalImage = self.createCollageImage(
+                backgroundImages: backgroundImages,
+                personImage: self.segmentedPersonImage, // Include the person mask in the final image
+                horizontalPadding: self.horizontalPadding,
+                gridSpacing: self.gridSpacing,
+                personOffsetX: self.personOffsetX,
+                personOffsetY: self.personOffsetY,
+                personScale: self.personScale
+            )
+            
+            // Save the final image to the photo album
+            UIImageWriteToSavedPhotosAlbum(finalImage, nil, nil, nil)
+        } else if let image = self.resultImage {
+            // Fallback to saving the current result image if no person mask is available
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
         }
         #endif
@@ -399,7 +421,7 @@ struct PersonMaskOverlay: View {
                     }
                     .onEnded { value in
                         dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
-                        viewModel.generateThreeDGrid()
+                        // Don't generate any image here, just update the position
                     }
                     .onChanged { value in
                         if value.startLocation == value.location {
@@ -417,7 +439,7 @@ struct PersonMaskOverlay: View {
                     }
                     .onEnded { _ in
                         viewModel.lastScaleValue = 1.0
-                        viewModel.generateThreeDGrid()
+                        // Don't generate any image here, just update the scale
                     }
             )
     }
@@ -514,7 +536,7 @@ ZStack {
         .padding(.top, 32)
         .padding(.bottom, 32)
 
-    // Overlay the person mask for gesture
+    // Overlay the person mask for gesture - only for visualization and interaction
     if let personMask = viewModel.segmentedPersonImage {
         PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
     }
@@ -769,14 +791,15 @@ ZStack {
                         // Button at the bottom - changes functionality based on state
                         Button(action: {
                             if viewModel.showingResult {
-                                // Save: composite the person mask and save
-                                viewModel.generateThreeDGrid()
-                                if let resultImage = viewModel.resultImage {
-                                    UIImageWriteToSavedPhotosAlbum(resultImage, nil, nil, nil)
-                                }
+                                // Save to album - this is where we actually blend the person mask
+                                // onto the background to generate the final image
+                                viewModel.saveToAlbum()
+                                // Show success message
+                                let generator = UINotificationFeedbackGenerator()
+                                generator.notificationOccurred(.success)
                             } else {
-                                // Show result: only generate grid background (no person mask)
-                                viewModel.generateGridOnlyResult()
+                                // Generate the grid without the person mask first
+                                viewModel.generateThreeDGrid()
                             }
                         }) {
                             ZStack {
