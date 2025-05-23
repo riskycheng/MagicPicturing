@@ -6,8 +6,10 @@ import SwiftUI
 #if canImport(UIKit)
 import UIKit
 import PhotosUI
+import UniformTypeIdentifiers
 #elseif canImport(AppKit)
 import AppKit
+import UniformTypeIdentifiers
 #endif
 
 // 导入所需类型
@@ -62,6 +64,7 @@ class ThreeDGridViewModel: ObservableObject {
     @Published var personOffsetY: CGFloat = 0
     @Published var personScale: CGFloat = 1.0
     @Published var lastScaleValue: CGFloat = 1.0 // For tracking pinch gesture
+    @Published var showGridActionSheet: Bool = false
     
     @Published var mainSubjectPhoto: PlatformImage? = nil {
         didSet {
@@ -451,6 +454,7 @@ struct ThreeDGridView: View {
     @StateObject private var viewModel = ThreeDGridViewModel()
     @State private var isShowingGridPicker = false
     @State private var isShowingMainSubjectPicker = false
+    @State private var isShowingMultiplePhotoPicker = false
     
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
@@ -575,44 +579,79 @@ ZStack {
                                     )
                                     .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                                 } else {
-                                    // 3x3 Grid
-                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
-                                        ForEach(0..<9, id: \.self) { index in
-                                            ZStack {
-                                                // 固定大小的正方形占位符
-                                                Rectangle()
-                                                    .fill(Color.gray.opacity(0.2))
-                                                    .aspectRatio(1, contentMode: .fit)
-                                                    .cornerRadius(8)
-                                                
-                                                if let image = viewModel.gridPhotos[index] {
-                                                    GeometryReader { geometry in
-                                                        #if canImport(UIKit)
-                                                        Image(uiImage: image)
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fill)
-                                                            .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
-                                                            .clipped() // 裁剪超出部分
-                                                            .cornerRadius(8)
-                                                        #elseif canImport(AppKit)
-                                                        Image(nsImage: image)
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fill)
-                                                            .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
-                                                            .clipped() // 裁剪超出部分
-                                                            .cornerRadius(8)
-                                                        #endif
-                                                    }
-                                                    .aspectRatio(1, contentMode: .fit) // 确保 GeometryReader 也是正方形
-                                                } else {
-                                                    Image(systemName: "plus")
-                                                        .font(.system(size: 30))
-                                                        .foregroundColor(.gray)
-                                                }
+                                    // 3x3 Grid with drag-to-reorder functionality
+                                    VStack {
+                                        // Add a button to select multiple images at once
+                                        Button(action: {
+                                            isShowingMultiplePhotoPicker = true
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "photo.on.rectangle.angled")
+                                                Text("选择多张图片")
                                             }
-                                            .onTapGesture {
-                                                viewModel.currentGridIndex = index
-                                                isShowingGridPicker = true
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 12)
+                                            .background(Color.blue.opacity(0.7))
+                                            .cornerRadius(8)
+                                        }
+                                        .padding(.bottom, 10)
+                                        
+                                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
+                                            ForEach(0..<9, id: \.self) { index in
+                                                ZStack {
+                                                    // 固定大小的正方形占位符
+                                                    Rectangle()
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .aspectRatio(1, contentMode: .fit)
+                                                        .cornerRadius(8)
+                                                    
+                                                    if let image = viewModel.gridPhotos[index] {
+                                                        GeometryReader { geometry in
+                                                            #if canImport(UIKit)
+                                                            Image(uiImage: image)
+                                                                .resizable()
+                                                                .aspectRatio(contentMode: .fill)
+                                                                .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                                .clipped() // 裁剪超出部分
+                                                                .cornerRadius(8)
+                                                            #elseif canImport(AppKit)
+                                                            Image(nsImage: image)
+                                                                .resizable()
+                                                                .aspectRatio(contentMode: .fill)
+                                                                .frame(width: geometry.size.width, height: geometry.size.width) // 保持正方形
+                                                                .clipped() // 裁剪超出部分
+                                                                .cornerRadius(8)
+                                                            #endif
+                                                        }
+                                                        .aspectRatio(1, contentMode: .fit) // 确保 GeometryReader 也是正方形
+                                                        .overlay(
+                                                            Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                                                                .font(.system(size: 16))
+                                                                .foregroundColor(.white)
+                                                                .padding(6)
+                                                                .background(Color.black.opacity(0.5))
+                                                                .cornerRadius(8)
+                                                                .padding(4),
+                                                            alignment: .topTrailing
+                                                        )
+                                                    } else {
+                                                        Image(systemName: "plus")
+                                                            .font(.system(size: 30))
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                                .onTapGesture {
+                                                    viewModel.currentGridIndex = index
+                                                    isShowingGridPicker = true
+                                                }
+                                                // Use a long press gesture instead of drag and drop for simplicity
+                                                .onLongPressGesture {
+                                                    // Show an action sheet to select a position to swap with
+                                                    viewModel.currentGridIndex = index
+                                                    viewModel.showGridActionSheet = true
+                                                }
                                             }
                                         }
                                     }
@@ -849,12 +888,41 @@ ZStack {
         .sheet(isPresented: $isShowingMainSubjectPicker) {
             PhotoPicker(selectedImage: $viewModel.mainSubjectPhoto)
         }
+        .sheet(isPresented: $isShowingMultiplePhotoPicker) {
+            MultiplePhotoPicker(gridPhotos: $viewModel.gridPhotos)
+        }
+        .actionSheet(isPresented: $viewModel.showGridActionSheet) {
+            var buttons: [ActionSheet.Button] = []
+            
+            // Add options to swap with other positions
+            for i in 0..<9 {
+                if i != viewModel.currentGridIndex {
+                    let positionName = "位置 \(i+1)"
+                    buttons.append(.default(Text(positionName)) {
+                        // Swap the images
+                        let currentIndex = viewModel.currentGridIndex
+                        let tempImage = viewModel.gridPhotos[currentIndex]
+                        viewModel.gridPhotos[currentIndex] = viewModel.gridPhotos[i]
+                        viewModel.gridPhotos[i] = tempImage
+                    })
+                }
+            }
+            
+            // Add cancel button
+            buttons.append(.cancel(Text("取消")))
+            
+            return ActionSheet(
+                title: Text("移动图片"),
+                message: Text("选择要交换的位置"),
+                buttons: buttons
+            )
+        }
     }
     
 
 }
 
-// Cross-platform photo picker
+// Cross-platform photo picker for single image selection
 #if canImport(UIKit)
 struct PhotoPicker: UIViewControllerRepresentable {
     @Binding var selectedImage: PlatformImage?
@@ -893,6 +961,71 @@ struct PhotoPicker: UIViewControllerRepresentable {
                         self.parent.selectedImage = image as? UIImage
                     }
                 }
+            }
+        }
+    }
+}
+
+// Photo picker that supports selecting multiple images at once
+struct MultiplePhotoPicker: UIViewControllerRepresentable {
+    @Binding var gridPhotos: [PlatformImage?]
+    @Environment(\.presentationMode) private var presentationMode
+    
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 9 // Allow selecting up to 9 images at once
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let parent: MultiplePhotoPicker
+        
+        init(_ parent: MultiplePhotoPicker) {
+            self.parent = parent
+        }
+        
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            parent.presentationMode.wrappedValue.dismiss()
+            
+            guard !results.isEmpty else { return }
+            
+            // Create a dispatch group to wait for all images to load
+            let group = DispatchGroup()
+            var loadedImages: [UIImage] = []
+            
+            // Load each selected image
+            for result in results {
+                let itemProvider = result.itemProvider
+                guard itemProvider.canLoadObject(ofClass: UIImage.self) else { continue }
+                
+                group.enter()
+                itemProvider.loadObject(ofClass: UIImage.self) { (image, error) in
+                    if let image = image as? UIImage {
+                        loadedImages.append(image)
+                    }
+                    group.leave()
+                }
+            }
+            
+            // When all images are loaded, update the grid
+            group.notify(queue: .main) {
+                // Fill the grid photos array with the loaded images
+                var updatedGridPhotos = self.parent.gridPhotos
+                for (index, image) in loadedImages.enumerated() {
+                    if index < updatedGridPhotos.count {
+                        updatedGridPhotos[index] = image
+                    }
+                }
+                self.parent.gridPhotos = updatedGridPhotos
             }
         }
     }
