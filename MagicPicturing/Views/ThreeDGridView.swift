@@ -451,6 +451,7 @@ struct PersonMaskOverlay: View {
 enum ActiveSheet: Identifiable {
     case gridPicker
     case mainSubjectPicker
+    case mainSubjectPhotoPicker
     var id: Int { hashValue }
 }
 
@@ -684,7 +685,7 @@ ZStack {
                                             }
                                         }
                                         .onTapGesture {
-                                            activeSheet = .mainSubjectPicker
+                                            activeSheet = .mainSubjectPhotoPicker
                                         }
                                         .frame(maxWidth: .infinity)
                                         
@@ -875,7 +876,7 @@ ZStack {
             case .gridPicker:
                 MultiplePhotoPicker(gridPhotos: $viewModel.gridPhotos)
             case .mainSubjectPicker:
-                // 新增：自定义回调，选中图片后填补到selectedGridIndex，并裁剪为正方形
+                // 九宫格单图补图
                 PhotoPicker(selectedImage: Binding<PlatformImage?>(
                     get: { nil },
                     set: { newImage in
@@ -887,6 +888,9 @@ ZStack {
                         selectedGridIndex = nil
                     }
                 ))
+            case .mainSubjectPhotoPicker:
+                // 主体照片选择，直接绑定viewModel.mainSubjectPhoto
+                PhotoPicker(selectedImage: $viewModel.mainSubjectPhoto)
             }
         }
         .fullScreenCover(isPresented: Binding<Bool>(
