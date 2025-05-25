@@ -484,390 +484,375 @@ struct ThreeDGridView: View {
     private let verticalSpacing: CGFloat = 20
     #endif
     
+    private var navBarHeight: CGFloat { 60 } // 你自定义的导航栏高度
+    private var buttonHeight: CGFloat { 70 } // 按钮高度+间距
+    
     init(segmentationService: PersonSegmentationServiceProtocol = PersonSegmentationService()) {
         _viewModel = StateObject(wrappedValue: ThreeDGridViewModel(segmentationService: segmentationService))
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Background
-                Color.black
-                    .edgesIgnoringSafeArea(.all)
-                
-                VStack(spacing: 0) {
-                    // Custom navigation bar
-                    HStack {
-                        // Back button
-                        Button(action: {
-                            if viewModel.showingResult {
-                                viewModel.resetView()
-                            } else {
-                                dismiss()
-                            }
-                        }) {
-                            HStack(spacing: 5) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("返回")
-                                    .font(.system(size: 16, weight: .regular))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Custom navigation bar
+                HStack {
+                    // Back button
+                    Button(action: {
+                        if viewModel.showingResult {
+                            viewModel.resetView()
+                        } else {
+                            dismiss()
                         }
-                        
-                        Spacer()
-                        
-                        // Title
-                        Text("立体九宫格")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        // Placeholder for symmetry
-                        Text("")
-                            .frame(width: 70)
+                    }) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("返回")
+                                .font(.system(size: 16, weight: .regular))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
                     }
-                    .padding(.horizontal, horizontalPadding)
-                    .padding(.top, 10)
-                    .padding(.bottom, 20)
                     
-                    ZStack(alignment: .bottom) {
-                        ScrollView {
-                            VStack(spacing: 20) {
-                                if viewModel.showingResult, let resultImage = viewModel.resultImage {
-                                    // Display result
-                                    VStack(spacing: 15) {
-                                        #if canImport(UIKit)
-ZStack {
-    // Result grid as static background (no extra backgrounds)
-    Image(uiImage: resultImage)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: UIScreen.main.bounds.width - 2 * 20)
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
-        .padding(.top, 32)
-        .padding(.bottom, 32)
-
-    // Overlay the person mask for gesture - only for visualization and interaction
-    if let personMask = viewModel.segmentedPersonImage {
-        PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
-    }
-}
-.padding(.top, 24)
-.padding(.bottom, 24)
-
-
-                                        #elseif canImport(AppKit)
-                                        Image(nsImage: resultImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .cornerRadius(10)
-                                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
-                                            .padding(.horizontal)
-                                        #endif
-                                        
-                                        // No text as requested
-                                    }
-                                    .padding(.vertical, 24)
-                                    .padding(.horizontal, horizontalPadding)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color(red: 0.08, green: 0.08, blue: 0.15),  // Dark navy blue
-                                                Color(red: 0.15, green: 0.15, blue: 0.25)   // Slightly lighter navy blue
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .cornerRadius(25)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
-                                } else {
-                                    // 3x3 Grid with improved drag-to-reorder functionality
-                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
-                                        ForEach(0..<9, id: \.self) { index in
-                                            GridCellView(
-                                                image: viewModel.gridPhotos[index],
-                                                index: index,
-                                                isDragging: draggedItem == index,
-                                                dragOffset: dragOffset,
-                                                onTap: {
-                                                    if let img = viewModel.gridPhotos[index] {
-                                                        previewImage = img
-                                                        previewIndex = index
-                                                    } else {
-                                                        let emptyCount = viewModel.gridPhotos.filter { $0 == nil }.count
-                                                        if emptyCount > 1 && selectedGridIndex == nil {
-                                                            // 有多个空位，允许多选
-                                                            activeSheet = .gridPicker
-                                                        } else {
-                                                            // 只允许单选，插入到指定位置
-                                                            selectedGridIndex = index
-                                                            activeSheet = .mainSubjectPicker
-                                                        }
-                                                    }
-                                                },
-                                                onLongPress: {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        draggedItem = index
-                                                        isDragging = true
-                                                    }
-                                                },
-                                                onDragEnd: {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        draggedItem = nil
-                                                        dragOffset = .zero
-                                                        isDragging = false
-                                                    }
-                                                },
-                                                onDragChanged: { value in
-                                                    dragOffset = value
-                                                    let targetIndex = calculateTargetIndex(from: index, with: value)
-                                                    if targetIndex != index {
-                                                        withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
-                                                            viewModel.gridPhotos.swapAt(index, targetIndex)
-                                                            draggedItem = targetIndex
-                                                            dragOffset = .zero
-                                                        }
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                    .padding(.bottom, verticalSpacing)
-                                    
-                                    // Side-by-side layout for main subject photo and result preview
-                                    HStack(spacing: 10) {
-                                        // Left side: Main subject photo selection (portrait orientation)
-                                        ZStack {
-                                            // 固定尺寸的占位符 - consistent container size
-                                            Rectangle()
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(width: personImageWidth, height: personImageHeight)
-                                                .cornerRadius(12)
-                                            
-                                            if let image = viewModel.mainSubjectPhoto {
-                                                #if canImport(UIKit)
-                                                Image(uiImage: image)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped() // 确保图片严格裁剪在占位符边界内
-                                                    .cornerRadius(12)
-                                                #elseif canImport(AppKit)
-                                                Image(nsImage: image)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped() // 确保图片严格裁剪在占位符边界内
-                                                    .cornerRadius(12)
-                                                #endif
-                                            } else {
-                                                VStack(spacing: 10) {
-                                                    Image(systemName: "person.fill")
-                                                        .font(.system(size: 40))
-                                                        .foregroundColor(.gray)
-                                                    Text("点击选择主体照片")
-                                                        .font(.system(size: 14))
-                                                        .foregroundColor(.gray)
-                                                }
-                                            }
-                                        }
-                                        .onTapGesture {
-                                            activeSheet = .mainSubjectPhotoPicker
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        
-                                        // Middle: Improved arrow with better visibility
-                                        ZStack {
-                                            // White background circle for better contrast
-                                            Circle()
-                                                .fill(Color.white)
-                                                .frame(width: 40, height: 40)
-                                                .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
-                                            
-                                            // Colored circle with smaller size
-                                            Circle()
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                                .frame(width: 32, height: 32)
-                                            
-                                            if viewModel.isProcessingSegmentation {
-                                                // Show processing indicator
-                                                ProgressView()
-                                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                    .scaleEffect(1.0)
-                                            } else {
-                                                // White arrow for better visibility
-                                                Image(systemName: "arrow.right")
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundColor(.white)
-                                            }
-                                        }
-                                        .frame(width: 42)
-                                        
-                                        // Right side: Result preview area (portrait orientation)
-                                        ZStack {
-                                            // 固定尺寸的占位符 - consistent container size
-                                            Rectangle()
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(width: personImageWidth, height: personImageHeight)
-                                                .cornerRadius(12)
-                                            
-                                            if viewModel.isProcessingSegmentation {
-                                                // Show loading state
-                                                VStack(spacing: 10) {
-                                                    ProgressView()
-                                                        .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-                                                    Text("正在处理...")
-                                                        .font(.system(size: 14))
-                                                        .foregroundColor(.gray)
-                                                }
-                                            } else if let resultImage = viewModel.segmentedPersonImage {
-                                                // Show segmented person image when ready
-                                                #if canImport(UIKit)
-                                                Image(uiImage: resultImage)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped() // 确保图片严格裁剪在占位符边界内
-                                                    .cornerRadius(12)
-                                                    .overlay(
-                                                        Text("人物分割完成")
-                                                            .font(.system(size: 12, weight: .medium))
-                                                            .foregroundColor(.white)
-                                                            .padding(.horizontal, 8)
-                                                            .padding(.vertical, 4)
-                                                            .background(Color.black.opacity(0.6))
-                                                            .cornerRadius(8)
-                                                            .padding(8),
-                                                        alignment: .bottom
-                                                    )
-                                                #elseif canImport(AppKit)
-                                                Image(nsImage: resultImage)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(width: personImageWidth, height: personImageHeight)
-                                                    .clipped() // 确保图片严格裁剪在占位符边界内
-                                                    .cornerRadius(12)
-                                                    .overlay(
-                                                        Text("人物分割完成")
-                                                            .font(.system(size: 12, weight: .medium))
-                                                            .foregroundColor(.white)
-                                                            .padding(.horizontal, 8)
-                                                            .padding(.vertical, 4)
-                                                            .background(Color.black.opacity(0.6))
-                                                            .cornerRadius(8)
-                                                            .padding(8),
-                                                        alignment: .bottom
-                                                    )
-                                                #endif
-                                            } else if let errorMessage = viewModel.segmentationError {
-                                                // Show error state
-                                                VStack(spacing: 10) {
-                                                    Image(systemName: "exclamationmark.triangle")
-                                                        .font(.system(size: 40))
-                                                        .foregroundColor(.gray)
-                                                    Text(errorMessage)
-                                                        .font(.system(size: 12))
-                                                        .foregroundColor(.gray)
-                                                        .multilineTextAlignment(.center)
-                                                        .lineLimit(2)
-                                                        .frame(maxWidth: .infinity)
-                                                        .padding(.horizontal, 8)
-                                                }
-                                            } else {
-                                                // Initial empty state
-                                                VStack(spacing: 10) {
-                                                    Image(systemName: "photo.on.rectangle")
-                                                        .font(.system(size: 40))
-                                                        .foregroundColor(.gray)
-                                                    Text("生成结果图片")
-                                                        .font(.system(size: 14))
-                                                        .foregroundColor(.gray)
-                                                }
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                    
-                                    // Spacer to push content up against the button
-                                    Spacer()
-                                        .frame(minHeight: 50)
-                                }
+                    Spacer()
+                    
+                    // Title
+                    Text("立体九宫格")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Placeholder for symmetry
+                    Text("")
+                        .frame(width: 70)
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
+                
+                if viewModel.showingResult, let resultImage = viewModel.resultImage {
+                    // 结果卡片区域，固定显示，不滚动
+                    VStack(spacing: 15) {
+                        #if canImport(UIKit)
+                        ZStack {
+                            Image(uiImage: resultImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: UIScreen.main.bounds.width - 2 * 20)
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+                                .padding(.top, 16)
+                            if let personMask = viewModel.segmentedPersonImage {
+                                PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
                             }
-                            .padding(.bottom, 70) // Space for the button
                         }
-                        
-                        // Button at the bottom - changes functionality based on state
-                        Button(action: {
-                            if viewModel.showingResult {
-                                // Save to album - this is where we actually blend the person mask
-                                // onto the background to generate the final image
-                                viewModel.saveToAlbum()
-                                // Show success message
-                                let generator = UINotificationFeedbackGenerator()
-                                generator.notificationOccurred(.success)
-                            } else {
-                                // Generate the grid without the person mask first
-                                viewModel.generateThreeDGrid()
-                            }
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 25)
-                                    .fill(viewModel.isReadyToGenerate ? Color.blue : Color.gray)
-                                    .frame(height: 50)
-                                
-                                if viewModel.isGenerating {
-                                    // Show loading indicator
-                                    HStack(spacing: 10) {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        Text("生成中...")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.white)
-                                    }
-                                } else {
-                                    Text(viewModel.showingResult ? "保存到相册" : "生成立体九宫格")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.white)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+                        #elseif canImport(AppKit)
+                        Image(nsImage: resultImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .cornerRadius(10)
+                            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+                            .padding(.horizontal)
+                        #endif
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, horizontalPadding)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.08, green: 0.08, blue: 0.15),
+                                Color(red: 0.15, green: 0.15, blue: 0.25)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(25)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 25)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
+                    Spacer(minLength: 0)
+                } else {
+                    // 其余内容可滚动，ScrollView高度精确限定
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // 3x3 Grid with improved drag-to-reorder functionality
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: 3), spacing: gridSpacing) {
+                                ForEach(0..<9, id: \.self) { index in
+                                    GridCellView(
+                                        image: viewModel.gridPhotos[index],
+                                        index: index,
+                                        isDragging: draggedItem == index,
+                                        dragOffset: dragOffset,
+                                        onTap: {
+                                            if let img = viewModel.gridPhotos[index] {
+                                                previewImage = img
+                                                previewIndex = index
+                                            } else {
+                                                let emptyCount = viewModel.gridPhotos.filter { $0 == nil }.count
+                                                if emptyCount > 1 && selectedGridIndex == nil {
+                                                    // 有多个空位，允许多选
+                                                    activeSheet = .gridPicker
+                                                } else {
+                                                    // 只允许单选，插入到指定位置
+                                                    selectedGridIndex = index
+                                                    activeSheet = .mainSubjectPicker
+                                                }
+                                            }
+                                        },
+                                        onLongPress: {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                draggedItem = index
+                                                isDragging = true
+                                            }
+                                        },
+                                        onDragEnd: {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                draggedItem = nil
+                                                dragOffset = .zero
+                                                isDragging = false
+                                            }
+                                        },
+                                        onDragChanged: { value in
+                                            dragOffset = value
+                                            let targetIndex = calculateTargetIndex(from: index, with: value)
+                                            if targetIndex != index {
+                                                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                                                    viewModel.gridPhotos.swapAt(index, targetIndex)
+                                                    draggedItem = targetIndex
+                                                    dragOffset = .zero
+                                                }
+                                            }
+                                        }
+                                    )
                                 }
                             }
                             .padding(.horizontal, horizontalPadding)
+                            .padding(.bottom, verticalSpacing)
+                            
+                            // Side-by-side layout for main subject photo and result preview
+                            HStack(spacing: 10) {
+                                // Left side: Main subject photo selection (portrait orientation)
+                                ZStack {
+                                    // 固定尺寸的占位符 - consistent container size
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(width: personImageWidth, height: personImageHeight)
+                                        .cornerRadius(12)
+                                    
+                                    if let image = viewModel.mainSubjectPhoto {
+                                        #if canImport(UIKit)
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: personImageWidth, height: personImageHeight)
+                                            .clipped() // 确保图片严格裁剪在占位符边界内
+                                            .cornerRadius(12)
+                                        #elseif canImport(AppKit)
+                                        Image(nsImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: personImageWidth, height: personImageHeight)
+                                            .clipped() // 确保图片严格裁剪在占位符边界内
+                                            .cornerRadius(12)
+                                        #endif
+                                    } else {
+                                        VStack(spacing: 10) {
+                                            Image(systemName: "person.fill")
+                                                .font(.system(size: 40))
+                                                .foregroundColor(.gray)
+                                            Text("点击选择主体照片")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                }
+                                .onTapGesture {
+                                    activeSheet = .mainSubjectPhotoPicker
+                                }
+                                .frame(maxWidth: .infinity)
+                                
+                                // Middle: Improved arrow with better visibility
+                                ZStack {
+                                    // White background circle for better contrast
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 40, height: 40)
+                                        .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
+                                    
+                                    // Colored circle with smaller size
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 32, height: 32)
+                                    
+                                    if viewModel.isProcessingSegmentation {
+                                        // Show processing indicator
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(1.0)
+                                    } else {
+                                        // White arrow for better visibility
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .frame(width: 42)
+                                
+                                // Right side: Result preview area (portrait orientation)
+                                ZStack {
+                                    // 固定尺寸的占位符 - consistent container size
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(width: personImageWidth, height: personImageHeight)
+                                        .cornerRadius(12)
+                                    
+                                    if viewModel.isProcessingSegmentation {
+                                        // Show loading state
+                                        VStack(spacing: 10) {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                                            Text("正在处理...")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.gray)
+                                        }
+                                    } else if let resultImage = viewModel.segmentedPersonImage {
+                                        // Show segmented person image when ready
+                                        #if canImport(UIKit)
+                                        Image(uiImage: resultImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: personImageWidth, height: personImageHeight)
+                                            .clipped() // 确保图片严格裁剪在占位符边界内
+                                            .cornerRadius(12)
+                                            .overlay(
+                                                Text("人物分割完成")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .cornerRadius(8)
+                                                    .padding(8),
+                                                alignment: .bottom
+                                            )
+                                        #elseif canImport(AppKit)
+                                        Image(nsImage: resultImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: personImageWidth, height: personImageHeight)
+                                            .clipped() // 确保图片严格裁剪在占位符边界内
+                                            .cornerRadius(12)
+                                            .overlay(
+                                                Text("人物分割完成")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .cornerRadius(8)
+                                                    .padding(8),
+                                                alignment: .bottom
+                                            )
+                                        #endif
+                                    } else if let errorMessage = viewModel.segmentationError {
+                                        // Show error state
+                                        VStack(spacing: 10) {
+                                            Image(systemName: "exclamationmark.triangle")
+                                                .font(.system(size: 40))
+                                                .foregroundColor(.gray)
+                                            Text(errorMessage)
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.gray)
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(2)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.horizontal, 8)
+                                        }
+                                    } else {
+                                        // Initial empty state
+                                        VStack(spacing: 10) {
+                                            Image(systemName: "photo.on.rectangle")
+                                                .font(.system(size: 40))
+                                                .foregroundColor(.gray)
+                                            Text("生成结果图片")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .padding(.horizontal, horizontalPadding)
+                            
+                            // Spacer to push content up against the button
+                            Spacer()
+                                .frame(minHeight: 50)
                         }
-                        .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
-                        .padding(.horizontal, horizontalPadding)
-                        .padding(.bottom, 20)
                     }
+                    .padding(.bottom, 20) // 只留少量padding
+                    .frame(minHeight: geometry.size.height - navBarHeight - buttonHeight - geometry.safeAreaInsets.bottom)
                 }
-            }
-            .navigationBarHidden(true)
-            .navigationBarBackButtonHidden(true)
-            .onAppear {
-                #if canImport(UIKit)
-                // Set status bar style to light
-                UIApplication.shared.statusBarStyle = .lightContent
-                #endif
                 
-                // Pass layout values to view model
-                viewModel.horizontalPadding = self.horizontalPadding
-                viewModel.gridSpacing = self.gridSpacing
+                // 底部按钮，始终固定
+                Button(action: {
+                    if viewModel.showingResult {
+                        viewModel.saveToAlbum()
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                    } else {
+                        viewModel.generateThreeDGrid()
+                    }
+                }) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(viewModel.isReadyToGenerate ? Color.blue : Color.gray)
+                            .frame(height: 50)
+                        if viewModel.isGenerating {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                Text("生成中...")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        } else {
+                            Text(viewModel.showingResult ? "保存到相册" : "生成立体九宫格")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.horizontal, horizontalPadding)
+                }
+                .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
             }
+            .edgesIgnoringSafeArea(.bottom)
+        }
+        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .onAppear {
+            #if canImport(UIKit)
+            // Set status bar style to light
+            UIApplication.shared.statusBarStyle = .lightContent
+            #endif
+            
+            // Pass layout values to view model
+            viewModel.horizontalPadding = self.horizontalPadding
+            viewModel.gridSpacing = self.gridSpacing
         }
         .sheet(item: $activeSheet) { item in
             switch item {
