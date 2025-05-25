@@ -875,10 +875,13 @@ ZStack {
             case .gridPicker:
                 MultiplePhotoPicker(gridPhotos: $viewModel.gridPhotos)
             case .mainSubjectPicker:
+                // 新增：自定义回调，选中图片后填补到selectedGridIndex，并裁剪为正方形
                 PhotoPicker(selectedImage: Binding<PlatformImage?>(
                     get: { nil },
                     set: { newImage in
-                        if let idx = selectedGridIndex, let img = newImage {
+                        if let idx = selectedGridIndex, let img = newImage as? UIImage {
+                            viewModel.gridPhotos[idx] = img.croppedToSquare() ?? img
+                        } else if let idx = selectedGridIndex, let img = newImage {
                             viewModel.gridPhotos[idx] = img
                         }
                         selectedGridIndex = nil
@@ -1121,7 +1124,8 @@ struct MultiplePhotoPicker: UIViewControllerRepresentable {
                 group.enter()
                 itemProvider.loadObject(ofClass: UIImage.self) { (image, error) in
                     if let image = image as? UIImage {
-                        loadedImages.append(image)
+                        // 新增：裁剪为正方形
+                        loadedImages.append(image.croppedToSquare() ?? image)
                     }
                     group.leave()
                 }
@@ -1142,3 +1146,19 @@ struct MultiplePhotoPicker: UIViewControllerRepresentable {
     }
 }
 #endif
+
+// UIImage 居中裁剪为正方形扩展
+extension UIImage {
+    func croppedToSquare() -> UIImage? {
+        let originalWidth  = self.size.width
+        let originalHeight = self.size.height
+        let edge = min(originalWidth, originalHeight)
+        let posX = (originalWidth  - edge) / 2.0
+        let posY = (originalHeight - edge) / 2.0
+        let cropSquare = CGRect(x: posX, y: posY, width: edge, height: edge)
+        if let cgImage = self.cgImage?.cropping(to: cropSquare) {
+            return UIImage(cgImage: cgImage, scale: self.scale, orientation: self.imageOrientation)
+        }
+        return nil
+    }
+}
