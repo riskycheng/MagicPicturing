@@ -410,42 +410,40 @@ struct PersonMaskOverlay: View {
     @ObservedObject var viewModel: ThreeDGridViewModel
     @State private var dragStartOffset: CGSize = .zero
 
-    var body: some View {
-        Image(uiImage: personMask)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: (UIScreen.main.bounds.width - 2 * 20) * viewModel.personScale)
-            .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        viewModel.personOffsetX = dragStartOffset.width + value.translation.width
-                        viewModel.personOffsetY = dragStartOffset.height + value.translation.height
-                    }
-                    .onEnded { value in
+var body: some View {
+    Image(uiImage: personMask)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: UIScreen.main.bounds.width - 2 * 20)
+        .scaleEffect(viewModel.personScale)
+        .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    viewModel.personOffsetX = dragStartOffset.width + value.translation.width
+                    viewModel.personOffsetY = dragStartOffset.height + value.translation.height
+                }
+                .onEnded { value in
+                    dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                }
+                .onChanged { value in
+                    if value.startLocation == value.location {
                         dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
-                        // Don't generate any image here, just update the position
                     }
-                    .onChanged { value in
-                        if value.startLocation == value.location {
-                            // On drag start, record the offset
-                            dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
-                        }
-                    }
-            )
-            .gesture(
-                MagnificationGesture(minimumScaleDelta: 0.01)
-                    .onChanged { value in
-                        let delta = value / viewModel.lastScaleValue
-                        viewModel.lastScaleValue = value
-                        viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
-                    }
-                    .onEnded { _ in
-                        viewModel.lastScaleValue = 1.0
-                        // Don't generate any image here, just update the scale
-                    }
-            )
-    }
+                }
+        )
+        .gesture(
+            MagnificationGesture(minimumScaleDelta: 0.01)
+                .onChanged { value in
+                    let delta = value / viewModel.lastScaleValue
+                    viewModel.lastScaleValue = value
+                    viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
+                }
+                .onEnded { _ in
+                    viewModel.lastScaleValue = 1.0
+                }
+        )
+}
 }
 
 enum ActiveSheet: Identifiable {
