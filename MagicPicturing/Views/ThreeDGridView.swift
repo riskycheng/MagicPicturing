@@ -462,6 +462,9 @@ struct ThreeDGridView: View {
     @State private var draggedItem: Int? = nil
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
+    @State private var previewImage: PlatformImage? = nil
+    @State private var previewIndex: Int? = nil
+    @State private var selectedGridIndex: Int? = nil
     
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
@@ -598,7 +601,20 @@ ZStack {
                                                 isDragging: draggedItem == index,
                                                 dragOffset: dragOffset,
                                                 onTap: {
-                                                    activeSheet = .gridPicker
+                                                    if let img = viewModel.gridPhotos[index] {
+                                                        previewImage = img
+                                                        previewIndex = index
+                                                    } else {
+                                                        let emptyCount = viewModel.gridPhotos.filter { $0 == nil }.count
+                                                        if emptyCount > 1 && selectedGridIndex == nil {
+                                                            // 有多个空位，允许多选
+                                                            activeSheet = .gridPicker
+                                                        } else {
+                                                            // 只允许单选，插入到指定位置
+                                                            selectedGridIndex = index
+                                                            activeSheet = .mainSubjectPicker
+                                                        }
+                                                    }
                                                 },
                                                 onLongPress: {
                                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -859,7 +875,78 @@ ZStack {
             case .gridPicker:
                 MultiplePhotoPicker(gridPhotos: $viewModel.gridPhotos)
             case .mainSubjectPicker:
-                PhotoPicker(selectedImage: $viewModel.mainSubjectPhoto)
+                PhotoPicker(selectedImage: Binding<PlatformImage?>(
+                    get: { nil },
+                    set: { newImage in
+                        if let idx = selectedGridIndex, let img = newImage {
+                            viewModel.gridPhotos[idx] = img
+                        }
+                        selectedGridIndex = nil
+                    }
+                ))
+            }
+        }
+        .fullScreenCover(isPresented: Binding<Bool>(
+            get: { previewImage != nil },
+            set: { if !$0 { previewImage = nil; previewIndex = nil } }
+        )) {
+            if let img = previewImage, let idx = previewIndex {
+                ZStack(alignment: .topTrailing) {
+                    Color.black.edgesIgnoringSafeArea(.all)
+                    VStack {
+                        Spacer()
+                        #if canImport(UIKit)
+                        Image(uiImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        #elseif canImport(AppKit)
+                        Image(nsImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        #endif
+                        Spacer()
+                    }
+                    // 右上角删除按钮
+                    Button(action: {
+                        if let idx = previewIndex {
+                            viewModel.gridPhotos[idx] = nil
+                        }
+                        previewImage = nil
+                        previewIndex = nil
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(16)
+                            .background(Color.black.opacity(0.7))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().stroke(Color.white.opacity(0.8), lineWidth: 1.5)
+                            )
+                            .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 2)
+                    }
+                    .padding(.top, 48)
+                    .padding(.trailing, 24)
+                    // 右上角关闭按钮
+                    Button(action: {
+                        previewImage = nil
+                        previewIndex = nil
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().stroke(Color.white.opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    .padding(.top, 52)
+                    .padding(.trailing, 80)
+                }
             }
         }
     }
