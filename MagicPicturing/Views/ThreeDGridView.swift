@@ -241,23 +241,22 @@ class ThreeDGridViewModel: ObservableObject {
             gradientImage?.draw(in: backgroundView.bounds)
         }
         
-        // Calculate grid dimensions - without spacing between cells
-        let cellWidth = gridWidth / 3
-        let cellHeight = cellWidth // Square cells
+        // Calculate grid dimensions - WITH spacing between cells
+        let totalSpacing = gridSpacing * 2 // Two spacings horizontally and vertically
+        let cellSize = (gridWidth - totalSpacing) / 3 // Calculate size of each cell content
         
         // Add all grid images to the view
         for i in 0..<min(backgroundImages.count, 9) {
             let row = CGFloat(i / 3)
             let col = CGFloat(i % 3)
             
-            // Position relative to the grid view's origin - no spacing between cells
-            let x = col * cellWidth
-            let y = row * cellHeight
+            // Position relative to the grid view's origin - with spacing between cells
+            let x = col * (cellSize + gridSpacing)
+            let y = row * (cellSize + gridSpacing)
             
-            let imageView = UIImageView(frame: CGRect(x: x, y: y, width: cellWidth, height: cellHeight))
+            let imageView = UIImageView(frame: CGRect(x: x, y: y, width: cellSize, height: cellSize))
             imageView.contentMode = .scaleAspectFill
-            imageView.layer.cornerRadius = 8
-            imageView.clipsToBounds = true
+            imageView.clipsToBounds = true // Ensure image is clipped to the frame
             imageView.image = backgroundImages[i % backgroundImages.count]
             
             // No text overlay on each cell as requested
@@ -281,17 +280,15 @@ class ThreeDGridViewModel: ObservableObject {
         
         // Calculate the position for the segmented person
         // Size the person to occupy approximately 4 cells in the top right
-        let personWidth = cellWidth * 2.0 * personScale  // Width of 2 cells
-        let personHeight = cellHeight * 2.0 * personScale // Height of 2 cells
+        let personWidth = cellSize * 2.0 * personScale  // Width of 2 cells
+        let personHeight = cellSize * 2.0 * personScale // Height of 2 cells
         
-        // Position the person at the top right to occupy 4 cells (cells at indices 1,2,4,5)
-        // Calculate the position to center the person over the 4 cells in the top right
-        let topRightX = gridDrawRect.minX + cellWidth * 1.5 // Center horizontally over columns 1 and 2
-        let topRightY = gridDrawRect.minY + cellHeight * 0.5 // Center vertically over rows 0 and 1
-        // Calculate the position to center the person over the 4 cells in the top right
-        let personRect = CGRect(x: gridDrawRect.minX + gridDrawRect.width / 2 + personOffsetX - personWidth / 2,
-                                y: gridDrawRect.minY + gridDrawRect.height / 2 + personOffsetY - personHeight / 2,
-                                width: personWidth, height: personHeight)
+        // Position the person based on adjusted grid layout and person offset
+        let personRect = CGRect(
+            x: gridDrawRect.minX + gridDrawRect.width / 2 + personOffsetX - personWidth / 2,
+            y: gridDrawRect.minY + gridDrawRect.height / 2 + personOffsetY - personHeight / 2,
+            width: personWidth, height: personHeight
+        )
 
         // Draw the person image (segmented mask) if present
         if let personImage = personImage {
@@ -467,7 +464,7 @@ struct ThreeDGridView: View {
     
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
-    private let horizontalPadding: CGFloat = 25 // Increased horizontal padding
+    private let horizontalPadding: CGFloat = 16 // Reduced horizontal padding
     private let gridSpacing: CGFloat = 4
     private let imageWidth: CGFloat = UIScreen.main.bounds.width * 0.38 // Smaller grid images
     private let imageHeight: CGFloat = UIScreen.main.bounds.width * 0.38 / 0.7
@@ -537,24 +534,13 @@ struct ThreeDGridView: View {
                     VStack(spacing: 15) {
                         #if canImport(UIKit)
                         ZStack {
-                            // 居中对齐的图片及其边框，放置在深色背景内部
                             Image(uiImage: resultImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                // 精确计算图片的 frame 宽度，使其与深色背景内边缘对齐，留出 12 点内边距
-                                .frame(width: UIScreen.main.bounds.width - 2 * horizontalPadding - 24)
-                                .cornerRadius(20) // 图片圆角与背景及边框一致，设置为 20
-                                .overlay(
-                                    // 边框圆角与图片及背景一致，设置为 20
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .stroke(Color(red: 0.25, green: 0.26, blue: 0.32, opacity: 0.95), lineWidth: 3.5)
-                                        .shadow(color: Color.white.opacity(0.10), radius: 8, x: 0, y: 2)
-                                        .shadow(color: Color.black.opacity(0.25), radius: 16, x: 0, y: 8)
-                                        .blur(radius: 0.7)
-                                )
-                                .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 2)
-                                .padding(.top, 16) // 顶部 padding 保持不变
-
+                                .frame(width: UIScreen.main.bounds.width - 2 * 20)
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+                                .padding(.top, 16)
                             if let personMask = viewModel.segmentedPersonImage {
                                 PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
                             }
@@ -572,6 +558,22 @@ struct ThreeDGridView: View {
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, horizontalPadding)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 0.08, green: 0.08, blue: 0.15),
+                                Color(red: 0.15, green: 0.15, blue: 0.25)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(25)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 25)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                     Spacer(minLength: 0)
                 } else {
                     // 其余内容可滚动，ScrollView高度精确限定
@@ -972,7 +974,6 @@ struct GridCellView: View {
                     .aspectRatio(1, contentMode: .fill) // 保证正方形裁剪
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
-                    .cornerRadius(8)
             } else {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.2))
