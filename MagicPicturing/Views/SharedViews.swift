@@ -100,7 +100,7 @@ struct CategoryButton: View {
             VStack(spacing: 6) {
                 Text(category.rawValue)
                     .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .primary : .secondary)
+                    .foregroundColor(isSelected ? .black : .black)
                 
                 if isSelected {
                     Rectangle()

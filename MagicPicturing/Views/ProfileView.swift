@@ -14,7 +14,7 @@ struct ProfileView: View {
     var body: some View {
         ZStack {
             // Background
-            Color.black.edgesIgnoringSafeArea(.all)
+            Color.white.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
                 // Header
@@ -22,11 +22,12 @@ struct ProfileView: View {
                     Text("设置")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                     
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 50)
                 
                 // Settings List
                 ScrollView {
@@ -37,7 +38,7 @@ struct ProfileView: View {
                         settingsRow(
                             icon: "paintpalette",
                             title: "主题色彩",
-                            detail: "黑色模式",
+                            detail: "浅色模式",
                             hasDisclosure: true
                         )
                         
@@ -82,7 +83,7 @@ struct ProfileView: View {
                             hasDisclosure: true
                         )
                     }
-                    .background(Color(UIColor.systemBackground).opacity(0.1))
+                    .background(Color.white.opacity(0.95))
                     .cornerRadius(10)
                     .padding()
                 }
@@ -114,11 +115,11 @@ struct ProfileView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                .background(Color(UIColor.systemBackground).opacity(0.1))
+                .background(Color.white.opacity(0.95))
                 .overlay(
                     Rectangle()
                         .frame(height: 0.5)
-                        .foregroundColor(Color.gray.opacity(0.3)),
+                        .foregroundColor(Color.gray.opacity(0.2)),
                     alignment: .top
                 )
             }
@@ -137,7 +138,7 @@ struct ProfileView: View {
             
             Spacer()
         }
-        .background(Color.black)
+        .background(Color.white)
     }
     
     // Settings row
@@ -150,12 +151,12 @@ struct ProfileView: View {
                     .font(.system(size: 20))
                     .foregroundColor(.gray)
                     .frame(width: 30, height: 30)
-                    .background(Color.gray.opacity(0.2))
+                    .background(Color.gray.opacity(0.1))
                     .cornerRadius(8)
                 
                 Text(title)
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 
                 Spacer()
                 
@@ -173,12 +174,12 @@ struct ProfileView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color.black)
+            .background(Color.white)
         }
         .overlay(
             Rectangle()
                 .frame(height: 0.5)
-                .foregroundColor(Color.gray.opacity(0.3)),
+                .foregroundColor(Color.gray.opacity(0.2)),
             alignment: .bottom
         )
     }

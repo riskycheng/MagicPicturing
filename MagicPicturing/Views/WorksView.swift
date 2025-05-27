@@ -20,7 +20,7 @@ struct WorksView: View {
     var body: some View {
         ZStack {
             // Background
-            Color.black.edgesIgnoringSafeArea(.all)
+            Color.white.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
                 // Header
@@ -28,7 +28,7 @@ struct WorksView: View {
                     Text("我的作品")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                     
                     Spacer()
                     
@@ -37,10 +37,11 @@ struct WorksView: View {
                     }) {
                         Image(systemName: "plus")
                             .font(.system(size: 22))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 50)
                 
                 // Category selector
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -98,11 +99,11 @@ struct WorksView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                .background(Color(UIColor.systemBackground).opacity(0.1))
+                .background(Color.white.opacity(0.95))
                 .overlay(
                     Rectangle()
                         .frame(height: 0.5)
-                        .foregroundColor(Color.gray.opacity(0.3)),
+                        .foregroundColor(Color.gray.opacity(0.2)),
                     alignment: .top
                 )
             }

@@ -61,18 +61,18 @@ struct MainTabView: View {
             }
             .padding(.vertical, 8)
             .background(
-                Color.black
-                    .opacity(0.9)
+                Color.white
+                    .opacity(0.95)
                     .edgesIgnoringSafeArea(.bottom)
             )
             .overlay(
                 Rectangle()
                     .frame(height: 0.5)
-                    .foregroundColor(Color.gray.opacity(0.3)),
+                    .foregroundColor(Color.gray.opacity(0.2)),
                 alignment: .top
             )
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
 

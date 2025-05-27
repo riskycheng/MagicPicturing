@@ -201,7 +201,7 @@ class ThreeDGridViewModel: ObservableObject {
         
         // Fill background with a gradient
         let context = UIGraphicsGetCurrentContext()!
-        let colors = [UIColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 1.0).cgColor, UIColor(red: 0.1, green: 0.05, blue: 0.2, alpha: 1.0).cgColor]
+        let colors = [UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0).cgColor, UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1.0).cgColor]
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let colorLocations: [CGFloat] = [0.0, 1.0]
         let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: colorLocations)!
@@ -217,15 +217,15 @@ class ThreeDGridViewModel: ObservableObject {
                                            width: gridWidth, height: gridViewHeight))
         gridView.backgroundColor = UIColor.clear
         
-        // Add an elegant dark gradient background for the entire result view
+        // Add an elegant light gradient background for the entire result view
         let backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
         
-        // Create a gradient layer with elegant dark colors
+        // Create a gradient layer with elegant light colors
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = backgroundView.bounds
         gradientLayer.colors = [
-            UIColor(red: 0.08, green: 0.08, blue: 0.15, alpha: 1.0).cgColor,  // Dark navy blue
-            UIColor(red: 0.15, green: 0.15, blue: 0.25, alpha: 1.0).cgColor   // Slightly lighter navy blue
+            UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0).cgColor,  // Light gray-blue
+            UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1.0).cgColor   // Lighter gray-blue
         ]
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
@@ -507,7 +507,7 @@ struct ThreeDGridView: View {
                             Text("返回")
                                 .font(.system(size: 16, weight: .regular))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
                     }
@@ -517,7 +517,7 @@ struct ThreeDGridView: View {
                     // Title
                     Text("立体九宫格")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                     
                     Spacer()
                     
@@ -527,7 +527,8 @@ struct ThreeDGridView: View {
                 }
                 .padding(.horizontal, horizontalPadding)
                 .padding(.top, 10)
-                .padding(.bottom, 20)
+                .padding(.bottom, 10)
+                .background(Color.white)
                 
                 if viewModel.showingResult, let resultImage = viewModel.resultImage {
                     // 结果卡片区域，固定显示，不滚动
@@ -561,8 +562,8 @@ struct ThreeDGridView: View {
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color(red: 0.08, green: 0.08, blue: 0.15),
-                                Color(red: 0.15, green: 0.15, blue: 0.25)
+                                Color(red: 0.95, green: 0.95, blue: 0.97), // 浅色背景1
+                                Color(red: 0.98, green: 0.98, blue: 1.0)   // 浅色背景2
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -571,7 +572,7 @@ struct ThreeDGridView: View {
                     .cornerRadius(25)
                     .overlay(
                         RoundedRectangle(cornerRadius: 25)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.1), lineWidth: 1) // 边框改为深色透明
                     )
                     .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                     Spacer(minLength: 0)
@@ -801,6 +802,7 @@ struct ThreeDGridView: View {
                     }
                     .padding(.bottom, 20) // 只留少量padding
                     .frame(minHeight: geometry.size.height - navBarHeight - buttonHeight - geometry.safeAreaInsets.bottom)
+                    .background(Color.white)
                 }
                 
                 // 底部按钮，始终固定
@@ -836,8 +838,10 @@ struct ThreeDGridView: View {
                 .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
+                .background(Color.white)
             }
             .edgesIgnoringSafeArea(.bottom)
+            .background(Color.white)
         }
         .navigationBarHidden(true)
         .navigationBarBackButtonHidden(true)
@@ -879,7 +883,7 @@ struct ThreeDGridView: View {
         )) {
             if let img = previewImage, let idx = previewIndex {
                 ZStack(alignment: .topTrailing) {
-                    Color.black.edgesIgnoringSafeArea(.all)
+                    Color.white.edgesIgnoringSafeArea(.all) // 背景改为白色
                     VStack {
                         Spacer()
                         #if canImport(UIKit)
@@ -905,12 +909,12 @@ struct ThreeDGridView: View {
                     }) {
                         Image(systemName: "trash")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(16)
-                            .background(Color.black.opacity(0.7))
+                            .background(Color.white.opacity(0.7))
                             .clipShape(Circle())
                             .overlay(
-                                Circle().stroke(Color.white.opacity(0.8), lineWidth: 1.5)
+                                Circle().stroke(Color.black.opacity(0.4), lineWidth: 1.5)
                             )
                             .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 2)
                     }
@@ -923,12 +927,12 @@ struct ThreeDGridView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(12)
-                            .background(Color.black.opacity(0.5))
+                            .background(Color.white.opacity(0.5))
                             .clipShape(Circle())
                             .overlay(
-                                Circle().stroke(Color.white.opacity(0.5), lineWidth: 1)
+                                Circle().stroke(Color.black.opacity(0.3), lineWidth: 1)
                             )
                     }
                     .padding(.top, 52)

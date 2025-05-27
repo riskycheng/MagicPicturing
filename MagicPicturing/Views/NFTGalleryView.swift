@@ -80,8 +80,8 @@ struct NFTGalleryView: View {
                     )
                     .opacity(0)
                     
-                    // 浅绿色背景
-                    Color(red: 0.82, green: 0.84, blue: 0.67)
+                    // 白色背景
+                    Color.white
                     
                     // 标题文本
                     titleView()
