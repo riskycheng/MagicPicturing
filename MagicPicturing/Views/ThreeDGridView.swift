@@ -199,14 +199,6 @@ class ThreeDGridViewModel: ObservableObject {
         // Create a context to draw the collage
         UIGraphicsBeginImageContextWithOptions(CGSize(width: screenWidth, height: screenHeight), false, 0)
         
-        // Fill background with a gradient
-        let context = UIGraphicsGetCurrentContext()!
-        let colors = [UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0).cgColor, UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1.0).cgColor]
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let colorLocations: [CGFloat] = [0.0, 1.0]
-        let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: colorLocations)!
-        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: screenWidth, y: screenHeight), options: [])
-        
         // Make the grid larger to match the previous page layout
         let gridWidth = screenWidth * 0.9 // Make grid 90% of screen width to match previous page
         let gridViewHeight = gridWidth // Keep it square
@@ -219,27 +211,6 @@ class ThreeDGridViewModel: ObservableObject {
         
         // Add an elegant light gradient background for the entire result view
         let backgroundView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
-        
-        // Create a gradient layer with elegant light colors
-        let gradientLayer = CAGradientLayer()
-        gradientLayer.frame = backgroundView.bounds
-        gradientLayer.colors = [
-            UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0).cgColor,  // Light gray-blue
-            UIColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 1.0).cgColor   // Lighter gray-blue
-        ]
-        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
-        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
-        
-        // Render the gradient to the context
-        UIGraphicsBeginImageContextWithOptions(backgroundView.bounds.size, false, 0)
-        if let gradientContext = UIGraphicsGetCurrentContext() {
-            gradientLayer.render(in: gradientContext)
-            let gradientImage = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            
-            // Draw the gradient image to the main context
-            gradientImage?.draw(in: backgroundView.bounds)
-        }
         
         // Calculate grid dimensions - WITH spacing between cells
         let totalSpacing = gridSpacing * 2 // Two spacings horizontally and vertically
@@ -296,6 +267,7 @@ class ThreeDGridViewModel: ObservableObject {
             personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
 
             // First draw a subtle outer glow/shadow
+            let context = UIGraphicsGetCurrentContext()!
             context.saveGState()
             context.setShadow(offset: CGSize.zero, blur: 12, color: UIColor.white.withAlphaComponent(0.3).cgColor)
             personImage.draw(in: personRect, blendMode: .normal, alpha: 1.0)
@@ -528,7 +500,6 @@ struct ThreeDGridView: View {
                 .padding(.horizontal, horizontalPadding)
                 .padding(.top, 10)
                 .padding(.bottom, 10)
-                .background(Color.white)
                 
                 if viewModel.showingResult, let resultImage = viewModel.resultImage {
                     // 结果卡片区域，固定显示，不滚动
@@ -539,9 +510,6 @@ struct ThreeDGridView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: UIScreen.main.bounds.width - 2 * 20)
-                                .cornerRadius(10)
-                                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
-                                .padding(.top, 16)
                             if let personMask = viewModel.segmentedPersonImage {
                                 PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
                             }
@@ -557,24 +525,6 @@ struct ThreeDGridView: View {
                             .padding(.horizontal)
                         #endif
                     }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, horizontalPadding)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.95, green: 0.95, blue: 0.97), // 浅色背景1
-                                Color(red: 0.98, green: 0.98, blue: 1.0)   // 浅色背景2
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(25)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 25)
-                            .stroke(Color.black.opacity(0.1), lineWidth: 1) // 边框改为深色透明
-                    )
-                    .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 5)
                     Spacer(minLength: 0)
                 } else {
                     // 其余内容可滚动，ScrollView高度精确限定
@@ -794,15 +744,10 @@ struct ThreeDGridView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .padding(.horizontal, horizontalPadding)
-                            
-                            // Spacer to push content up against the button
-                            Spacer()
-                                .frame(minHeight: 50)
                         }
+                        .background(Color.white)
                     }
                     .padding(.bottom, 20) // 只留少量padding
-                    .frame(minHeight: geometry.size.height - navBarHeight - buttonHeight - geometry.safeAreaInsets.bottom)
-                    .background(Color.white)
                 }
                 
                 // 底部按钮，始终固定
@@ -837,11 +782,9 @@ struct ThreeDGridView: View {
                 }
                 .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
                 .padding(.horizontal, horizontalPadding)
-                .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
-                .background(Color.white)
             }
-            .edgesIgnoringSafeArea(.bottom)
             .background(Color.white)
+            .edgesIgnoringSafeArea(.bottom)
         }
         .navigationBarHidden(true)
         .navigationBarBackButtonHidden(true)
