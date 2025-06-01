@@ -824,63 +824,18 @@ struct ThreeDGridView: View {
             get: { previewImage != nil },
             set: { if !$0 { previewImage = nil; previewIndex = nil } }
         )) {
-            if let img = previewImage, let idx = previewIndex {
-                ZStack(alignment: .topTrailing) {
-                    Color.white.edgesIgnoringSafeArea(.all) // 背景改为白色
-                    VStack {
-                        Spacer()
-                        #if canImport(UIKit)
-                        Image(uiImage: img)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        #elseif canImport(AppKit)
-                        Image(nsImage: img)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        #endif
-                        Spacer()
-                    }
-                    // 右上角删除按钮
-                    Button(action: {
-                        if let idx = previewIndex {
-                            viewModel.gridPhotos[idx] = nil
-                        }
-                        previewImage = nil
-                        previewIndex = nil
-                    }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(16)
-                            .background(Color.white.opacity(0.7))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.4), lineWidth: 1.5)
-                            )
-                            .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 2)
-                    }
-                    .padding(.top, 48)
-                    .padding(.trailing, 24)
-                    // 右上角关闭按钮
-                    Button(action: {
-                        previewImage = nil
-                        previewIndex = nil
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(12)
-                            .background(Color.white.opacity(0.5))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.3), lineWidth: 1)
-                            )
-                    }
-                    .padding(.top, 52)
-                    .padding(.trailing, 80)
-                }
+            if let initialImage = previewImage, let initialIndex = previewIndex {
+                ImageGalleryView(initialIndex: initialIndex, 
+                                 images: viewModel.gridPhotos.compactMap { $0 },
+                                 onDelete: { index in
+                                    viewModel.gridPhotos[index] = nil
+                                    previewImage = nil
+                                    previewIndex = nil
+                                 },
+                                 onDismiss: {
+                                    previewImage = nil
+                                    previewIndex = nil
+                                 })
             }
         }
     }
