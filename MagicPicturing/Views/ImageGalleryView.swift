@@ -14,10 +14,10 @@ struct ImageGalleryView: View {
     
     @State private var currentIndex: Int
     @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
     @State private var isZoomed: Bool = false
+    @State private var headerHeight: CGFloat = 44
+    @State private var refreshID = UUID() // Used to force refresh gesture handlers
     
     init(initialIndex: Int, images: [PlatformImage], onDelete: @escaping (Int) -> Void, onDismiss: @escaping () -> Void) {
         self.initialIndex = initialIndex
@@ -29,78 +29,76 @@ struct ImageGalleryView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                // Background color - light gray to match the second image style
-                Color(white: 0.95).edgesIgnoringSafeArea(.all)
-                
-                // Black bars for letterboxing effect
-                VStack {
-                    Rectangle()
-                        .fill(Color.black)
-                        .frame(height: geometry.size.height * 0.08)
-                    Spacer()
-                    Rectangle()
-                        .fill(Color.black)
-                        .frame(height: geometry.size.height * 0.08)
-                }
-                .edgesIgnoringSafeArea(.all)
-                
-                // Main content
-                VStack(spacing: 0) {
-                    // Header with back button, image count, and delete button
-                    HStack {
-                        // Back button
-                        Button(action: onDismiss) {
-                            HStack(spacing: 5) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                            }
+            VStack(spacing: 0) {
+                // Header with white background
+                HStack {
+                    // Back button
+                    Button(action: onDismiss) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.black)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                        }
-                        
-                        Spacer()
-                        
-                        // Image count indicator
-                        Text("\(currentIndex + 1)/\(images.count)")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.black)
-                        
-                        Spacer()
-                        
-                        // Delete button
-                        Button(action: {
-                            onDelete(currentIndex)
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.black)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                        }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                    .background(Color(white: 0.95))
                     
-                    // Image pager
+                    Spacer()
+                    
+                    // Image count indicator
+                    Text("\(currentIndex + 1)/\(images.count)")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.black)
+                    
+                    Spacer()
+                    
+                    // Delete button
+                    Button(action: {
+                        onDelete(currentIndex)
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.black)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .background(GeometryReader { headerGeometry -> Color in
+                    DispatchQueue.main.async {
+                        self.headerHeight = headerGeometry.size.height
+                    }
+                    return Color.clear
+                })
+                
+                // Image area with black background
+                ZStack {
+                    // Black background for the entire image area
+                    Color.black.edgesIgnoringSafeArea(.all)
+                    
+                    // Image pager with single-finger swipe
                     TabView(selection: $currentIndex) {
                         ForEach(0..<images.count, id: \.self) { index in
-                            ZoomableImageView(
-                                image: images[index],
-                                scale: index == currentIndex ? $scale : .constant(1.0),
-                                offset: index == currentIndex ? $offset : .constant(.zero),
-                                isZoomed: index == currentIndex ? $isZoomed : .constant(false),
-                                resetZoom: {
-                                    withAnimation {
-                                        scale = 1.0
-                                        offset = .zero
-                                        isZoomed = false
-                                    }
-                                }
-                            )
+                            // Full screen transparent overlay to capture swipes anywhere
+                            GeometryReader { fullScreenGeometry in
+                                Color.clear // Transparent full-screen area to capture swipes
+                                    .contentShape(Rectangle()) // Make the entire area tappable
+                                    .overlay(
+                                        ZoomableImageView(
+                                            image: images[index],
+                                            scale: $scale,
+                                            offset: $offset,
+                                            isZoomed: $isZoomed,
+                                            isActive: index == currentIndex,
+                                            screenSize: geometry.size,
+                                            headerHeight: headerHeight,
+                                            refreshID: refreshID, // Pass the refresh ID
+                                            resetZoom: {
+                                                withAnimation {
+                                                    scale = 1.0
+                                                    offset = .zero
+                                                    isZoomed = false
+                                                }
+                                            }
+                                        )
+                                    )
+                            }
                             .tag(index)
                         }
                     }
@@ -111,11 +109,13 @@ struct ImageGalleryView: View {
                             scale = 1.0
                             offset = .zero
                             isZoomed = false
+                            // Generate new UUID to force refresh of gesture handlers
+                            refreshID = UUID()
                         }
                     }
                 }
-                .edgesIgnoringSafeArea(.bottom)
             }
+            .edgesIgnoringSafeArea(.bottom)
         }
     }
 }
@@ -125,102 +125,244 @@ struct ZoomableImageView: View {
     @Binding var scale: CGFloat
     @Binding var offset: CGSize
     @Binding var isZoomed: Bool
+    let isActive: Bool // Whether this view is currently visible
+    let screenSize: CGSize
+    let headerHeight: CGFloat
+    let refreshID: UUID // Used to force refresh gesture handlers
     let resetZoom: () -> Void
     
+    // For gesture handling
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
+    @State private var imageSize: CGSize = .zero
+    @State private var fingerCount: Int = 0
     
     var body: some View {
         GeometryReader { geometry in
             #if canImport(UIKit)
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .scaleEffect(scale)
-                .offset(offset)
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            let delta = value / lastScale
-                            lastScale = value
-                            
-                            // Limit minimum scale to 1.0 and maximum to 4.0
-                            let newScale = min(max(scale * delta, 1.0), 4.0)
-                            
-                            // Only set isZoomed if we're actually zoomed in
-                            isZoomed = newScale > 1.0
-                            
-                            scale = newScale
+            ZStack {
+                // Black background
+                Color.black.edgesIgnoringSafeArea(.all)
+                
+                // Image with preserved aspect ratio
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .background(GeometryReader { imageGeometry -> Color in
+                        DispatchQueue.main.async {
+                            self.imageSize = imageGeometry.size
                         }
-                        .onEnded { _ in
-                            lastScale = 1.0
-                            
-                            // If scale is close to 1, snap back to 1
-                            if scale < 1.1 {
-                                withAnimation {
-                                    scale = 1.0
-                                    offset = .zero
-                                    isZoomed = false
-                                }
+                        return Color.clear
+                    })
+                    // Use a transparent overlay to capture all gestures
+                    .overlay(
+                        // This transparent view captures all gestures and handles them appropriately
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            // Add gesture recognizers
+                            .gesture(
+                                // Detect number of fingers with DragGesture
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { _ in
+                                        // This is handled by the UIViewRepresentable below
+                                    }
+                            )
+                    )
+                    // Add a UIViewRepresentable to handle the gestures natively
+                    .overlay(
+                        Group {
+                            if isActive { // Only add gesture handlers when view is active
+                                GestureHandlerView(scale: $scale, offset: $offset, isZoomed: $isZoomed, lastScale: $lastScale, lastOffset: $lastOffset, imageSize: imageSize, refreshID: refreshID)
                             }
                         }
-                )
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            // Only allow dragging if zoomed in
+                    )
+                    .onTapGesture(count: 2) {
+                        // Double tap to zoom in/out
+                        withAnimation {
                             if scale > 1.0 {
-                                let newOffset = CGSize(
-                                    width: lastOffset.width + value.translation.width,
-                                    height: lastOffset.height + value.translation.height
-                                )
-                                
-                                // Calculate bounds for dragging based on zoom level
-                                let maxX = (geometry.size.width * (scale - 1)) / 2
-                                let maxY = (geometry.size.height * (scale - 1)) / 2
-                                
-                                // Constrain offset within bounds
-                                offset = CGSize(
-                                    width: min(max(newOffset.width, -maxX), maxX),
-                                    height: min(max(newOffset.height, -maxY), maxY)
-                                )
+                                // Reset zoom
+                                scale = 1.0
+                                offset = .zero
+                                lastOffset = .zero
+                                isZoomed = false
+                            } else {
+                                // Zoom to 2x
+                                scale = 2.0
+                                isZoomed = true
                             }
-                        }
-                        .onEnded { _ in
-                            lastOffset = offset
-                            
-                            // If scale is 1, reset offset
-                            if scale <= 1.0 {
-                                withAnimation {
-                                    offset = .zero
-                                }
-                            }
-                        }
-                )
-                .onTapGesture(count: 2) {
-                    // Double tap to zoom in/out
-                    withAnimation {
-                        if scale > 1.0 {
-                            // Reset zoom
-                            scale = 1.0
-                            offset = .zero
-                            lastOffset = .zero
-                            isZoomed = false
-                        } else {
-                            // Zoom to 2x
-                            scale = 2.0
-                            isZoomed = true
                         }
                     }
-                }
+            }
             #elseif canImport(AppKit)
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .scaleEffect(scale)
                 .offset(offset)
+                .background(Color.black)
             #endif
         }
-        .contentShape(Rectangle()) // Ensures the entire area is tappable
     }
 }
+
+#if canImport(UIKit)
+// UIViewRepresentable to handle gestures natively
+struct GestureHandlerView: UIViewRepresentable {
+    @Binding var scale: CGFloat
+    @Binding var offset: CGSize
+    @Binding var isZoomed: Bool
+    @Binding var lastScale: CGFloat
+    @Binding var lastOffset: CGSize
+    let imageSize: CGSize
+    let refreshID: UUID // Used to force refresh gesture handlers
+    
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .clear
+        
+        // Add pinch gesture recognizer for zooming
+        let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
+        pinchGesture.delegate = context.coordinator
+        view.addGestureRecognizer(pinchGesture)
+        
+        // Add pan gesture recognizer for panning when zoomed
+        let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+        panGesture.delegate = context.coordinator
+        view.addGestureRecognizer(panGesture)
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // When refreshID changes, we need to reinitialize our gesture recognizers
+        // This ensures they work properly after swiping to a new image
+        if context.coordinator.lastRefreshID != refreshID {
+            context.coordinator.lastRefreshID = refreshID
+            
+            // Remove all existing gesture recognizers
+            uiView.gestureRecognizers?.forEach { uiView.removeGestureRecognizer($0) }
+            
+            // Add fresh gesture recognizers
+            let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
+            pinchGesture.delegate = context.coordinator
+            uiView.addGestureRecognizer(pinchGesture)
+            
+            let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+            panGesture.delegate = context.coordinator
+            uiView.addGestureRecognizer(panGesture)
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var parent: GestureHandlerView
+        var lastRefreshID: UUID
+        var touchStartedOnImage = false
+        
+        init(_ parent: GestureHandlerView) {
+            self.parent = parent
+            self.lastRefreshID = parent.refreshID
+        }
+        
+        // Handle pinch gesture for zooming
+        @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+            if gesture.numberOfTouches >= 2 { // Ensure it's a two-finger pinch
+                switch gesture.state {
+                case .began:
+                    parent.lastScale = 1.0
+                case .changed:
+                    let delta = gesture.scale / parent.lastScale
+                    parent.lastScale = gesture.scale
+                    
+                    // Limit scale between 1.0 and 4.0
+                    let newScale = min(max(parent.scale * delta, 1.0), 4.0)
+                    parent.scale = newScale
+                    parent.isZoomed = newScale > 1.0
+                case .ended, .cancelled:
+                    parent.lastScale = 1.0
+                    
+                    // Snap back to 1.0 if close
+                    if parent.scale < 1.1 {
+                        withAnimation {
+                            parent.scale = 1.0
+                            parent.offset = .zero
+                            parent.isZoomed = false
+                        }
+                    }
+                default:
+                    break
+                }
+            }
+        }
+        
+        // Handle pan gesture for panning when zoomed
+        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            switch gesture.state {
+            case .began:
+                // Check if we're zoomed in - if so, we'll handle the pan
+                if parent.scale > 1.0 {
+                    touchStartedOnImage = true
+                } else {
+                    // Not zoomed, let TabView handle it
+                    touchStartedOnImage = false
+                }
+                
+            case .changed:
+                // Only allow panning when zoomed in
+                if parent.scale > 1.0 && touchStartedOnImage {
+                    let translation = gesture.translation(in: gesture.view)
+                    let newOffset = CGSize(
+                        width: parent.lastOffset.width + translation.x,
+                        height: parent.lastOffset.height + translation.y
+                    )
+                    
+                    // Calculate bounds based on zoom level
+                    let maxX = (parent.imageSize.width * (parent.scale - 1)) / 2
+                    let maxY = (parent.imageSize.height * (parent.scale - 1)) / 2
+                    
+                    // Constrain offset within bounds
+                    parent.offset = CGSize(
+                        width: min(max(newOffset.width, -maxX), maxX),
+                        height: min(max(newOffset.height, -maxY), maxY)
+                    )
+                    
+                    // Reset translation to avoid accumulation
+                    gesture.setTranslation(.zero, in: gesture.view)
+                }
+                
+            case .ended, .cancelled:
+                if parent.scale > 1.0 && touchStartedOnImage {
+                    parent.lastOffset = parent.offset
+                }
+                touchStartedOnImage = false
+                
+            default:
+                break
+            }
+        }
+        
+        // Implement UIGestureRecognizerDelegate methods
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            // Always allow two-finger pinch and pan to work together
+            if (gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
+               (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UIPinchGestureRecognizer) {
+                return true
+            }
+            
+            // If we're zoomed in, prioritize our pan gesture over TabView's swipe
+            if parent.scale > 1.0 && (gestureRecognizer is UIPanGestureRecognizer || otherGestureRecognizer is UIPanGestureRecognizer) {
+                return false
+            }
+            
+            // If we're not zoomed, let TabView handle swipes (even on the image)
+            return true
+        }
+    }
+}
+#endif
