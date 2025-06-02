@@ -72,45 +72,67 @@ struct ImageGalleryView: View {
                     // Black background for the entire image area
                     Color.black.edgesIgnoringSafeArea(.all)
                     
-                    // Image pager with single-finger swipe
-                    TabView(selection: $currentIndex) {
-                        ForEach(0..<images.count, id: \.self) { index in
-                            // Full screen transparent overlay to capture swipes anywhere
-                            GeometryReader { fullScreenGeometry in
-                                Color.clear // Transparent full-screen area to capture swipes
-                                    .contentShape(Rectangle()) // Make the entire area tappable
-                                    .overlay(
-                                        ZoomableImageView(
-                                            image: images[index],
-                                            scale: $scale,
-                                            offset: $offset,
-                                            isZoomed: $isZoomed,
-                                            isActive: index == currentIndex,
-                                            screenSize: geometry.size,
-                                            headerHeight: headerHeight,
-                                            refreshID: refreshID, // Pass the refresh ID
-                                            resetZoom: {
-                                                withAnimation {
-                                                    scale = 1.0
-                                                    offset = .zero
-                                                    isZoomed = false
-                                                }
-                                            }
-                                        )
-                                    )
-                            }
-                            .tag(index)
+                    // 关键修改：根据scale判断是否允许滑动
+                    if scale > 1.0 {
+                        // 放大时，只显示当前图片，禁用滑动
+                        GeometryReader { _ in
+                            ZoomableImageView(
+                                image: images[currentIndex],
+                                scale: $scale,
+                                offset: $offset,
+                                isZoomed: $isZoomed,
+                                isActive: true,
+                                screenSize: geometry.size,
+                                headerHeight: headerHeight,
+                                refreshID: refreshID,
+                                resetZoom: {
+                                    withAnimation {
+                                        scale = 1.0
+                                        offset = .zero
+                                        isZoomed = false
+                                    }
+                                }
+                            )
                         }
-                    }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .onChange(of: currentIndex) { _, _ in
-                        // Reset zoom when changing images
-                        withAnimation {
-                            scale = 1.0
-                            offset = .zero
-                            isZoomed = false
-                            // Generate new UUID to force refresh of gesture handlers
-                            refreshID = UUID()
+                    } else {
+                        // 未放大时，允许滑动切换图片
+                        TabView(selection: $currentIndex) {
+                            ForEach(0..<images.count, id: \.self) { index in
+                                GeometryReader { fullScreenGeometry in
+                                    Color.clear
+                                        .contentShape(Rectangle())
+                                        .overlay(
+                                            ZoomableImageView(
+                                                image: images[index],
+                                                scale: $scale,
+                                                offset: $offset,
+                                                isZoomed: $isZoomed,
+                                                isActive: index == currentIndex,
+                                                screenSize: geometry.size,
+                                                headerHeight: headerHeight,
+                                                refreshID: refreshID,
+                                                resetZoom: {
+                                                    withAnimation {
+                                                        scale = 1.0
+                                                        offset = .zero
+                                                        isZoomed = false
+                                                    }
+                                                }
+                                            )
+                                        )
+                                }
+                                .tag(index)
+                            }
+                        }
+                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                        .onChange(of: currentIndex) { _, _ in
+                            // Reset zoom when changing images
+                            withAnimation {
+                                scale = 1.0
+                                offset = .zero
+                                isZoomed = false
+                                refreshID = UUID()
+                            }
                         }
                     }
                 }
@@ -150,6 +172,7 @@ struct ZoomableImageView: View {
                     .aspectRatio(contentMode: .fit)
                     .scaleEffect(scale)
                     .offset(offset)
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
                     .background(GeometryReader { imageGeometry -> Color in
                         DispatchQueue.main.async {
                             self.imageSize = imageGeometry.size
@@ -264,6 +287,7 @@ struct GestureHandlerView: UIViewRepresentable {
         var parent: GestureHandlerView
         var lastRefreshID: UUID
         var touchStartedOnImage = false
+        var baseScale: CGFloat = 1.0 // 新增：记录pinch开始时的缩放比例
         
         init(_ parent: GestureHandlerView) {
             self.parent = parent
@@ -275,18 +299,14 @@ struct GestureHandlerView: UIViewRepresentable {
             if gesture.numberOfTouches >= 2 { // Ensure it's a two-finger pinch
                 switch gesture.state {
                 case .began:
-                    parent.lastScale = 1.0
+                    // 记录当前缩放比例为基准
+                    baseScale = parent.scale
                 case .changed:
-                    let delta = gesture.scale / parent.lastScale
-                    parent.lastScale = gesture.scale
-                    
-                    // Limit scale between 1.0 and 4.0
-                    let newScale = min(max(parent.scale * delta, 1.0), 4.0)
+                    // 直接用baseScale * gesture.scale，保证缩放手势连续
+                    let newScale = min(max(baseScale * gesture.scale, 1.0), 4.0)
                     parent.scale = newScale
                     parent.isZoomed = newScale > 1.0
                 case .ended, .cancelled:
-                    parent.lastScale = 1.0
-                    
                     // Snap back to 1.0 if close
                     if parent.scale < 1.1 {
                         withAnimation {
