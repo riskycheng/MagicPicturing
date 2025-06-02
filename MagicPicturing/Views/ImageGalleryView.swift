@@ -18,6 +18,8 @@ struct ImageGalleryView: View {
     @State private var isZoomed: Bool = false
     @State private var headerHeight: CGFloat = 44
     @State private var refreshID = UUID() // Used to force refresh gesture handlers
+    @State private var showHeader: Bool = true // 新增：控制头部显示
+    @State private var doubleTapAnchor: CGPoint? = nil // 新增：记录双击锚点
     
     init(initialIndex: Int, images: [PlatformImage], onDelete: @escaping (Int) -> Void, onDismiss: @escaping () -> Void) {
         self.initialIndex = initialIndex
@@ -30,43 +32,48 @@ struct ImageGalleryView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // Header with white background
-                HStack {
-                    // Back button
-                    Button(action: onDismiss) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
+                if showHeader {
+                    // Header with white background
+                    HStack {
+                        // Back button
+                        Button(action: onDismiss) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.black)
+                        }
+                        
+                        Spacer()
+                        
+                        // Image count indicator
+                        Text("\(currentIndex + 1)/\(images.count)")
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.black)
+                        
+                        Spacer()
+                        
+                        // Delete button
+                        Button(action: {
+                            onDelete(currentIndex)
+                        }) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.black)
+                        }
                     }
-                    
-                    Spacer()
-                    
-                    // Image count indicator
-                    Text("\(currentIndex + 1)/\(images.count)")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.black)
-                    
-                    Spacer()
-                    
-                    // Delete button
-                    Button(action: {
-                        onDelete(currentIndex)
-                    }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.black)
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.white)
+                    .background(GeometryReader { headerGeometry -> Color in
+                        DispatchQueue.main.async {
+                            self.headerHeight = headerGeometry.size.height
+                        }
+                        return Color.clear
+                    })
+                } else {
+                    // headerHeight 是你记录的头部高度
+                    Color.clear
+                        .frame(height: headerHeight)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(Color.white)
-                .background(GeometryReader { headerGeometry -> Color in
-                    DispatchQueue.main.async {
-                        self.headerHeight = headerGeometry.size.height
-                    }
-                    return Color.clear
-                })
-                
                 // Image area with black background
                 ZStack {
                     // Black background for the entire image area
@@ -91,7 +98,11 @@ struct ImageGalleryView: View {
                                         offset = .zero
                                         isZoomed = false
                                     }
-                                }
+                                },
+                                onSingleTap: {
+                                    showHeader.toggle()
+                                },
+                                onDismissByDrag: { onDismiss() }
                             )
                         }
                     } else {
@@ -117,7 +128,11 @@ struct ImageGalleryView: View {
                                                         offset = .zero
                                                         isZoomed = false
                                                     }
-                                                }
+                                                },
+                                                onSingleTap: {
+                                                    showHeader.toggle()
+                                                },
+                                                onDismissByDrag: { onDismiss() }
                                             )
                                         )
                                 }
@@ -144,6 +159,8 @@ struct ImageGalleryView: View {
 
 struct ZoomableImageUIKitView: UIViewRepresentable {
     let image: UIImage
+    var onSingleTap: (() -> Void)? = nil
+    var onDismissByDrag: (() -> Void)? = nil
 
     func makeUIView(context: Context) -> UIScrollView {
         let scrollView = UIScrollView()
@@ -153,7 +170,7 @@ struct ZoomableImageUIKitView: UIViewRepresentable {
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.bouncesZoom = true
-        scrollView.backgroundColor = .black
+        scrollView.backgroundColor = .clear
 
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFit
@@ -163,6 +180,17 @@ struct ZoomableImageUIKitView: UIViewRepresentable {
         scrollView.addSubview(imageView)
         context.coordinator.imageView = imageView
 
+        // 只保留单击
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
+        imageView.addGestureRecognizer(singleTap)
+        context.coordinator.onSingleTap = onSingleTap
+        context.coordinator.scrollView = scrollView
+        // 下拉关闭手势
+        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+        pan.delegate = context.coordinator
+        imageView.addGestureRecognizer(pan)
+        context.coordinator.onDismissByDrag = onDismissByDrag
         return scrollView
     }
 
@@ -174,11 +202,46 @@ struct ZoomableImageUIKitView: UIViewRepresentable {
         Coordinator()
     }
 
-    class Coordinator: NSObject, UIScrollViewDelegate {
+    class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         weak var imageView: UIImageView?
-
+        weak var scrollView: UIScrollView?
+        var onSingleTap: (() -> Void)?
+        var onDismissByDrag: (() -> Void)?
+        private var dragStartY: CGFloat = 0
+        private var dragging = false
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             return imageView
+        }
+        @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+            onSingleTap?()
+        }
+        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            guard let imageView = imageView, let scrollView = scrollView else { return }
+            if scrollView.zoomScale > 1.0 { return } // 只在未缩放时允许下拉关闭
+            let translation = gesture.translation(in: imageView)
+            switch gesture.state {
+            case .began:
+                dragStartY = imageView.center.y
+                dragging = true
+            case .changed:
+                if translation.y > 0 {
+                    imageView.transform = CGAffineTransform(translationX: 0, y: translation.y)
+                }
+            case .ended, .cancelled:
+                dragging = false
+                if translation.y > 80 {
+                    onDismissByDrag?()
+                } else {
+                    UIView.animate(withDuration: 0.25) {
+                        imageView.transform = .identity
+                    }
+                }
+            default:
+                break
+            }
+        }
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            return true
         }
     }
 }
@@ -193,6 +256,8 @@ struct ZoomableImageView: View {
     let headerHeight: CGFloat
     let refreshID: UUID // Used to force refresh gesture handlers
     let resetZoom: () -> Void
+    var onSingleTap: (() -> Void)? = nil
+    var onDismissByDrag: (() -> Void)? = nil
     
     // For gesture handling
     @State private var lastScale: CGFloat = 1.0
@@ -203,7 +268,10 @@ struct ZoomableImageView: View {
     var body: some View {
         GeometryReader { geometry in
 #if canImport(UIKit)
-            ZoomableImageUIKitView(image: image)
+            ZStack {
+                Color.black.edgesIgnoringSafeArea(.all)
+                ZoomableImageUIKitView(image: image, onSingleTap: onSingleTap, onDismissByDrag: onDismissByDrag)
+            }
 #else
             Image(nsImage: image)
                 .resizable()
@@ -271,8 +339,7 @@ struct GestureHandlerView: UIViewRepresentable {
     class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var parent: GestureHandlerView
         var lastRefreshID: UUID
-        var touchStartedOnImage = false
-        var baseScale: CGFloat = 1.0 // 新增：记录pinch开始时的缩放比例
+        var baseScale: CGFloat = 1.0 // 记录pinch开始时的缩放比例
         
         init(_ parent: GestureHandlerView) {
             self.parent = parent
@@ -310,43 +377,32 @@ struct GestureHandlerView: UIViewRepresentable {
         @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
             switch gesture.state {
             case .began:
-                // Check if we're zoomed in - if so, we'll handle the pan
-                if parent.scale > 1.0 {
-                    touchStartedOnImage = true
-                } else {
-                    // Not zoomed, let TabView handle it
-                    touchStartedOnImage = false
-                }
-                
+                // 无需touchStartedOnImage逻辑
+                break
             case .changed:
-                // Only allow panning when zoomed in
-                if parent.scale > 1.0 && touchStartedOnImage {
+                // 只在缩放时允许拖动
+                if parent.scale > 1.0 {
                     let translation = gesture.translation(in: gesture.view)
                     let newOffset = CGSize(
                         width: parent.lastOffset.width + translation.x,
                         height: parent.lastOffset.height + translation.y
                     )
-                    
                     // Calculate bounds based on zoom level
                     let maxX = (parent.imageSize.width * (parent.scale - 1)) / 2
                     let maxY = (parent.imageSize.height * (parent.scale - 1)) / 2
-                    
                     // Constrain offset within bounds
                     parent.offset = CGSize(
                         width: min(max(newOffset.width, -maxX), maxX),
                         height: min(max(newOffset.height, -maxY), maxY)
                     )
-                    
                     // Reset translation to avoid accumulation
                     gesture.setTranslation(.zero, in: gesture.view)
                 }
-                
             case .ended, .cancelled:
-                if parent.scale > 1.0 && touchStartedOnImage {
+                if parent.scale > 1.0 {
                     parent.lastOffset = parent.offset
                 }
-                touchStartedOnImage = false
-                
+                // 无需touchStartedOnImage逻辑
             default:
                 break
             }
