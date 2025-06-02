@@ -142,6 +142,47 @@ struct ImageGalleryView: View {
     }
 }
 
+struct ZoomableImageUIKitView: UIViewRepresentable {
+    let image: UIImage
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.minimumZoomScale = 1.0
+        scrollView.maximumZoomScale = 4.0
+        scrollView.delegate = context.coordinator
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.bouncesZoom = true
+        scrollView.backgroundColor = .black
+
+        let imageView = UIImageView(image: image)
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = true
+        imageView.frame = scrollView.bounds
+        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        scrollView.addSubview(imageView)
+        context.coordinator.imageView = imageView
+
+        return scrollView
+    }
+
+    func updateUIView(_ uiView: UIScrollView, context: Context) {
+        // nothing
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator: NSObject, UIScrollViewDelegate {
+        weak var imageView: UIImageView?
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            return imageView
+        }
+    }
+}
+
 struct ZoomableImageView: View {
     let image: PlatformImage
     @Binding var scale: CGFloat
@@ -161,72 +202,16 @@ struct ZoomableImageView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            #if canImport(UIKit)
-            ZStack {
-                // Black background
-                Color.black.edgesIgnoringSafeArea(.all)
-                
-                // Image with preserved aspect ratio
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaleEffect(scale)
-                    .offset(offset)
-                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                    .background(GeometryReader { imageGeometry -> Color in
-                        DispatchQueue.main.async {
-                            self.imageSize = imageGeometry.size
-                        }
-                        return Color.clear
-                    })
-                    // Use a transparent overlay to capture all gestures
-                    .overlay(
-                        // This transparent view captures all gestures and handles them appropriately
-                        Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
-                            // Add gesture recognizers
-                            .gesture(
-                                // Detect number of fingers with DragGesture
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { _ in
-                                        // This is handled by the UIViewRepresentable below
-                                    }
-                            )
-                    )
-                    // Add a UIViewRepresentable to handle the gestures natively
-                    .overlay(
-                        Group {
-                            if isActive { // Only add gesture handlers when view is active
-                                GestureHandlerView(scale: $scale, offset: $offset, isZoomed: $isZoomed, lastScale: $lastScale, lastOffset: $lastOffset, imageSize: imageSize, refreshID: refreshID)
-                            }
-                        }
-                    )
-                    .onTapGesture(count: 2) {
-                        // Double tap to zoom in/out
-                        withAnimation {
-                            if scale > 1.0 {
-                                // Reset zoom
-                                scale = 1.0
-                                offset = .zero
-                                lastOffset = .zero
-                                isZoomed = false
-                            } else {
-                                // Zoom to 2x
-                                scale = 2.0
-                                isZoomed = true
-                            }
-                        }
-                    }
-            }
-            #elseif canImport(AppKit)
+#if canImport(UIKit)
+            ZoomableImageUIKitView(image: image)
+#else
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .scaleEffect(scale)
                 .offset(offset)
                 .background(Color.black)
-            #endif
+#endif
         }
     }
 }
