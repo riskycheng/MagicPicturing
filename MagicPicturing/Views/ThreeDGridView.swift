@@ -782,6 +782,7 @@ struct ThreeDGridView: View {
                 }
                 .disabled((!viewModel.isReadyToGenerate && !viewModel.showingResult) || viewModel.isGenerating)
                 .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, 32) // 增加底部安全间距
             }
             .background(Color.white)
             .edgesIgnoringSafeArea(.bottom)
