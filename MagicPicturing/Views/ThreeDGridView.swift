@@ -309,11 +309,11 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage) -> UIImage? {
-        // 使用当前屏幕的宽度作为基准
+        // 使用预览图片的实际尺寸
         let screenWidth = UIScreen.main.bounds.width
-        let baseImageWidth = screenWidth - 2 * 20 // 基础画布宽度
+        let previewImageWidth = screenWidth - 2 * 20 // 预览图片宽度，减去左右各20px边距
         
-        // 计算人物图片的位置和大小（与预览逻辑保持一致）
+        // 计算人物图片的尺寸（与预览逻辑完全一致）
         let baseWidth = UIScreen.main.bounds.width
         let gridWidth = baseWidth * 1.15
         let totalSpacing: CGFloat = 4 * 2
@@ -327,53 +327,69 @@ class ThreeDGridViewModel: ObservableObject {
         let personHeight: CGFloat
         
         if personImageAspectRatio > 1 {
-            // 宽图：以宽度为准
             personWidth = basePersonSize
             personHeight = basePersonSize / personImageAspectRatio
         } else {
-            // 高图或正方形：以高度为准
             personHeight = basePersonSize
             personWidth = basePersonSize * personImageAspectRatio
         }
         
-        // 计算人物图片在基础画布中的位置
-        let personX = (baseImageWidth / 2) + self.personOffsetX - (personWidth / 2)
-        let personY = (baseImageWidth / 2) + self.personOffsetY - (personHeight / 2)
+        // 关键修复：使用与预览完全相同的位置计算
+        // 预览图片的中心点就是九宫格的中心点
+        let gridCenterX = previewImageWidth / 2
+        let gridCenterY = previewImageWidth / 2
         
-        // 计算人物图片的实际边界（包括阴影）
-        let shadowMargin: CGFloat = 30 // 阴影占用的空间
+        // 人物图片位置 = 九宫格中心 + 用户拖拽的偏移量
+        let personCenterX = gridCenterX + self.personOffsetX
+        let personCenterY = gridCenterY + self.personOffsetY
+        
+        // 转换为左上角坐标
+        let personX = personCenterX - (personWidth / 2)
+        let personY = personCenterY - (personHeight / 2)
+        
+        // 计算边界（考虑阴影）
+        let shadowMargin: CGFloat = 35
         let personLeft = personX - shadowMargin
         let personRight = personX + personWidth + shadowMargin
         let personTop = personY - shadowMargin
         let personBottom = personY + personHeight + shadowMargin
         
-        // 检查是否需要扩大画布
-        let margin: CGFloat = 20 // 额外边距
+        // 计算最终画布大小 - 优化尺寸计算
+        let margin: CGFloat = 40 // 增加边距
         let minX = min(0, personLeft - margin)
-        let maxX = max(baseImageWidth, personRight + margin)
+        let maxX = max(previewImageWidth, personRight + margin)
         let minY = min(0, personTop - margin)
-        let maxY = max(baseImageWidth, personBottom + margin)
+        let maxY = max(previewImageWidth, personBottom + margin)
         
-        // 计算最终画布大小
-        let finalWidth = maxX - minX
-        let finalHeight = maxY - minY
+        let contentWidth = maxX - minX
+        let contentHeight = maxY - minY
         
-        // 为了居中显示，计算偏移量
-        let backgroundOffsetX = -minX
-        let backgroundOffsetY = -minY
-        let finalPersonX = personX + backgroundOffsetX
-        let finalPersonY = personY + backgroundOffsetY
+        // 确保最终尺寸足够大，并且保持合理的宽高比
+        let minimumSize: CGFloat = max(previewImageWidth * 1.2, 600) // 确保最小尺寸
+        let finalSize = max(max(contentWidth, contentHeight), minimumSize)
         
-        // 创建绘图上下文
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: finalWidth, height: finalHeight))
+        // 计算内容在最终画布中的居中位置
+        let contentCenterX = finalSize / 2
+        let contentCenterY = finalSize / 2
+        
+        // 计算九宫格在最终画布中的位置（居中）
+        let backgroundX = contentCenterX - (previewImageWidth / 2)
+        let backgroundY = contentCenterY - (previewImageWidth / 2)
+        
+        // 计算人物在最终画布中的位置
+        let finalPersonX = backgroundX + personX
+        let finalPersonY = backgroundY + personY
+        
+        // 创建最终画布
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: finalSize, height: finalSize))
         
         return renderer.image { context in
-            // 填充白色背景，确保透明区域显示为白色
+            // 填充白色背景
             UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: finalWidth, height: finalHeight))
+            context.fill(CGRect(x: 0, y: 0, width: finalSize, height: finalSize))
             
-            // 绘制背景图片（九宫格）
-            backgroundImage.draw(in: CGRect(x: backgroundOffsetX, y: backgroundOffsetY, width: baseImageWidth, height: baseImageWidth))
+            // 绘制九宫格背景图片（居中）
+            backgroundImage.draw(in: CGRect(x: backgroundX, y: backgroundY, width: previewImageWidth, height: previewImageWidth))
             
             let personRect = CGRect(x: finalPersonX, y: finalPersonY, width: personWidth, height: personHeight)
             
@@ -382,19 +398,19 @@ class ThreeDGridViewModel: ObservableObject {
             
             // 主阴影
             cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize(width: 6, height: 6), blur: 20, color: UIColor.black.withAlphaComponent(0.7).cgColor)
+            cgContext.setShadow(offset: CGSize(width: 8, height: 8), blur: 25, color: UIColor.black.withAlphaComponent(0.8).cgColor)
             personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
             
             // 次级阴影
             cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize(width: 3, height: 3), blur: 10, color: UIColor.black.withAlphaComponent(0.5).cgColor)
+            cgContext.setShadow(offset: CGSize(width: 4, height: 4), blur: 15, color: UIColor.black.withAlphaComponent(0.6).cgColor)
             personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
             
             // 外发光
             cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize.zero, blur: 25, color: UIColor.white.withAlphaComponent(0.6).cgColor)
+            cgContext.setShadow(offset: CGSize.zero, blur: 30, color: UIColor.white.withAlphaComponent(0.7).cgColor)
             personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
             
@@ -458,32 +474,32 @@ struct PersonMaskOverlay: View {
     @State private var dragStartOffset: CGSize = .zero
 
     var body: some View {
-        // 使用与 createCollageImage 相同的尺寸计算逻辑
+        // 计算人物图片的显示尺寸（与保存逻辑完全一致）
         let baseWidth = UIScreen.main.bounds.width
-        
-        // 计算人物图片的显示尺寸，与最终保存时保持一致
-        let gridWidth = baseWidth * 1.15 // 与 createCollageImage 中相同的比例
-        let totalSpacing: CGFloat = 4 * 2 // gridSpacing * 2
+        let gridWidth = baseWidth * 1.15
+        let totalSpacing: CGFloat = 4 * 2
         let cellSize = (gridWidth - totalSpacing) / 3
         
         // 保持人物图片的原始宽高比
         let personImageAspectRatio = personMask.size.width / personMask.size.height
         let basePersonSize = cellSize * 2.8 * viewModel.personScale
         
-        // 计算宽高（现在放在return之前）
+        // 计算宽高
         let dimensions = calculatePersonDimensions(
             aspectRatio: personImageAspectRatio,
             baseSize: basePersonSize
         )
         
-        // 计算拖拽边界约束
-        let dragBoundary: CGFloat = 150 // 允许拖拽的最大范围
+        // 智能边界约束
+        let maxDragDistance: CGFloat = 150
         
-        return Image(uiImage: personMask)
+        Image(uiImage: personMask)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: dimensions.width, height: dimensions.height) // 保持原始宽高比
+            .frame(width: dimensions.width, height: dimensions.height)
             .scaleEffect(1.0)
+            // 关键修复：使用与保存逻辑完全相同的偏移计算
+            // 相对于九宫格的中心点进行偏移
             .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
             .allowsHitTesting(true)
             .gesture(
@@ -493,8 +509,8 @@ struct PersonMaskOverlay: View {
                         let newOffsetY = dragStartOffset.height + value.translation.height
                         
                         // 应用边界约束
-                        viewModel.personOffsetX = max(-dragBoundary, min(dragBoundary, newOffsetX))
-                        viewModel.personOffsetY = max(-dragBoundary, min(dragBoundary, newOffsetY))
+                        viewModel.personOffsetX = max(-maxDragDistance, min(maxDragDistance, newOffsetX))
+                        viewModel.personOffsetY = max(-maxDragDistance, min(maxDragDistance, newOffsetY))
                     }
                     .onEnded { value in
                         dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
@@ -619,11 +635,14 @@ struct ThreeDGridView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: UIScreen.main.bounds.width - 2 * 20)
+                            
+                            // 确保人物遮罩直接叠加在九宫格图片上，使用相同的坐标系统
                             if let personMask = viewModel.segmentedPersonImage {
                                 PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
+                                    .frame(width: UIScreen.main.bounds.width - 2 * 20, height: UIScreen.main.bounds.width - 2 * 20)
                             }
                         }
-                        .padding(.top, 12)
+                        .padding(.top, 30) // 增加上方边距，确保不与导航栏重叠
                         .padding(.bottom, 8)
                         #elseif canImport(AppKit)
                         Image(nsImage: resultImage)
@@ -632,6 +651,7 @@ struct ThreeDGridView: View {
                             .cornerRadius(10)
                             .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
                             .padding(.horizontal)
+                            .padding(.top, 30) // 增加上方边距
                         #endif
                     }
                     Spacer(minLength: 0)
