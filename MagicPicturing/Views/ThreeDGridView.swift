@@ -309,9 +309,11 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage) -> UIImage? {
-        // 使用预览图片的实际尺寸
+        // 使用与预览相同的尺寸计算
         let screenWidth = UIScreen.main.bounds.width
-        let previewImageWidth = screenWidth - 2 * 20 // 预览图片宽度，减去左右各20px边距
+        let previewContainerWidth = screenWidth - 40 // 预览容器宽度
+        let previewContainerHeight = previewContainerWidth * 1.3 // 预览容器高度
+        let gridImageSize = previewContainerWidth // 九宫格图片尺寸
         
         // 计算人物图片的尺寸（与预览逻辑完全一致）
         let baseWidth = UIScreen.main.bounds.width
@@ -334,18 +336,24 @@ class ThreeDGridViewModel: ObservableObject {
             personWidth = basePersonSize * personImageAspectRatio
         }
         
-        // 关键修复：使用与预览完全相同的位置计算
-        // 预览图片的中心点就是九宫格的中心点
-        let gridCenterX = previewImageWidth / 2
-        let gridCenterY = previewImageWidth / 2
+        // 九宫格在预览容器中的位置（与预览布局一致）
+        let gridCenterY = previewContainerHeight * 0.4
+        let containerCenterY = previewContainerHeight / 2
         
-        // 人物图片位置 = 九宫格中心 + 用户拖拽的偏移量
+        // 九宫格在最终画布中的中心位置
+        let gridCenterX = previewContainerWidth / 2
+        let adjustedGridCenterY = gridCenterY
+        
+        // 计算人物图片位置（应用与预览相同的偏移调整）
+        let adjustedPersonOffsetY = self.personOffsetY + (gridCenterY - containerCenterY)
         let personCenterX = gridCenterX + self.personOffsetX
-        let personCenterY = gridCenterY + self.personOffsetY
+        let personCenterY = adjustedGridCenterY + adjustedPersonOffsetY
         
         // 转换为左上角坐标
         let personX = personCenterX - (personWidth / 2)
         let personY = personCenterY - (personHeight / 2)
+        let gridX = gridCenterX - (gridImageSize / 2)
+        let gridY = adjustedGridCenterY - (gridImageSize / 2)
         
         // 计算边界（考虑阴影）
         let shadowMargin: CGFloat = 35
@@ -354,31 +362,36 @@ class ThreeDGridViewModel: ObservableObject {
         let personTop = personY - shadowMargin
         let personBottom = personY + personHeight + shadowMargin
         
-        // 计算最终画布大小 - 优化尺寸计算
-        let margin: CGFloat = 40 // 增加边距
-        let minX = min(0, personLeft - margin)
-        let maxX = max(previewImageWidth, personRight + margin)
-        let minY = min(0, personTop - margin)
-        let maxY = max(previewImageWidth, personBottom + margin)
+        let gridLeft = gridX
+        let gridRight = gridX + gridImageSize
+        let gridTop = gridY
+        let gridBottom = gridY + gridImageSize
+        
+        // 计算最终画布大小
+        let margin: CGFloat = 40
+        let minX = min(min(gridLeft, personLeft) - margin, 0)
+        let maxX = max(max(gridRight, personRight) + margin, previewContainerWidth)
+        let minY = min(min(gridTop, personTop) - margin, 0)
+        let maxY = max(max(gridBottom, personBottom) + margin, previewContainerHeight)
         
         let contentWidth = maxX - minX
         let contentHeight = maxY - minY
         
-        // 确保最终尺寸足够大，并且保持合理的宽高比
-        let minimumSize: CGFloat = max(previewImageWidth * 1.2, 600) // 确保最小尺寸
+        // 确保最终尺寸足够大
+        let minimumSize: CGFloat = max(previewContainerWidth * 1.2, 600)
         let finalSize = max(max(contentWidth, contentHeight), minimumSize)
         
         // 计算内容在最终画布中的居中位置
         let contentCenterX = finalSize / 2
         let contentCenterY = finalSize / 2
         
-        // 计算九宫格在最终画布中的位置（居中）
-        let backgroundX = contentCenterX - (previewImageWidth / 2)
-        let backgroundY = contentCenterY - (previewImageWidth / 2)
+        // 计算九宫格在最终画布中的位置
+        let finalGridX = contentCenterX - (gridImageSize / 2)
+        let finalGridY = contentCenterY - (gridImageSize / 2) + (adjustedGridCenterY - containerCenterY)
         
         // 计算人物在最终画布中的位置
-        let finalPersonX = backgroundX + personX
-        let finalPersonY = backgroundY + personY
+        let finalPersonX = finalGridX + (gridImageSize / 2) + self.personOffsetX - (personWidth / 2)
+        let finalPersonY = finalGridY + (gridImageSize / 2) + adjustedPersonOffsetY - (personHeight / 2)
         
         // 创建最终画布
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: finalSize, height: finalSize))
@@ -388,8 +401,8 @@ class ThreeDGridViewModel: ObservableObject {
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: finalSize, height: finalSize))
             
-            // 绘制九宫格背景图片（居中）
-            backgroundImage.draw(in: CGRect(x: backgroundX, y: backgroundY, width: previewImageWidth, height: previewImageWidth))
+            // 绘制九宫格背景图片
+            backgroundImage.draw(in: CGRect(x: finalGridX, y: finalGridY, width: gridImageSize, height: gridImageSize))
             
             let personRect = CGRect(x: finalPersonX, y: finalPersonY, width: personWidth, height: personHeight)
             
@@ -472,6 +485,7 @@ struct PersonMaskOverlay: View {
     let personMask: UIImage
     @ObservedObject var viewModel: ThreeDGridViewModel
     @State private var dragStartOffset: CGSize = .zero
+    @State private var isDragging: Bool = false
 
     var body: some View {
         // 计算人物图片的显示尺寸（与保存逻辑完全一致）
@@ -490,41 +504,90 @@ struct PersonMaskOverlay: View {
             baseSize: basePersonSize
         )
         
-        // 智能边界约束
-        let maxDragDistance: CGFloat = 150
+        // 重新设计边界约束 - 上下左右完全相同的外边界效果
+        let screenWidth = UIScreen.main.bounds.width
+        let previewImageSize = screenWidth - 40 // 预览图片宽度，减去左右各20px边距
+        
+        // 增大外边界扩展范围，让上下左右都有更大的移动空间
+        let extraMovementMargin: CGFloat = 120 // 120px的外边界扩展范围
+        let minimalTopSafeMargin: CGFloat = 15 // 最小化顶部安全边距
+        let minimalBottomSafeMargin: CGFloat = 0 // 完全移除底部安全边距，允许最大的向下扩展
+        
+        // 水平方向边界计算（保持原有逻辑）
+        let maxOffsetX = (previewImageSize / 2) + extraMovementMargin - (dimensions.width / 2)
+        let minOffsetX = -(previewImageSize / 2) - extraMovementMargin + (dimensions.width / 2)
+        
+        // 垂直方向边界计算 - 与水平方向使用完全相同的逻辑
+        let baseMaxOffsetY = (previewImageSize / 2) + extraMovementMargin - (dimensions.height / 2)
+        let baseMinOffsetY = -(previewImageSize / 2) - extraMovementMargin + (dimensions.height / 2)
+        
+        // 向下移动现在获得与其他方向完全相同的外边界扩展
+        let maxOffsetY = baseMaxOffsetY - minimalBottomSafeMargin
+        let minOffsetY = baseMinOffsetY + minimalTopSafeMargin
+        
+        // 调整person mask的初始位置，使其相对于九宫格中心定位
+        let adjustedOffsetY = viewModel.personOffsetY
         
         Image(uiImage: personMask)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: dimensions.width, height: dimensions.height)
-            .scaleEffect(1.0)
-            // 关键修复：使用与保存逻辑完全相同的偏移计算
-            // 相对于九宫格的中心点进行偏移
-            .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
+            .scaleEffect(isDragging ? 1.05 : 1.0) // 拖拽时轻微放大，提供视觉反馈
+            .shadow(color: .black.opacity(isDragging ? 0.3 : 0.1), radius: isDragging ? 8 : 2) // 拖拽时增强阴影
+            .offset(x: viewModel.personOffsetX, y: adjustedOffsetY)
             .allowsHitTesting(true)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isDragging)
             .gesture(
-                DragGesture(minimumDistance: 1)
+                DragGesture(minimumDistance: 0) // 设置为0以立即响应
                     .onChanged { value in
+                        if !isDragging {
+                            // 拖拽开始，记录起始位置并提供触觉反馈
+                            isDragging = true
+                            dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                            
+                            #if canImport(UIKit)
+                            // 轻微的触觉反馈，表示开始拖拽
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                            #endif
+                        }
+                        
+                        // 实时跟随手指移动
                         let newOffsetX = dragStartOffset.width + value.translation.width
                         let newOffsetY = dragStartOffset.height + value.translation.height
                         
-                        // 应用边界约束
-                        viewModel.personOffsetX = max(-maxDragDistance, min(maxDragDistance, newOffsetX))
-                        viewModel.personOffsetY = max(-maxDragDistance, min(maxDragDistance, newOffsetY))
+                        // 应用上下左右对称的边界约束（向下移动有完全的外边界扩展）
+                        viewModel.personOffsetX = max(minOffsetX, min(maxOffsetX, newOffsetX))
+                        viewModel.personOffsetY = max(minOffsetY, min(maxOffsetY, newOffsetY))
                     }
                     .onEnded { value in
-                        dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                        // 拖拽结束
+                        isDragging = false
+                        
+                        #if canImport(UIKit)
+                        // 拖拽结束的触觉反馈
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        #endif
                     }
             )
-            .gesture(
+            .simultaneousGesture(
+                // 缩放手势与拖拽手势同时支持
                 MagnificationGesture(minimumScaleDelta: 0.01)
                     .onChanged { value in
                         let delta = value / viewModel.lastScaleValue
                         viewModel.lastScaleValue = value
-                        viewModel.personScale = min(max(viewModel.personScale * delta, 0.5), 3.0)
+                        let newScale = viewModel.personScale * delta
+                        viewModel.personScale = min(max(newScale, 0.5), 3.0)
                     }
                     .onEnded { _ in
                         viewModel.lastScaleValue = 1.0
+                        
+                        #if canImport(UIKit)
+                        // 缩放结束的触觉反馈
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        #endif
                     }
             )
     }
