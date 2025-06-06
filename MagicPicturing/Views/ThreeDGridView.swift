@@ -309,25 +309,30 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage) -> UIImage? {
-        // 使用与预览相同的尺寸计算
+        // 1. 先计算九宫格和人物mask的frame（和预览一致）
         let screenWidth = UIScreen.main.bounds.width
-        let previewContainerWidth = screenWidth - 40 // 预览容器宽度
-        let previewContainerHeight = previewContainerWidth * 1.3 // 预览容器高度
-        let gridImageSize = previewContainerWidth // 九宫格图片尺寸
-        
-        // 计算人物图片的尺寸（与预览逻辑完全一致）
+        let previewContainerWidth = screenWidth - 40
+        let previewContainerHeight = previewContainerWidth * 1.3
+        let gridImageSize = previewContainerWidth
+
+        let gridCenterY = previewContainerHeight * 0.4
+        let containerCenterY = previewContainerHeight / 2
+        let gridCenterX = previewContainerWidth / 2
+        let adjustedGridCenterY = gridCenterY
+
+        let gridX = gridCenterX - (gridImageSize / 2)
+        let gridY = adjustedGridCenterY - (gridImageSize / 2)
+        let gridRect = CGRect(x: gridX, y: gridY, width: gridImageSize, height: gridImageSize)
+
         let baseWidth = UIScreen.main.bounds.width
         let gridWidth = baseWidth * 1.15
         let totalSpacing: CGFloat = 4 * 2
         let cellSize = (gridWidth - totalSpacing) / 3
-        
-        // 保持人物图片的原始宽高比
         let personImageAspectRatio = personMask.size.width / personMask.size.height
         let basePersonSize = cellSize * 2.8 * self.personScale
-        
+
         let personWidth: CGFloat
         let personHeight: CGFloat
-        
         if personImageAspectRatio > 1 {
             personWidth = basePersonSize
             personHeight = basePersonSize / personImageAspectRatio
@@ -335,101 +340,63 @@ class ThreeDGridViewModel: ObservableObject {
             personHeight = basePersonSize
             personWidth = basePersonSize * personImageAspectRatio
         }
-        
-        // 九宫格在预览容器中的位置（与预览布局一致）
-        let gridCenterY = previewContainerHeight * 0.4
-        let containerCenterY = previewContainerHeight / 2
-        
-        // 九宫格在最终画布中的中心位置
-        let gridCenterX = previewContainerWidth / 2
-        let adjustedGridCenterY = gridCenterY
-        
-        // 计算人物图片位置（应用与预览相同的偏移调整）
+
         let adjustedPersonOffsetY = self.personOffsetY + (gridCenterY - containerCenterY)
         let personCenterX = gridCenterX + self.personOffsetX
         let personCenterY = adjustedGridCenterY + adjustedPersonOffsetY
-        
-        // 转换为左上角坐标
         let personX = personCenterX - (personWidth / 2)
         let personY = personCenterY - (personHeight / 2)
-        let gridX = gridCenterX - (gridImageSize / 2)
-        let gridY = adjustedGridCenterY - (gridImageSize / 2)
-        
-        // 计算边界（考虑阴影）
-        let shadowMargin: CGFloat = 35
-        let personLeft = personX - shadowMargin
-        let personRight = personX + personWidth + shadowMargin
-        let personTop = personY - shadowMargin
-        let personBottom = personY + personHeight + shadowMargin
-        
-        let gridLeft = gridX
-        let gridRight = gridX + gridImageSize
-        let gridTop = gridY
-        let gridBottom = gridY + gridImageSize
-        
-        // 计算最终画布大小
-        let margin: CGFloat = 40
-        let minX = min(min(gridLeft, personLeft) - margin, 0)
-        let maxX = max(max(gridRight, personRight) + margin, previewContainerWidth)
-        let minY = min(min(gridTop, personTop) - margin, 0)
-        let maxY = max(max(gridBottom, personBottom) + margin, previewContainerHeight)
-        
-        let contentWidth = maxX - minX
-        let contentHeight = maxY - minY
-        
-        // 确保最终尺寸足够大
-        let minimumSize: CGFloat = max(previewContainerWidth * 1.2, 600)
-        let finalSize = max(max(contentWidth, contentHeight), minimumSize)
-        
-        // 计算内容在最终画布中的居中位置
-        let contentCenterX = finalSize / 2
-        let contentCenterY = finalSize / 2
-        
-        // 计算九宫格在最终画布中的位置
-        let finalGridX = contentCenterX - (gridImageSize / 2)
-        let finalGridY = contentCenterY - (gridImageSize / 2) + (adjustedGridCenterY - containerCenterY)
-        
-        // 计算人物在最终画布中的位置
-        let finalPersonX = finalGridX + (gridImageSize / 2) + self.personOffsetX - (personWidth / 2)
-        let finalPersonY = finalGridY + (gridImageSize / 2) + adjustedPersonOffsetY - (personHeight / 2)
-        
-        // 创建最终画布
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: finalSize, height: finalSize))
-        
-        return renderer.image { context in
-            // 填充白色背景
+        let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
+
+        // 2. 计算整体内容包围盒（含阴影）
+        let shadowMargin: CGFloat = 40
+        let gridBox = gridRect
+        let personBox = personRect.insetBy(dx: -shadowMargin, dy: -shadowMargin)
+        var contentBox = gridBox.union(personBox)
+        let outerMargin: CGFloat = 10
+        contentBox = contentBox.insetBy(dx: -outerMargin, dy: -outerMargin)
+
+        // 3. 以九宫格中心为锚点，画布尺寸为内容包围盒的宽高
+        let canvasWidth = contentBox.width
+        let canvasHeight = contentBox.height
+        // 4. 计算九宫格中心在包围盒中的位置
+        let gridCenterInContent = CGPoint(
+            x: gridRect.midX - contentBox.origin.x,
+            y: gridRect.midY - contentBox.origin.y
+        )
+        // 5. 让九宫格中心对齐画布中心（或略偏下）
+        let canvasCenter = CGPoint(x: canvasWidth / 2, y: canvasHeight / 2)
+        let offset = CGPoint(
+            x: canvasCenter.x - gridCenterInContent.x,
+            y: canvasCenter.y - gridCenterInContent.y + canvasHeight * 0.08 // 可微调，0.08为略偏下
+        )
+        // 6. 渲染
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvasWidth, height: canvasHeight))
+        let image = renderer.image { context in
             UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: finalSize, height: finalSize))
-            
-            // 绘制九宫格背景图片
-            backgroundImage.draw(in: CGRect(x: finalGridX, y: finalGridY, width: gridImageSize, height: gridImageSize))
-            
-            let personRect = CGRect(x: finalPersonX, y: finalPersonY, width: personWidth, height: personHeight)
-            
-            // 绘制阴影效果
+            context.fill(CGRect(x: 0, y: 0, width: canvasWidth, height: canvasHeight))
+            // 九宫格
+            backgroundImage.draw(in: gridRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y))
             let cgContext = context.cgContext
-            
             // 主阴影
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 8, height: 8), blur: 25, color: UIColor.black.withAlphaComponent(0.8).cgColor)
-            personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
             // 次级阴影
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 4, height: 4), blur: 15, color: UIColor.black.withAlphaComponent(0.6).cgColor)
-            personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
             // 外发光
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize.zero, blur: 30, color: UIColor.white.withAlphaComponent(0.7).cgColor)
-            personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
             // 最终人物图片
-            personMask.draw(in: personRect, blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
         }
+        return image
     }
     #endif
     
