@@ -309,7 +309,7 @@ class ThreeDGridViewModel: ObservableObject {
     
     #if canImport(UIKit)
     private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage) -> UIImage? {
-        // 1. 先计算九宫格和人物mask的frame（和预览一致）
+        // 1. 计算九宫格和人物mask的frame（和预览一致）
         let screenWidth = UIScreen.main.bounds.width
         let previewContainerWidth = screenWidth - 40
         let previewContainerHeight = previewContainerWidth * 1.3
@@ -349,28 +349,27 @@ class ThreeDGridViewModel: ObservableObject {
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
 
         // 2. 计算整体内容包围盒（含阴影）
-        let shadowMargin: CGFloat = 40
+        let shadowMargin: CGFloat = 10
         let gridBox = gridRect
         let personBox = personRect.insetBy(dx: -shadowMargin, dy: -shadowMargin)
         var contentBox = gridBox.union(personBox)
-        let outerMargin: CGFloat = 10
+        let outerMargin: CGFloat = 0
         contentBox = contentBox.insetBy(dx: -outerMargin, dy: -outerMargin)
 
-        // 3. 以九宫格中心为锚点，画布尺寸为内容包围盒的宽高
+        // 3. 让九宫格中心对齐画布中心
         let canvasWidth = contentBox.width
         let canvasHeight = contentBox.height
-        // 4. 计算九宫格中心在包围盒中的位置
         let gridCenterInContent = CGPoint(
             x: gridRect.midX - contentBox.origin.x,
             y: gridRect.midY - contentBox.origin.y
         )
-        // 5. 让九宫格中心对齐画布中心（或略偏下）
         let canvasCenter = CGPoint(x: canvasWidth / 2, y: canvasHeight / 2)
         let offset = CGPoint(
             x: canvasCenter.x - gridCenterInContent.x,
-            y: canvasCenter.y - gridCenterInContent.y + canvasHeight * 0.08 // 可微调，0.08为略偏下
+            y: canvasCenter.y - gridCenterInContent.y
         )
-        // 6. 渲染
+
+        // 4. 渲染
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvasWidth, height: canvasHeight))
         let image = renderer.image { context in
             UIColor.white.setFill()
