@@ -75,9 +75,7 @@ class ThreeDGridViewModel: ObservableObject {
                 }
             } else {
                 // Reset segmentation state if photo is removed
-                segmentedPersonImage = nil
-                segmentationState = .idle
-                segmentationError = nil
+                resetSegmentationState()
             }
         }
     }
@@ -403,6 +401,7 @@ class ThreeDGridViewModel: ObservableObject {
         
         // Update UI state to show we're processing
         DispatchQueue.main.async {
+            self.resetSegmentationState() // Reset previous state first
             self.segmentationState = .loading
             self.isProcessingSegmentation = true
             self.segmentationError = nil
@@ -417,6 +416,9 @@ class ThreeDGridViewModel: ObservableObject {
                 self.segmentedPersonImage = segmentedImage
                 self.segmentationState = .success
                 self.isProcessingSegmentation = false
+                
+                // Adaptively set initial scale for the new person image
+                self.adaptPersonScale(basedOn: segmentedImage)
             }
         } catch {
             // Handle all segmentation errors
@@ -438,6 +440,35 @@ class ThreeDGridViewModel: ObservableObject {
         }
     }
     
+    private func resetSegmentationState() {
+        segmentedPersonImage = nil
+        segmentationState = .idle
+        segmentationError = nil
+        personOffsetX = 0
+        personOffsetY = 0
+        personScale = 1.0
+        lastScaleValue = 1.0
+    }
+
+    private func adaptPersonScale(basedOn personImage: PlatformImage) {
+        let aspectRatio = personImage.size.width / personImage.size.height
+
+        // This heuristic assumes that images with a higher aspect ratio (less tall, more square-like)
+        // are close-ups and should be scaled down initially to fit better.
+        // A typical full-body portrait might have an aspect ratio of ~0.5.
+        let referenceAspectRatio: CGFloat = 0.5
+
+        // The scale is inversely proportional to the aspect ratio.
+        var newScale = referenceAspectRatio / aspectRatio
+        
+        // Clamp the scale to a reasonable range to avoid extreme sizes.
+        newScale = min(max(newScale, 0.75), 1.25)
+
+        self.personScale = newScale
+        // Also reset the gesture value, since this is a new "base" scale
+        self.lastScaleValue = 1.0
+    }
+
     // 错误处理已移至通用catch块
 }
 
