@@ -358,26 +358,26 @@ class ThreeDGridViewModel: ObservableObject {
         
         let personRectInNewCoord = personRect.offsetBy(dx: -gridCenter.x, dy: -gridCenter.y)
 
-        // 3. 计算包含阴影在内的总内容边界
-        let shadowMargin: CGFloat = 40
-        let personBoxWithShadowInNewCoord = personRectInNewCoord.insetBy(dx: -shadowMargin, dy: -shadowMargin)
-        let totalContentBox = gridBoxInNewCoord.union(personBoxWithShadowInNewCoord)
-        
-        // 4. 计算画布尺寸和锚点
-        // 水平方向：保持对称，确保九宫格水平居中
-        let halfWidth = max(abs(totalContentBox.minX), abs(totalContentBox.maxX))
-        let canvasWidth = halfWidth * 2
-        let drawAnchorX = canvasWidth / 2
+        // 3. 计算所有"无阴影"内容的总边界
+        let contentBox = gridBoxInNewCoord.union(personRectInNewCoord)
 
-        // 垂直方向：动态居中，以减少不必要的空白
-        let canvasCenterRelY = personRectInNewCoord.midY / 2 // 动态中心点，缓和地跟随人物移动
-        let maxDistY = max(abs(totalContentBox.maxY - canvasCenterRelY), abs(totalContentBox.minY - canvasCenterRelY))
-        let canvasHeight = maxDistY * 2
-        let drawAnchorY = canvasHeight / 2 - canvasCenterRelY
+        // 4. 为内容添加统一的边距（用于阴影和留白），得到最终画布的相对边界
+        let shadowMargin: CGFloat = 25
+        let canvasBox = contentBox.insetBy(dx: -shadowMargin, dy: -shadowMargin)
+        
+        // 5. 计算最终画布的尺寸和绘制锚点
+        // 水平方向：对称，以确保九宫格水平居中
+        let canvasHalfWidth = max(abs(canvasBox.minX), abs(canvasBox.maxX))
+        let canvasWidth = canvasHalfWidth * 2
+        let drawAnchorX = canvasHalfWidth
+
+        // 垂直方向：非对称，紧凑贴合，以消除不必要的空白
+        let canvasHeight = canvasBox.height
+        let drawAnchorY = -canvasBox.minY
 
         let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
         
-        // 5. 渲染最终图片
+        // 6. 渲染最终图片
         let renderer = UIGraphicsImageRenderer(size: canvasSize)
         let image = renderer.image { context in
             let cgContext = context.cgContext
