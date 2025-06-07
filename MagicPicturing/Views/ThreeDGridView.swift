@@ -313,7 +313,7 @@ class ThreeDGridViewModel: ObservableObject {
         let previewContainerHeight = previewContainerWidth * 1.3
         let gridImageSize = previewContainerWidth
 
-        let gridCenterY = previewContainerHeight / 2 // Changed from 0.4 to 0.5 for centering
+        let gridCenterY = previewContainerHeight / 2
         let containerCenterY = previewContainerHeight / 2
         let gridCenterX = previewContainerWidth / 2
         let adjustedGridCenterY = gridCenterY
@@ -346,48 +346,69 @@ class ThreeDGridViewModel: ObservableObject {
         let personY = personCenterY - (personHeight / 2)
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
 
-        // 2. 计算整体内容包围盒（含阴影），这是最终图片的边界
+        // 2. 在一个以九宫格中心为原点的新坐标系中定义所有元素
+        let gridCenter = CGPoint(x: gridRect.midX, y: gridRect.midY)
+        
+        let gridBoxInNewCoord = CGRect(
+            x: -gridRect.width / 2,
+            y: -gridRect.height / 2,
+            width: gridRect.width,
+            height: gridRect.height
+        )
+        
+        let personRectInNewCoord = personRect.offsetBy(dx: -gridCenter.x, dy: -gridCenter.y)
+
+        // 3. 计算包含阴影在内的总内容边界
         let shadowMargin: CGFloat = 40
-        let gridBox = gridRect
-        let personBox = personRect.insetBy(dx: -shadowMargin, dy: -shadowMargin)
-        let contentBox = gridBox.union(personBox)
+        let personBoxWithShadowInNewCoord = personRectInNewCoord.insetBy(dx: -shadowMargin, dy: -shadowMargin)
+        let totalContentBox = gridBoxInNewCoord.union(personBoxWithShadowInNewCoord)
+        
+        // 4. 计算画布尺寸和锚点
+        // 水平方向：保持对称，确保九宫格水平居中
+        let halfWidth = max(abs(totalContentBox.minX), abs(totalContentBox.maxX))
+        let canvasWidth = halfWidth * 2
+        let drawAnchorX = canvasWidth / 2
 
-        // 3. 渲染最终图片
-        let renderer = UIGraphicsImageRenderer(size: contentBox.size)
+        // 垂直方向：动态居中，以减少不必要的空白
+        let canvasCenterRelY = personRectInNewCoord.midY / 2 // 动态中心点，缓和地跟随人物移动
+        let maxDistY = max(abs(totalContentBox.maxY - canvasCenterRelY), abs(totalContentBox.minY - canvasCenterRelY))
+        let canvasHeight = maxDistY * 2
+        let drawAnchorY = canvasHeight / 2 - canvasCenterRelY
+
+        let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
+        
+        // 5. 渲染最终图片
+        let renderer = UIGraphicsImageRenderer(size: canvasSize)
         let image = renderer.image { context in
-            // 将所有绘制内容偏移，以适应新的画布原点
-            let drawOffset = CGPoint(x: -contentBox.origin.x, y: -contentBox.origin.y)
-            let finalGridRect = gridRect.offsetBy(dx: drawOffset.x, dy: drawOffset.y)
-            let finalPersonRect = personRect.offsetBy(dx: drawOffset.x, dy: drawOffset.y)
             let cgContext = context.cgContext
-
+            
             // 绘制白色背景
             UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: contentBox.size))
+            context.fill(CGRect(origin: .zero, size: canvasSize))
+
+            // 在画布上计算最终绘制位置
+            let finalGridRect = gridBoxInNewCoord.offsetBy(dx: drawAnchorX, dy: drawAnchorY)
+            let finalPersonRect = personRectInNewCoord.offsetBy(dx: drawAnchorX, dy: drawAnchorY)
             
             // 绘制九宫格
             backgroundImage.draw(in: finalGridRect)
             
             // 绘制阴影和人物
-            // 主阴影
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 8, height: 8), blur: 25, color: UIColor.black.withAlphaComponent(0.8).cgColor)
             personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
-            // 次级阴影
+
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 4, height: 4), blur: 15, color: UIColor.black.withAlphaComponent(0.6).cgColor)
             personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
-            // 外发光
+
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize.zero, blur: 30, color: UIColor.white.withAlphaComponent(0.7).cgColor)
             personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
-            
-            // 最终人物图片
+
             personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
         }
         return image
@@ -503,21 +524,17 @@ struct PersonMaskOverlay: View {
         let previewImageSize = screenWidth - 40 // 预览图片宽度，减去左右各20px边距
         
         // 增大外边界扩展范围，让上下左右都有更大的移动空间
-        let extraMovementMargin: CGFloat = 120 // 120px的外边界扩展范围
         let minimalTopSafeMargin: CGFloat = 15 // 最小化顶部安全边距
         let minimalBottomSafeMargin: CGFloat = 0 // 完全移除底部安全边距，允许最大的向下扩展
         
-        // 水平方向边界计算（保持原有逻辑）
-        let maxOffsetX = (previewImageSize / 2) + extraMovementMargin - (dimensions.width / 2)
-        let minOffsetX = -(previewImageSize / 2) - extraMovementMargin + (dimensions.width / 2)
+        // 水平方向边界计算（不允许超出预览边界）
+        let maxOffsetX = (previewImageSize / 2) - (dimensions.width / 2)
+        let minOffsetX = -(previewImageSize / 2) + (dimensions.width / 2)
         
-        // 垂直方向边界计算 - 与水平方向使用完全相同的逻辑
-        let baseMaxOffsetY = (previewImageSize / 2) + extraMovementMargin - (dimensions.height / 2)
-        let baseMinOffsetY = -(previewImageSize / 2) - extraMovementMargin + (dimensions.height / 2)
-        
-        // 向下移动现在获得与其他方向完全相同的外边界扩展
-        let maxOffsetY = baseMaxOffsetY - minimalBottomSafeMargin
-        let minOffsetY = baseMinOffsetY + minimalTopSafeMargin
+        // 垂直方向边界计算 - 允许更大的上下移动范围
+        let extraVerticalMovementMargin: CGFloat = 120 // 增加120px的垂直额外移动空间
+        let maxOffsetY = (previewImageSize / 2) - (dimensions.height / 2) + extraVerticalMovementMargin
+        let minOffsetY = -(previewImageSize / 2) + (dimensions.height / 2) - extraVerticalMovementMargin
         
         // 调整person mask的初始位置，使其相对于九宫格中心定位
         let adjustedOffsetY = viewModel.personOffsetY
