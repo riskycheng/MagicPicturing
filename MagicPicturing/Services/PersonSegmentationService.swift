@@ -249,6 +249,29 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         let maskBytesPerRow = CVPixelBufferGetBytesPerRow(mask)
         print("[PersonSegmentation] Mask properties - Width: \(maskWidth), Height: \(maskHeight), BytesPerRow: \(maskBytesPerRow)")
         
+        // --- Bounding Box Calculation ---
+        var minX = maskWidth, minY = maskHeight, maxX = -1, maxY = -1
+        let personThresholdForBBox: UInt8 = 128
+        
+        for y in 0..<maskHeight {
+            for x in 0..<maskWidth {
+                let maskOffset = y * maskBytesPerRow + x
+                let maskValue = (maskData + maskOffset).load(as: UInt8.self)
+                if maskValue >= personThresholdForBBox {
+                    minX = min(minX, x)
+                    maxX = max(maxX, x)
+                    minY = min(minY, y)
+                    maxY = max(maxY, y)
+                }
+            }
+        }
+        
+        if maxX < minX || maxY < minY {
+            print("[PersonSegmentation] No person found in mask to create a bounding box.")
+            throw PersonSegmentationError.noSegmentationMask
+        }
+        // --- End of Bounding Box Calculation ---
+        
         // 计算缩放因子（如果遮罩和图像尺寸不同）
         let scaleX = Double(width) / Double(maskWidth)
         let scaleY = Double(height) / Double(maskHeight)
@@ -326,10 +349,26 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         }
         print("[PersonSegmentation] Result CGImage created successfully")
         
+        let cropScaleX = Double(image.width) / Double(maskWidth)
+        let cropScaleY = Double(image.height) / Double(maskHeight)
+        
+        let cropRect = CGRect(
+            x: CGFloat(minX) * cropScaleX,
+            y: CGFloat(minY) * cropScaleY,
+            width: CGFloat(maxX - minX) * cropScaleX,
+            height: CGFloat(maxY - minY) * cropScaleY
+        ).integral
+        
+        print("[PersonSegmentation] Cropping to rect: \(cropRect)")
+        guard let croppedCGImage = resultCGImage.cropping(to: cropRect) else {
+            print("[PersonSegmentation] ERROR: Failed to crop result image.")
+            throw PersonSegmentationError.resultImageCreationFailed
+        }
+        
         // 创建最终结果图像，使用标准方向（up）
         // 在processPersonSegmentation方法中会将其还原为原始图像的方向
         print("[PersonSegmentation] Creating final UIImage with orientation .up")
-        let finalImage = UIImage(cgImage: resultCGImage, scale: 1.0, orientation: .up)
+        let finalImage = UIImage(cgImage: croppedCGImage, scale: 1.0, orientation: .up)
         print("[PersonSegmentation] Final image created successfully with dimensions: \(finalImage.size.width) x \(finalImage.size.height)")
         return finalImage
         #else

@@ -839,9 +839,8 @@ struct ThreeDGridView: View {
                                         #if canImport(UIKit)
                                         Image(uiImage: resultImage)
                                             .resizable()
-                                            .aspectRatio(contentMode: .fill)
+                                            .aspectRatio(contentMode: .fit)
                                             .frame(width: personImageWidth, height: personImageHeight)
-                                            .clipped() // 确保图片严格裁剪在占位符边界内
                                             .cornerRadius(12)
                                             .overlay(
                                                 Text("人物分割完成")
@@ -857,9 +856,8 @@ struct ThreeDGridView: View {
                                         #elseif canImport(AppKit)
                                         Image(nsImage: resultImage)
                                             .resizable()
-                                            .aspectRatio(contentMode: .fill)
+                                            .aspectRatio(contentMode: .fit)
                                             .frame(width: personImageWidth, height: personImageHeight)
-                                            .clipped() // 确保图片严格裁剪在占位符边界内
                                             .cornerRadius(12)
                                             .overlay(
                                                 Text("人物分割完成")
