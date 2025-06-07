@@ -348,52 +348,49 @@ class ThreeDGridViewModel: ObservableObject {
         let personY = personCenterY - (personHeight / 2)
         let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
 
-        // 2. 计算整体内容包围盒（含阴影）
-        let shadowMargin: CGFloat = 10
+        // 2. 计算整体内容包围盒（含阴影），这是最终图片的边界
+        let shadowMargin: CGFloat = 40
         let gridBox = gridRect
         let personBox = personRect.insetBy(dx: -shadowMargin, dy: -shadowMargin)
-        var contentBox = gridBox.union(personBox)
-        let outerMargin: CGFloat = 0
-        contentBox = contentBox.insetBy(dx: -outerMargin, dy: -outerMargin)
+        let contentBox = gridBox.union(personBox)
 
-        // 3. 让九宫格中心对齐画布中心
-        let canvasWidth = contentBox.width
-        let canvasHeight = contentBox.height
-        let gridCenterInContent = CGPoint(
-            x: gridRect.midX - contentBox.origin.x,
-            y: gridRect.midY - contentBox.origin.y
-        )
-        let canvasCenter = CGPoint(x: canvasWidth / 2, y: canvasHeight / 2)
-        let offset = CGPoint(
-            x: canvasCenter.x - gridCenterInContent.x,
-            y: canvasCenter.y - gridCenterInContent.y
-        )
-
-        // 4. 渲染
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvasWidth, height: canvasHeight))
+        // 3. 渲染最终图片
+        let renderer = UIGraphicsImageRenderer(size: contentBox.size)
         let image = renderer.image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: canvasWidth, height: canvasHeight))
-            // 九宫格
-            backgroundImage.draw(in: gridRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y))
+            // 将所有绘制内容偏移，以适应新的画布原点
+            let drawOffset = CGPoint(x: -contentBox.origin.x, y: -contentBox.origin.y)
+            let finalGridRect = gridRect.offsetBy(dx: drawOffset.x, dy: drawOffset.y)
+            let finalPersonRect = personRect.offsetBy(dx: drawOffset.x, dy: drawOffset.y)
             let cgContext = context.cgContext
+
+            // 绘制白色背景
+            UIColor.white.setFill()
+            context.fill(CGRect(origin: .zero, size: contentBox.size))
+            
+            // 绘制九宫格
+            backgroundImage.draw(in: finalGridRect)
+            
+            // 绘制阴影和人物
             // 主阴影
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 8, height: 8), blur: 25, color: UIColor.black.withAlphaComponent(0.8).cgColor)
-            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
+            
             // 次级阴影
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize(width: 4, height: 4), blur: 15, color: UIColor.black.withAlphaComponent(0.6).cgColor)
-            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
+            
             // 外发光
             cgContext.saveGState()
             cgContext.setShadow(offset: CGSize.zero, blur: 30, color: UIColor.white.withAlphaComponent(0.7).cgColor)
-            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
+            
             // 最终人物图片
-            personMask.draw(in: personRect.offsetBy(dx: offset.x - contentBox.origin.x, dy: offset.y - contentBox.origin.y), blendMode: .normal, alpha: 1.0)
+            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
         }
         return image
     }
