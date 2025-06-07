@@ -315,7 +315,7 @@ class ThreeDGridViewModel: ObservableObject {
         let previewContainerHeight = previewContainerWidth * 1.3
         let gridImageSize = previewContainerWidth
 
-        let gridCenterY = previewContainerHeight * 0.4
+        let gridCenterY = previewContainerHeight / 2 // Changed from 0.4 to 0.5 for centering
         let containerCenterY = previewContainerHeight / 2
         let gridCenterX = previewContainerWidth / 2
         let adjustedGridCenterY = gridCenterY
@@ -656,8 +656,9 @@ struct ThreeDGridView: View {
                 .padding(.bottom, 10)
                 
                 if viewModel.showingResult, let resultImage = viewModel.resultImage {
-                    // 结果卡片区域，固定显示，不滚动
-                    VStack(spacing: 15) {
+                    // 结果卡片区域，居中显示，不滚动
+                    VStack {
+                        Spacer()
                         #if canImport(UIKit)
                         ZStack {
                             Image(uiImage: resultImage)
@@ -671,8 +672,6 @@ struct ThreeDGridView: View {
                                     .frame(width: UIScreen.main.bounds.width - 2 * 20, height: UIScreen.main.bounds.width - 2 * 20)
                             }
                         }
-                        .padding(.top, 30) // 增加上方边距，确保不与导航栏重叠
-                        .padding(.bottom, 8)
                         #elseif canImport(AppKit)
                         Image(nsImage: resultImage)
                             .resizable()
@@ -680,10 +679,9 @@ struct ThreeDGridView: View {
                             .cornerRadius(10)
                             .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
                             .padding(.horizontal)
-                            .padding(.top, 30) // 增加上方边距
                         #endif
+                        Spacer()
                     }
-                    Spacer(minLength: 0)
                 } else {
                     // 其余内容可滚动，ScrollView高度精确限定
                     ScrollView {
