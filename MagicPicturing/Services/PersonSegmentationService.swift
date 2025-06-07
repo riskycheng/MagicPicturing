@@ -169,95 +169,27 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
     /// - Returns: An image with transparent background where the mask indicates
     private func createTransparentBackground(for image: CGImage, using mask: CVPixelBuffer) throws -> PlatformImage {
         #if canImport(UIKit)
-        print("[PersonSegmentation] Starting createTransparentBackground")
-        print("[PersonSegmentation] Image dimensions: \(image.width) x \(image.height)")
-        print("[PersonSegmentation] Mask dimensions: \(CVPixelBufferGetWidth(mask)) x \(CVPixelBufferGetHeight(mask))")
         
-        // 创建位图上下文，支持RGBA透明度
-        let width = image.width
-        let height = image.height
-        let bytesPerPixel = 4
-        let bytesPerRow = bytesPerPixel * width
-        let bitsPerComponent = 8
-        
-        print("[PersonSegmentation] Creating bitmap context with dimensions: \(width) x \(height)")
-        print("[PersonSegmentation] Bytes per row: \(bytesPerRow), Buffer size: \(bytesPerRow * height)")
-        
-        // 创建上下文时直接分配内存，减少内存分配次数
-        let bufferSize = bytesPerRow * height
-        print("[PersonSegmentation] Allocating buffer of size: \(bufferSize) bytes")
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-        defer { 
-            print("[PersonSegmentation] Deallocating buffer")
-            buffer.deallocate() 
-        } // 确保内存在函数结束时被释放
-        
-        // 初始化内存为0（完全透明）
-        print("[PersonSegmentation] Initializing buffer to zero (transparent)")
-        buffer.initialize(repeating: 0, count: bufferSize)
-        
-        print("[PersonSegmentation] Creating CGContext")
-        guard let context = CGContext(data: buffer,
-                                      width: width,
-                                      height: height,
-                                      bitsPerComponent: bitsPerComponent,
-                                      bytesPerRow: bytesPerRow,
-                                      space: CGColorSpaceCreateDeviceRGB(),
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            print("[PersonSegmentation] ERROR: Failed to create graphics context")
-            throw PersonSegmentationError.graphicsContextCreationFailed
-        }
-        print("[PersonSegmentation] CGContext created successfully")
-        
-        // 获取原始图像的像素数据
-        print("[PersonSegmentation] Accessing original image data")
-        guard let originalImageProvider = image.dataProvider else {
-            print("[PersonSegmentation] ERROR: Failed to get image data provider")
-            throw PersonSegmentationError.invalidImage
-        }
-        
-        guard let originalImageData = originalImageProvider.data else {
-            print("[PersonSegmentation] ERROR: Failed to get image data from provider")
-            throw PersonSegmentationError.invalidImage
-        }
-        
-        guard let originalPixels = CFDataGetBytePtr(originalImageData) else {
-            print("[PersonSegmentation] ERROR: Failed to get byte pointer from image data")
-            throw PersonSegmentationError.invalidImage
-        }
-        
-        print("[PersonSegmentation] Successfully accessed original image data")
-        
-        // 锁定遮罩以便读取
-        print("[PersonSegmentation] Locking mask pixel buffer")
+        // 1. --- Bounding Box Calculation ---
         CVPixelBufferLockBaseAddress(mask, .readOnly)
-        defer { 
-            print("[PersonSegmentation] Unlocking mask pixel buffer")
-            CVPixelBufferUnlockBaseAddress(mask, .readOnly) 
-        }
+        defer { CVPixelBufferUnlockBaseAddress(mask, .readOnly) }
         
-        // 获取遮罩数据
-        print("[PersonSegmentation] Getting mask base address")
         guard let maskData = CVPixelBufferGetBaseAddress(mask) else {
-            print("[PersonSegmentation] ERROR: Failed to get mask base address")
             throw PersonSegmentationError.maskDataAccessFailed
         }
         
-        // 获取遮罩属性
         let maskWidth = CVPixelBufferGetWidth(mask)
         let maskHeight = CVPixelBufferGetHeight(mask)
         let maskBytesPerRow = CVPixelBufferGetBytesPerRow(mask)
-        print("[PersonSegmentation] Mask properties - Width: \(maskWidth), Height: \(maskHeight), BytesPerRow: \(maskBytesPerRow)")
         
-        // --- Bounding Box Calculation ---
         var minX = maskWidth, minY = maskHeight, maxX = -1, maxY = -1
-        let personThresholdForBBox: UInt8 = 128
+        // Raise the threshold to be stricter about what is considered part of the person, filtering out low-confidence noise from the model.
+        let personThresholdForBBox: UInt8 = 192
         
         for y in 0..<maskHeight {
             for x in 0..<maskWidth {
                 let maskOffset = y * maskBytesPerRow + x
-                let maskValue = (maskData + maskOffset).load(as: UInt8.self)
-                if maskValue >= personThresholdForBBox {
+                if (maskData + maskOffset).load(as: UInt8.self) >= personThresholdForBBox {
                     minX = min(minX, x)
                     maxX = max(maxX, x)
                     minY = min(minY, y)
@@ -270,111 +202,168 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             print("[PersonSegmentation] No person found in mask to create a bounding box.")
             throw PersonSegmentationError.noSegmentationMask
         }
-        // --- End of Bounding Box Calculation ---
+        print("----------------------------------------------------")
+        print("[DEBUG] Mask Dimensions: \(maskWidth)x\(maskHeight)")
+        print("[DEBUG] Calculated Bounding Box: (\(minX), \(minY)) -> (\(maxX), \(maxY))")
+        print("----------------------------------------------------")
         
-        // 计算缩放因子（如果遮罩和图像尺寸不同）
-        let scaleX = Double(width) / Double(maskWidth)
-        let scaleY = Double(height) / Double(maskHeight)
-        print("[PersonSegmentation] Scale factors - X: \(scaleX), Y: \(scaleY)")
-        
-        // 定义阈值常量
-        let personThreshold: UInt8 = 128 // 人物阈值
-        let highConfidenceThreshold: UInt8 = 220 // 高置信度阈值
-        let edgeBlendFactor: Double = 1.5 // 边缘混合因子
-        
-        // 获取原始图像的每像素字节数和每行字节数
-        let originalBytesPerPixel = image.bitsPerPixel / 8
-        let originalBytesPerRow = image.bytesPerRow
-        print("[PersonSegmentation] Original image - BytesPerPixel: \(originalBytesPerPixel), BytesPerRow: \(originalBytesPerRow)")
-        
-        // Try to read a sample pixel to check if data access works
-        print("[PersonSegmentation] Testing mask data access...")
-        do {
-            if maskWidth > 0 && maskHeight > 0 {
-                let testOffset = 0 // First pixel
-                let testValue = (maskData + testOffset).load(as: UInt8.self)
-                print("[PersonSegmentation] Test pixel value: \(testValue)")
-            }
-        } catch {
-            print("[PersonSegmentation] ERROR: Failed to access test pixel: \(error)")
-        }
-        
-        // 使用并行处理提高效率
-        print("[PersonSegmentation] Starting pixel processing with concurrent execution")
-        DispatchQueue.concurrentPerform(iterations: height) { y in
-            for x in 0..<width {
-                // 计算遮罩中的对应位置
-                let maskX = Int(Double(x) / scaleX)
-                let maskY = Int(Double(y) / scaleY)
-                
-                // 确保在遮罩边界内
-                guard maskX >= 0 && maskX < maskWidth && maskY >= 0 && maskY < maskHeight else { continue }
-                
-                // 获取遮罩值（0-255，255表示人物，0表示背景）
-                let maskOffset = maskY * maskBytesPerRow + maskX
-                let maskValue = (maskData + maskOffset).load(as: UInt8.self)
-                
-                // 只处理人物区域（阈值以上的像素）
-                if maskValue >= personThreshold {
-                    // 计算原始图像中的像素位置
-                    let originalOffset = y * originalBytesPerRow + x * originalBytesPerPixel
-                    
-                    // 计算目标上下文中的像素位置
-                    let contextOffset = y * bytesPerRow + x * bytesPerPixel
-                    
-                    // 复制RGB通道（一次性复制以提高效率）
-                    if originalBytesPerPixel >= 3 && bytesPerPixel >= 3 {
-                        memcpy(buffer + contextOffset, originalPixels + originalOffset, 3)
-                    }
-                    
-                    // 设置Alpha通道
-                    if maskValue >= highConfidenceThreshold {
-                        // 完全是人物区域 - 完全不透明
-                        buffer[contextOffset + 3] = 255
-                    } else {
-                        // 边缘区域 - 应用平滑过渡
-                        buffer[contextOffset + 3] = min(255, UInt8(Double(maskValue - personThreshold) * edgeBlendFactor))
-                    }
-                }
-                // 如果maskValue < personThreshold，保持完全透明（背景区域）
-            }
-        }
-        print("[PersonSegmentation] Pixel processing completed")
-        
-        // Create an image from the context
-        print("[PersonSegmentation] Creating result image from context")
-        guard let resultCGImage = context.makeImage() else {
-            print("[PersonSegmentation] ERROR: Failed to create result image from context")
-            throw PersonSegmentationError.resultImageCreationFailed
-        }
-        print("[PersonSegmentation] Result CGImage created successfully")
-        
-        let cropScaleX = Double(image.width) / Double(maskWidth)
-        let cropScaleY = Double(image.height) / Double(maskHeight)
+        // 2. --- Create a new canvas with the exact cropped size ---
+        let scaleX = Double(image.width) / Double(maskWidth)
+        let scaleY = Double(image.height) / Double(maskHeight)
         
         let cropRect = CGRect(
-            x: CGFloat(minX) * cropScaleX,
-            y: CGFloat(minY) * cropScaleY,
-            width: CGFloat(maxX - minX) * cropScaleX,
-            height: CGFloat(maxY - minY) * cropScaleY
+            x: CGFloat(minX) * scaleX,
+            y: CGFloat(minY) * scaleY,
+            width: CGFloat(maxX - minX + 1) * scaleX,
+            height: CGFloat(maxY - minY + 1) * scaleY
         ).integral
         
-        print("[PersonSegmentation] Cropping to rect: \(cropRect)")
-        guard let croppedCGImage = resultCGImage.cropping(to: cropRect) else {
-            print("[PersonSegmentation] ERROR: Failed to crop result image.")
+        let croppedWidth = Int(cropRect.width)
+        let croppedHeight = Int(cropRect.height)
+        
+        print("----------------------------------------------------")
+        print("[DEBUG] Original Image Size: \(image.width)x\(image.height)")
+        print("[DEBUG] Scaling Factors: x=\(scaleX), y=\(scaleY)")
+        print("[DEBUG] Calculated Crop Rect in Image Coords: \(cropRect)")
+        print("[DEBUG] Final Cropped Canvas Size: \(croppedWidth)x\(croppedHeight)")
+        print("----------------------------------------------------")
+        
+        if croppedWidth <= 0 || croppedHeight <= 0 {
+             throw PersonSegmentationError.noSegmentationMask
+        }
+
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * croppedWidth
+        let bitsPerComponent = 8
+        let bufferSize = bytesPerRow * croppedHeight
+        
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        buffer.initialize(repeating: 0, count: bufferSize)
+        defer { buffer.deallocate() }
+        
+        guard let context = CGContext(data: buffer,
+                                      width: croppedWidth,
+                                      height: croppedHeight,
+                                      bitsPerComponent: bitsPerComponent,
+                                      bytesPerRow: bytesPerRow,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            throw PersonSegmentationError.graphicsContextCreationFailed
+        }
+        
+        // 3. --- Directly render the cropped image ---
+        guard let originalImageProvider = image.dataProvider,
+              let originalImageData = originalImageProvider.data,
+              let originalPixels = CFDataGetBytePtr(originalImageData) else {
+            throw PersonSegmentationError.invalidImage
+        }
+        
+        let originalBytesPerRow = image.bytesPerRow
+        let originalBytesPerPixel = image.bitsPerPixel / 8
+        let highConfidenceThreshold: UInt8 = 220
+        let edgeBlendFactor: Double = 1.5
+
+        DispatchQueue.concurrentPerform(iterations: croppedHeight) { y in
+            for x in 0..<croppedWidth {
+                let sourceX = Int(cropRect.minX) + x
+                let sourceY = Int(cropRect.minY) + y
+
+                let maskX = Int(Double(sourceX) / scaleX)
+                let maskY = Int(Double(sourceY) / scaleY)
+                
+                guard maskX >= 0 && maskX < maskWidth && maskY >= 0 && maskY < maskHeight else { continue }
+                
+                let maskOffset = maskY * maskBytesPerRow + maskX
+                let maskValue = (maskData + maskOffset).load(as: UInt8.self)
+
+                if maskValue >= personThresholdForBBox {
+                    let sourceOffset = sourceY * originalBytesPerRow + sourceX * originalBytesPerPixel
+                    let targetOffset = y * bytesPerRow + x * bytesPerPixel
+                    
+                    // Copy RGB
+                    memcpy(buffer + targetOffset, originalPixels + sourceOffset, 3)
+                    
+                    // Set Alpha with smoothing at the edges
+                    if maskValue >= highConfidenceThreshold {
+                        buffer[targetOffset + 3] = 255
+                    } else {
+                        buffer[targetOffset + 3] = min(255, UInt8(Double(maskValue - personThresholdForBBox) * edgeBlendFactor))
+                    }
+                }
+            }
+        }
+        
+        // 4. --- Create final image ---
+        guard let resultCGImage = context.makeImage() else {
             throw PersonSegmentationError.resultImageCreationFailed
         }
         
-        // 创建最终结果图像，使用标准方向（up）
-        // 在processPersonSegmentation方法中会将其还原为原始图像的方向
-        print("[PersonSegmentation] Creating final UIImage with orientation .up")
-        let finalImage = UIImage(cgImage: croppedCGImage, scale: 1.0, orientation: .up)
-        print("[PersonSegmentation] Final image created successfully with dimensions: \(finalImage.size.width) x \(finalImage.size.height)")
-        return finalImage
+        let finalImage = UIImage(cgImage: resultCGImage, scale: 1.0, orientation: .up)
+        print("----------------------------------------------------")
+        print("[DEBUG] Successfully created final UIImage with size: \(finalImage.size.width) x \(finalImage.size.height)")
+        print("----------------------------------------------------")
+        print("[PersonSegmentation] Final cropped image created with dimensions: \(finalImage.size.width) x \(finalImage.size.height)")
+        
+        // Trim transparent edges from the final image to correct any mask inaccuracies
+        guard let trimmedImage = trim(image: finalImage) else {
+            print("[PersonSegmentation] Failed to trim transparent edges, returning original.")
+            return finalImage
+        }
+        
+        print("[PersonSegmentation] Final trimmed image has dimensions: \(trimmedImage.size.width) x \(trimmedImage.size.height)")
+        return trimmedImage
         #else
         // macOS implementation would go here
         // For now, just return a placeholder
         return NSImage()
         #endif
     }
+    
+    #if canImport(UIKit)
+    private func trim(image: UIImage) -> UIImage? {
+        guard let cgImage = image.cgImage else { return nil }
+
+        let width = cgImage.width
+        let height = cgImage.height
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue).rawValue
+
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo) else { return nil }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let data = context.data else { return nil }
+        let pixelBuffer = data.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
+
+        var minX = width, minY = height, maxX = -1, maxY = -1
+        
+        // Define a threshold to ignore nearly-transparent pixels
+        let alphaThreshold: UInt8 = 10
+
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                // Check alpha channel against the threshold
+                if pixelBuffer[offset + 3] > alphaThreshold {
+                    minX = min(minX, x)
+                    maxX = max(maxX, x)
+                    minY = min(minY, y)
+                    maxY = max(maxY, y)
+                }
+            }
+        }
+
+        if maxX < minX || maxY < minY {
+            // The image is completely transparent.
+            return image
+        }
+
+        let cropRect = CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+        guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
+        
+        return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+    }
+    #endif
 }
