@@ -503,25 +503,22 @@ struct PersonMaskOverlay: View {
     @State private var isDragging: Bool = false
 
     var body: some View {
-        // 计算人物图片的显示尺寸（与保存逻辑完全一致）
-        let baseWidth = UIScreen.main.bounds.width
-        let gridWidth = baseWidth * 1.15
-        let totalSpacing: CGFloat = 4 * 2
-        let cellSize = (gridWidth - totalSpacing) / 3
+        // 所有尺寸计算都应基于屏幕上实际的显示尺寸，以确保一致性
+        let previewContainerWidth = UIScreen.main.bounds.width - 40
+        let displayedCellWidth = (previewContainerWidth - viewModel.gridSpacing * 2) / 3
         
-        // 保持人物图片的原始宽高比
+        // 基于显示的单元格宽度计算人物图像的基础尺寸
         let personImageAspectRatio = personMask.size.width / personMask.size.height
-        let basePersonSize = cellSize * 2.8 * viewModel.personScale
+        let basePersonSize = displayedCellWidth * 2.8 * viewModel.personScale
         
-        // 计算宽高
+        // 计算最终在屏幕上显示的宽高
         let dimensions = calculatePersonDimensions(
             aspectRatio: personImageAspectRatio,
             baseSize: basePersonSize
         )
         
-        // 重新设计边界约束 - 上下左右完全相同的外边界效果
-        let screenWidth = UIScreen.main.bounds.width
-        let previewImageSize = screenWidth - 40 // 预览图片宽度，减去左右各20px边距
+        // 拖拽边界依赖于预览容器的尺寸
+        let previewImageSize = previewContainerWidth // Use a consistent name for clarity
         
         // 增大外边界扩展范围，让上下左右都有更大的移动空间
         let minimalTopSafeMargin: CGFloat = 15 // 最小化顶部安全边距
@@ -586,10 +583,25 @@ struct PersonMaskOverlay: View {
                 // 缩放手势与拖拽手势同时支持
                 MagnificationGesture(minimumScaleDelta: 0.01)
                     .onChanged { value in
+                        // 计算动态的最小/最大缩放比例
+                        let previewContainerWidth = UIScreen.main.bounds.width - 40
+                        let displayedCellWidth = (previewContainerWidth - viewModel.gridSpacing * 2) / 3
+
+                        let minAllowedPersonWidth = previewContainerWidth / 2.0
+                        let maxAllowedPersonWidth = previewContainerWidth
+
+                        let personImageAspectRatio = personMask.size.width / personMask.size.height
+                        let baseSizeAtScaleOne = displayedCellWidth * 2.8
+                        let personWidthAtScaleOne = (personImageAspectRatio > 1) ? baseSizeAtScaleOne : (baseSizeAtScaleOne * personImageAspectRatio)
+
+                        let minScale = minAllowedPersonWidth / personWidthAtScaleOne
+                        let maxScale = maxAllowedPersonWidth / personWidthAtScaleOne
+
+                        // 应用新的缩放值，并将其限制在动态计算出的范围内
                         let delta = value / viewModel.lastScaleValue
                         viewModel.lastScaleValue = value
                         let newScale = viewModel.personScale * delta
-                        viewModel.personScale = min(max(newScale, 0.5), 3.0)
+                        viewModel.personScale = min(max(newScale, minScale), maxScale)
                     }
                     .onEnded { _ in
                         viewModel.lastScaleValue = 1.0
