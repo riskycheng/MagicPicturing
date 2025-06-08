@@ -94,6 +94,7 @@ class ThreeDGridViewModel: ObservableObject {
     @Published var isGenerating = false
     @Published var currentGridIndex = 0
     @Published var isProcessingSegmentation = false
+    @Published var previewContainerSize: CGSize = .zero // Add property to store the size
     
     private let segmentationService: PersonSegmentationServiceProtocol
     
@@ -295,9 +296,14 @@ class ThreeDGridViewModel: ObservableObject {
     
     func saveToAlbum() {
         #if canImport(UIKit)
-        // 直接渲染当前显示的预览视图
+        // Directly render the current preview view to an image
         if showingResult, let resultImage = self.resultImage, let personMask = self.segmentedPersonImage {
-            let renderedImage = renderCurrentPreviewToImage(backgroundImage: resultImage, personMask: personMask)
+            // Pass the captured preview size to the rendering function
+            let renderedImage = renderCurrentPreviewToImage(
+                backgroundImage: resultImage,
+                personMask: personMask,
+                previewSize: self.previewContainerSize // Use the actual size from the UI
+            )
             if let finalImage = renderedImage {
                 UIImageWriteToSavedPhotosAlbum(finalImage, nil, nil, nil)
             }
@@ -306,29 +312,21 @@ class ThreeDGridViewModel: ObservableObject {
     }
     
     #if canImport(UIKit)
-    private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage) -> UIImage? {
-        // 1. 计算九宫格和人物mask的frame（和预览一致）
-        let screenWidth = UIScreen.main.bounds.width
-        let previewContainerWidth = screenWidth - 40
-        let previewContainerHeight = previewContainerWidth * 1.3
+    // The rendering function now accepts the exact previewSize from the UI.
+    private func renderCurrentPreviewToImage(backgroundImage: UIImage, personMask: UIImage, previewSize: CGSize) -> UIImage? {
+        // --- All calculations are now based on the single source of truth: previewSize ---
+        
+        // 1. Define frame and size for the grid and person mask based on the previewSize.
+        let previewContainerWidth = previewSize.width
+        let previewContainerHeight = previewSize.height
         let gridImageSize = previewContainerWidth
 
-        let gridCenterY = previewContainerHeight / 2
-        let containerCenterY = previewContainerHeight / 2
-        let gridCenterX = previewContainerWidth / 2
-        let adjustedGridCenterY = gridCenterY
-
-        let gridX = gridCenterX - (gridImageSize / 2)
-        let gridY = adjustedGridCenterY - (gridImageSize / 2)
-        let gridRect = CGRect(x: gridX, y: gridY, width: gridImageSize, height: gridImageSize)
-
-        let baseWidth = UIScreen.main.bounds.width
-        let gridWidth = baseWidth * 1.15
-        let totalSpacing: CGFloat = 4 * 2
-        let cellSize = (gridWidth - totalSpacing) / 3
+        let gridRect = CGRect(x: 0, y: (previewContainerHeight - gridImageSize) / 2, width: gridImageSize, height: gridImageSize)
+        
+        let displayedCellWidth = (gridImageSize - self.gridSpacing * 2) / 3
         let personImageAspectRatio = personMask.size.width / personMask.size.height
-        let basePersonSize = cellSize * 2.8 * self.personScale
-
+        let basePersonSize = displayedCellWidth * 2.8 * self.personScale
+        
         let personWidth: CGFloat
         let personHeight: CGFloat
         if personImageAspectRatio > 1 {
@@ -339,14 +337,16 @@ class ThreeDGridViewModel: ObservableObject {
             personWidth = basePersonSize * personImageAspectRatio
         }
 
-        let adjustedPersonOffsetY = self.personOffsetY + (gridCenterY - containerCenterY)
-        let personCenterX = gridCenterX + self.personOffsetX
-        let personCenterY = adjustedGridCenterY + adjustedPersonOffsetY
-        let personX = personCenterX - (personWidth / 2)
-        let personY = personCenterY - (personHeight / 2)
-        let personRect = CGRect(x: personX, y: personY, width: personWidth, height: personHeight)
+        let personCenterX = gridRect.midX + self.personOffsetX
+        let personCenterY = gridRect.midY + self.personOffsetY
+        let personRect = CGRect(
+            x: personCenterX - (personWidth / 2),
+            y: personCenterY - (personHeight / 2),
+            width: personWidth,
+            height: personHeight
+        )
 
-        // 2. 在一个以九宫格中心为原点的新坐标系中定义所有元素
+        // 2. Define a new coordinate system with the grid's center as the origin.
         let gridCenter = CGPoint(x: gridRect.midX, y: gridRect.midY)
         
         let gridBoxInNewCoord = CGRect(
@@ -358,54 +358,43 @@ class ThreeDGridViewModel: ObservableObject {
         
         let personRectInNewCoord = personRect.offsetBy(dx: -gridCenter.x, dy: -gridCenter.y)
 
-        // 3. 计算所有"无阴影"内容的总边界
+        // 3. Calculate the total bounding box for all "no-shadow" content.
         let contentBox = gridBoxInNewCoord.union(personRectInNewCoord)
 
-        // 4. 为内容添加统一的边距（用于阴影和留白），得到最终画布的相对边界
+        // 4. Add a uniform margin for shadows and padding to get the final canvas bounds.
         let shadowMargin: CGFloat = 25
         let canvasBox = contentBox.insetBy(dx: -shadowMargin, dy: -shadowMargin)
         
-        // 5. 计算最终画布的尺寸和绘制锚点
-        // 水平方向：对称，以确保九宫格水平居中
+        // 5. Calculate the final canvas size and drawing anchor points.
         let canvasHalfWidth = max(abs(canvasBox.minX), abs(canvasBox.maxX))
         let canvasWidth = canvasHalfWidth * 2
         let drawAnchorX = canvasHalfWidth
 
-        // 垂直方向：非对称，紧凑贴合，以消除不必要的空白
         let canvasHeight = canvasBox.height
         let drawAnchorY = -canvasBox.minY
 
         let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
         
-        // 6. 渲染最终图片
+        // 6. Render the final image.
         let renderer = UIGraphicsImageRenderer(size: canvasSize)
         let image = renderer.image { context in
             let cgContext = context.cgContext
             
-            // 绘制白色背景
             UIColor.white.setFill()
             context.fill(CGRect(origin: .zero, size: canvasSize))
 
-            // 在画布上计算最终绘制位置
             let finalGridRect = gridBoxInNewCoord.offsetBy(dx: drawAnchorX, dy: drawAnchorY)
             let finalPersonRect = personRectInNewCoord.offsetBy(dx: drawAnchorX, dy: drawAnchorY)
             
-            // 绘制九宫格
             backgroundImage.draw(in: finalGridRect)
             
-            // 绘制阴影和人物
+            let referenceDimension = max(personMask.size.width, personMask.size.height)
+            let strokeWidth = max(3.0, referenceDimension * 0.008)
+            let finalShadowBlurRadius = strokeWidth * 0.4
+            let finalShadowOffset = CGSize(width: strokeWidth * 0.3, height: strokeWidth * 0.3)
+            
             cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize(width: 8, height: 8), blur: 25, color: UIColor.black.withAlphaComponent(0.8).cgColor)
-            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
-            cgContext.restoreGState()
-
-            cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize(width: 4, height: 4), blur: 15, color: UIColor.black.withAlphaComponent(0.6).cgColor)
-            personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
-            cgContext.restoreGState()
-
-            cgContext.saveGState()
-            cgContext.setShadow(offset: CGSize.zero, blur: 30, color: UIColor.white.withAlphaComponent(0.7).cgColor)
+            cgContext.setShadow(offset: finalShadowOffset, blur: finalShadowBlurRadius, color: UIColor.black.withAlphaComponent(0.5).cgColor)
             personMask.draw(in: finalPersonRect, blendMode: .normal, alpha: 1.0)
             cgContext.restoreGState()
 
@@ -499,120 +488,103 @@ class ThreeDGridViewModel: ObservableObject {
 struct PersonMaskOverlay: View {
     let personMask: UIImage
     @ObservedObject var viewModel: ThreeDGridViewModel
+    @Binding var previewContainerSize: CGSize // Receive the container size as a binding
     @State private var dragStartOffset: CGSize = .zero
     @State private var isDragging: Bool = false
 
     var body: some View {
-        // 所有尺寸计算都应基于屏幕上实际的显示尺寸，以确保一致性
-        let previewContainerWidth = UIScreen.main.bounds.width - 40
-        let displayedCellWidth = (previewContainerWidth - viewModel.gridSpacing * 2) / 3
+        let previewContainerWidth = previewContainerSize.width
         
-        // 基于显示的单元格宽度计算人物图像的基础尺寸
-        let personImageAspectRatio = personMask.size.width / personMask.size.height
-        let basePersonSize = displayedCellWidth * 2.8 * viewModel.personScale
-        
-        // 计算最终在屏幕上显示的宽高
-        let dimensions = calculatePersonDimensions(
-            aspectRatio: personImageAspectRatio,
-            baseSize: basePersonSize
-        )
-        
-        // 拖拽边界依赖于预览容器的尺寸
-        let previewImageSize = previewContainerWidth // Use a consistent name for clarity
-        
-        // 增大外边界扩展范围，让上下左右都有更大的移动空间
-        let minimalTopSafeMargin: CGFloat = 15 // 最小化顶部安全边距
-        let minimalBottomSafeMargin: CGFloat = 0 // 完全移除底部安全边距，允许最大的向下扩展
-        
-        // 水平方向边界计算（不允许超出预览边界）
-        let maxOffsetX = (previewImageSize / 2) - (dimensions.width / 2)
-        let minOffsetX = -(previewImageSize / 2) + (dimensions.width / 2)
-        
-        // 垂直方向边界计算 - 允许更大的上下移动范围
-        let extraVerticalMovementMargin: CGFloat = 120 // 增加120px的垂直额外移动空间
-        let maxOffsetY = (previewImageSize / 2) - (dimensions.height / 2) + extraVerticalMovementMargin
-        let minOffsetY = -(previewImageSize / 2) + (dimensions.height / 2) - extraVerticalMovementMargin
-        
-        // 调整person mask的初始位置，使其相对于九宫格中心定位
-        let adjustedOffsetY = viewModel.personOffsetY
-        
-        Image(uiImage: personMask)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: dimensions.width, height: dimensions.height)
-            .scaleEffect(isDragging ? 1.05 : 1.0) // 拖拽时轻微放大，提供视觉反馈
-            .shadow(color: .black.opacity(isDragging ? 0.3 : 0.1), radius: isDragging ? 8 : 2) // 拖拽时增强阴影
-            .offset(x: viewModel.personOffsetX, y: adjustedOffsetY)
-            .allowsHitTesting(true)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isDragging)
-            .gesture(
-                DragGesture(minimumDistance: 0) // 设置为0以立即响应
-                    .onChanged { value in
-                        if !isDragging {
-                            // 拖拽开始，记录起始位置并提供触觉反馈
-                            isDragging = true
-                            dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
-                            
-                            #if canImport(UIKit)
-                            // 轻微的触觉反馈，表示开始拖拽
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.impactOccurred()
-                            #endif
-                        }
-                        
-                        // 实时跟随手指移动
-                        let newOffsetX = dragStartOffset.width + value.translation.width
-                        let newOffsetY = dragStartOffset.height + value.translation.height
-                        
-                        // 应用上下左右对称的边界约束（向下移动有完全的外边界扩展）
-                        viewModel.personOffsetX = max(minOffsetX, min(maxOffsetX, newOffsetX))
-                        viewModel.personOffsetY = max(minOffsetY, min(maxOffsetY, newOffsetY))
-                    }
-                    .onEnded { value in
-                        // 拖拽结束
-                        isDragging = false
-                        
-                        #if canImport(UIKit)
-                        // 拖拽结束的触觉反馈
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
-                        #endif
-                    }
-            )
-            .simultaneousGesture(
-                // 缩放手势与拖拽手势同时支持
-                MagnificationGesture(minimumScaleDelta: 0.01)
-                    .onChanged { value in
-                        // 计算动态的最小/最大缩放比例
-                        let previewContainerWidth = UIScreen.main.bounds.width - 40
-                        let displayedCellWidth = (previewContainerWidth - viewModel.gridSpacing * 2) / 3
+        // The view's content. Wrapped in a Group to allow returning different view types.
+        let viewContent = Group {
+            if previewContainerWidth > 0 {
+                // All size calculations are now based on the actual container size from the view.
+                let displayedCellWidth = (previewContainerWidth - viewModel.gridSpacing * 2) / 3
+                
+                let personImageAspectRatio = personMask.size.width / personMask.size.height
+                let basePersonSize = displayedCellWidth * 2.8 * viewModel.personScale
+                
+                let dimensions = calculatePersonDimensions(
+                    aspectRatio: personImageAspectRatio,
+                    baseSize: basePersonSize
+                )
+                
+                let maxOffsetX = (previewContainerWidth / 2) - (dimensions.width / 2)
+                let minOffsetX = -(previewContainerWidth / 2) + (dimensions.width / 2)
+                
+                let extraVerticalMovementMargin: CGFloat = 120
+                let maxOffsetY = (previewContainerWidth / 2) - (dimensions.height / 2) + extraVerticalMovementMargin
+                let minOffsetY = -(previewContainerWidth / 2) + (dimensions.height / 2) - extraVerticalMovementMargin
 
-                        let minAllowedPersonWidth = previewContainerWidth / 2.0
-                        let maxAllowedPersonWidth = previewContainerWidth
+                Image(uiImage: personMask)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: dimensions.width, height: dimensions.height)
+                    .scaleEffect(isDragging ? 1.05 : 1.0)
+                    .shadow(color: .black.opacity(isDragging ? 0.3 : 0.1), radius: isDragging ? 8 : 2)
+                    .offset(x: viewModel.personOffsetX, y: viewModel.personOffsetY)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isDragging)
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if !isDragging {
+                                    isDragging = true
+                                    dragStartOffset = CGSize(width: viewModel.personOffsetX, height: viewModel.personOffsetY)
+                                    #if canImport(UIKit)
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                    #endif
+                                }
+                                
+                                let newOffsetX = dragStartOffset.width + value.translation.width
+                                let newOffsetY = dragStartOffset.height + value.translation.height
+                                
+                                viewModel.personOffsetX = max(minOffsetX, min(maxOffsetX, newOffsetX))
+                                viewModel.personOffsetY = max(minOffsetY, min(maxOffsetY, newOffsetY))
+                            }
+                            .onEnded { value in
+                                isDragging = false
+                                #if canImport(UIKit)
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                                #endif
+                            }
+                    )
+                    .simultaneousGesture(
+                        MagnificationGesture(minimumScaleDelta: 0.01)
+                            .onChanged { value in
+                                let previewWidth = previewContainerSize.width
+                                let cellWidth = (previewWidth - viewModel.gridSpacing * 2) / 3
 
-                        let personImageAspectRatio = personMask.size.width / personMask.size.height
-                        let baseSizeAtScaleOne = displayedCellWidth * 2.8
-                        let personWidthAtScaleOne = (personImageAspectRatio > 1) ? baseSizeAtScaleOne : (baseSizeAtScaleOne * personImageAspectRatio)
+                                let minAllowedPersonWidth = previewWidth / 2.0
+                                let maxAllowedPersonWidth = previewWidth
 
-                        let minScale = minAllowedPersonWidth / personWidthAtScaleOne
-                        let maxScale = maxAllowedPersonWidth / personWidthAtScaleOne
+                                let personAspectRatio = personMask.size.width / personMask.size.height
+                                let baseSizeAtScaleOne = cellWidth * 2.8
+                                let personWidthAtScaleOne = (personAspectRatio > 1) ? baseSizeAtScaleOne : (baseSizeAtScaleOne * personAspectRatio)
 
-                        // 应用新的缩放值，并将其限制在动态计算出的范围内
-                        let delta = value / viewModel.lastScaleValue
-                        viewModel.lastScaleValue = value
-                        let newScale = viewModel.personScale * delta
-                        viewModel.personScale = min(max(newScale, minScale), maxScale)
-                    }
-                    .onEnded { _ in
-                        viewModel.lastScaleValue = 1.0
-                        
-                        #if canImport(UIKit)
-                        // 缩放结束的触觉反馈
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
-                        #endif
-                    }
-            )
+                                let minScale = minAllowedPersonWidth / personWidthAtScaleOne
+                                let maxScale = maxAllowedPersonWidth / personWidthAtScaleOne
+
+                                let delta = value / viewModel.lastScaleValue
+                                viewModel.lastScaleValue = value
+                                let newScale = viewModel.personScale * delta
+                                viewModel.personScale = min(max(newScale, minScale), maxScale)
+                            }
+                            .onEnded { _ in
+                                viewModel.lastScaleValue = 1.0
+                                #if canImport(UIKit)
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                                #endif
+                            }
+                    )
+            } else {
+                // If the container size isn't ready, show nothing.
+                EmptyView()
+            }
+        }
+        return viewContent
     }
     
     private func calculatePersonDimensions(aspectRatio: CGFloat, baseSize: CGFloat) -> (width: CGFloat, height: CGFloat) {
@@ -644,6 +616,7 @@ struct ThreeDGridView: View {
     @State private var previewImage: PlatformImage? = nil
     @State private var previewIndex: Int? = nil
     @State private var selectedGridIndex: Int? = nil
+    @State private var previewContainerSize: CGSize = .zero
     
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
@@ -721,14 +694,24 @@ struct ThreeDGridView: View {
                             Image(uiImage: resultImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: UIScreen.main.bounds.width - 2 * 20)
+                                .background(
+                                    GeometryReader { proxy in
+                                        Color.clear.onAppear {
+                                            self.previewContainerSize = proxy.size
+                                            viewModel.previewContainerSize = proxy.size // Pass to ViewModel
+                                        }
+                                    }
+                                )
                             
-                            // 确保人物遮罩直接叠加在九宫格图片上，使用相同的坐标系统
                             if let personMask = viewModel.segmentedPersonImage {
-                                PersonMaskOverlay(personMask: personMask, viewModel: viewModel)
-                                    .frame(width: UIScreen.main.bounds.width - 2 * 20, height: UIScreen.main.bounds.width - 2 * 20)
+                                PersonMaskOverlay(
+                                    personMask: personMask,
+                                    viewModel: viewModel,
+                                    previewContainerSize: $previewContainerSize
+                                )
                             }
                         }
+                        .frame(width: UIScreen.main.bounds.width - 2 * 20)
                         #elseif canImport(AppKit)
                         Image(nsImage: resultImage)
                             .resizable()

@@ -52,15 +52,11 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
     /// - Parameter image: The source image containing a person
     /// - Returns: A new image with the person segmented (transparent background)
     func segmentPerson(from image: PlatformImage) async throws -> PlatformImage {
-        print("[PersonSegmentation] Starting person segmentation process")
         return try await withCheckedThrowingContinuation { continuation in
             do {
                 let result = try self.processPersonSegmentation(image)
-                print("[PersonSegmentation] Successfully completed segmentation")
                 continuation.resume(returning: result)
             } catch {
-                print("[PersonSegmentation] ERROR: Failed to process segmentation: \(error.localizedDescription)")
-                print("[PersonSegmentation] Error details: \(String(describing: error))")
                 continuation.resume(throwing: error)
             }
         }
@@ -78,7 +74,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             if let cgImage = image.cgImage {
                 normalizedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: .up)
             } else {
-                print("[PersonSegmentation] WARNING: Could not get CGImage, using original image")
                 normalizedImage = image
             }
         } else {
@@ -86,7 +81,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         }
         
         guard let cgImage = normalizedImage.cgImage else {
-            print("[PersonSegmentation] ERROR: Failed to get CGImage from normalized image")
             throw PersonSegmentationError.invalidImage
         }
         
@@ -98,18 +92,14 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             try handler.perform([request])
         } catch {
-            print("[PersonSegmentation] ERROR: Vision request failed: \(error.localizedDescription)")
-            print("[PersonSegmentation] Error details: \(String(describing: error))")
             throw error
         }
         
         if request.results == nil || request.results?.isEmpty == true {
-            print("[PersonSegmentation] ERROR: No results returned from segmentation request")
             throw PersonSegmentationError.noSegmentationMask
         }
         
         guard let mask = request.results?.first?.pixelBuffer else {
-            print("[PersonSegmentation] ERROR: No pixelBuffer in segmentation results")
             throw PersonSegmentationError.noSegmentationMask
         }
         
@@ -229,11 +219,8 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
                     
                     memcpy(buffer + targetOffset, originalPixels + sourceOffset, 3)
                     
-                    if maskValue >= highConfidenceThreshold {
-                        buffer[targetOffset + 3] = 255
-                    } else {
-                        buffer[targetOffset + 3] = min(255, UInt8(Double(maskValue - personThresholdForBBox) * edgeBlendFactor))
-                    }
+                    // Use a hard edge for alpha to produce a crisp silhouette, which is better for stroking.
+                    buffer[targetOffset + 3] = 255
                 }
             }
         }
@@ -244,19 +231,14 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         
         let finalImage = UIImage(cgImage: resultCGImage, scale: 1.0, orientation: .up)
         
-        // Trim transparent edges from the final image to correct any mask inaccuracies
         guard let trimmedImage = trim(image: finalImage) else {
-            print("[PersonSegmentation] Failed to trim transparent edges, returning original.")
             return finalImage
         }
         
-        print("[PersonSegmentation] Attempting to apply stroke to trimmed image...")
         guard let strokedImage = applyStroke(to: trimmedImage) else {
-            print("[PersonSegmentation] WARNING: Failed to apply stroke, returning trimmed image without stroke.")
             return trimmedImage
         }
         
-        print("[PersonSegmentation] Successfully applied stroke.")
         return strokedImage
         #else
         return NSImage()
@@ -264,57 +246,60 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
     }
     
     #if canImport(UIKit)
-    private func applyStroke(to image: UIImage, strokeWidth: CGFloat = 3.0, strokeColor: UIColor = .white) -> UIImage? {
-        print("[Stroke] ---- Starting NEW Stroke Process ----")
-        guard let originalCIImage = CIImage(image: image) else {
-            print("[Stroke] ERROR: Failed to create CIImage from input image.")
-            return nil
-        }
-        print("[Stroke] Step 1: CIImage created successfully.")
+    private func applyStroke(to image: UIImage) -> UIImage? {
+        // Dynamically calculate effect parameters based on image size for visual consistency.
+        let referenceDimension = max(image.size.width, image.size.height)
+        
+        // --- Define parameters relative to the image size for a consistent look ---
+        let strokeWidth = max(3.0, referenceDimension * 0.008) // 0.8% of the longest side, with a minimum of 3px
+        let shadowBlurRadius = strokeWidth * 0.4 // Further reduced blur for a tighter shadow
+        let shadowOffset = CGPoint(x: strokeWidth * 0.3, y: -strokeWidth * 0.3) // Further reduced offset
+        let shadowAlpha: CGFloat = 0.5
+        
+        guard let originalCIImage = CIImage(image: image) else { return nil }
 
-        // Step 2: Create a dilated (expanded) version of the image's alpha channel.
+        // 1. Create the dilated shape for the stroke and shadow
         let morphologyFilter = CIFilter.morphologyMaximum()
         morphologyFilter.inputImage = originalCIImage
         morphologyFilter.radius = Float(strokeWidth)
-        guard let dilatedAlpha = morphologyFilter.outputImage else {
-            print("[Stroke] ERROR: Morphology filter failed to produce output.")
-            return nil
-        }
-        print("[Stroke] Step 2: Dilated alpha mask created.")
+        guard let dilatedShape = morphologyFilter.outputImage else { return nil }
 
-        // Step 3: Create a solid color image matching the size of the dilated mask.
-        let strokeColorCI = CIColor(color: strokeColor)
-        let strokeColorImage = CIImage(color: strokeColorCI).cropped(to: dilatedAlpha.extent)
-        print("[Stroke] Step 3: Stroke color image created and cropped.")
+        // 2. Create the white stroke layer
+        let whiteColor = CIImage(color: .white)
+        let strokeFilter = CIFilter.sourceInCompositing()
+        strokeFilter.inputImage = whiteColor
+        strokeFilter.backgroundImage = dilatedShape
+        guard let whiteStroke = strokeFilter.outputImage else { return nil }
+
+        // 3. Create the shadow layer
+        let shadowColor = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: shadowAlpha))
+        let shadowShapeFilter = CIFilter.sourceInCompositing()
+        shadowShapeFilter.inputImage = shadowColor
+        shadowShapeFilter.backgroundImage = dilatedShape
+        guard let shadowShape = shadowShapeFilter.outputImage else { return nil }
         
-        // Step 4: Use CISourceInCompositing to "fill" the dilated alpha shape with the stroke color.
-        let sourceInFilter = CIFilter.sourceInCompositing()
-        sourceInFilter.inputImage = strokeColorImage
-        sourceInFilter.backgroundImage = dilatedAlpha
-        guard let strokeLayer = sourceInFilter.outputImage else {
-            print("[Stroke] ERROR: CISourceInCompositing filter failed.")
-            return nil
-        }
-        print("[Stroke] Step 4: Stroke layer created using CISourceIn.")
+        let blurFilter = CIFilter.gaussianBlur()
+        blurFilter.inputImage = shadowShape
+        blurFilter.radius = Float(shadowBlurRadius)
+        guard let blurredShadow = blurFilter.outputImage else { return nil }
 
-        // Step 5: Composite the original image over the stroke layer.
-        let compositeFilter = CIFilter.sourceOverCompositing()
-        compositeFilter.inputImage = originalCIImage
-        compositeFilter.backgroundImage = strokeLayer
-        guard let finalCIImage = compositeFilter.outputImage else {
-            print("[Stroke] ERROR: Composite filter failed.")
-            return nil
-        }
-        print("[Stroke] Step 5: Final image composited.")
+        let transform = CGAffineTransform(translationX: shadowOffset.x, y: shadowOffset.y)
+        let offsetShadow = blurredShadow.transformed(by: transform)
+        
+        // 4. Composite the layers: shadow -> stroke -> original image
+        let strokeOverShadowFilter = CIFilter.sourceOverCompositing()
+        strokeOverShadowFilter.inputImage = whiteStroke
+        strokeOverShadowFilter.backgroundImage = offsetShadow
+        guard let strokeWithShadow = strokeOverShadowFilter.outputImage else { return nil }
 
-        // Step 6: Render the final image.
+        let finalCompositeFilter = CIFilter.sourceOverCompositing()
+        finalCompositeFilter.inputImage = originalCIImage
+        finalCompositeFilter.backgroundImage = strokeWithShadow
+        guard let finalCIImage = finalCompositeFilter.outputImage else { return nil }
+        
+        // 5. Render the final image
         let context = CIContext()
-        guard let finalCGImage = context.createCGImage(finalCIImage, from: finalCIImage.extent) else {
-            print("[Stroke] ERROR: Failed to render final CGImage.")
-            return nil
-        }
-        print("[Stroke] Step 6: Final CGImage created successfully.")
-        print("[Stroke] ---- NEW Stroke Process Finished ----")
+        guard let finalCGImage = context.createCGImage(finalCIImage, from: finalCIImage.extent) else { return nil }
         
         return UIImage(cgImage: finalCGImage, scale: image.scale, orientation: image.imageOrientation)
     }
