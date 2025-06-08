@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 import Vision
 import CoreImage
+import CoreImage.CIFilterBuiltins
 
 /// Protocol defining the contract for person segmentation services
 protocol PersonSegmentationServiceProtocol {
@@ -54,7 +55,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         print("[PersonSegmentation] Starting person segmentation process")
         return try await withCheckedThrowingContinuation { continuation in
             do {
-                print("[PersonSegmentation] Processing image with dimensions: \(image.size.width) x \(image.size.height)")
                 let result = try self.processPersonSegmentation(image)
                 print("[PersonSegmentation] Successfully completed segmentation")
                 continuation.resume(returning: result)
@@ -71,26 +71,17 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
     /// - Returns: A new image with the person segmented (transparent background)
     private func processPersonSegmentation(_ image: PlatformImage) throws -> PlatformImage {
         #if canImport(UIKit)
-        print("[PersonSegmentation] Starting processPersonSegmentation")
-        
-        // 保存原始图像的方向信息，以便后续使用
         let originalOrientation = image.imageOrientation
-        print("[PersonSegmentation] Original image orientation: \(originalOrientation.rawValue)")
         
-        // 将图像转换为标准方向（up）以便 Vision 框架处理
-        // 这一步很重要，因为 Vision 框架在处理时可能会忽略方向信息
         let normalizedImage: UIImage
         if originalOrientation != .up {
-            print("[PersonSegmentation] Normalizing image orientation to .up")
             if let cgImage = image.cgImage {
                 normalizedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: .up)
-                print("[PersonSegmentation] Successfully normalized image")
             } else {
                 print("[PersonSegmentation] WARNING: Could not get CGImage, using original image")
                 normalizedImage = image
             }
         } else {
-            print("[PersonSegmentation] Image already in .up orientation")
             normalizedImage = image
         }
         
@@ -98,66 +89,38 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             print("[PersonSegmentation] ERROR: Failed to get CGImage from normalized image")
             throw PersonSegmentationError.invalidImage
         }
-        print("[PersonSegmentation] CGImage obtained: \(cgImage.width) x \(cgImage.height)")
         
-        // Create a request to segment persons in the image with higher quality
-        print("[PersonSegmentation] Creating VNGeneratePersonSegmentationRequest")
         let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .accurate // Use accurate for better results
+        request.qualityLevel = .accurate
         request.outputPixelFormat = kCVPixelFormatType_OneComponent8
         
-        // Create a request handler
-        print("[PersonSegmentation] Creating VNImageRequestHandler")
         do {
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            print("[PersonSegmentation] Performing segmentation request")
             try handler.perform([request])
-            print("[PersonSegmentation] Request performed successfully")
         } catch {
             print("[PersonSegmentation] ERROR: Vision request failed: \(error.localizedDescription)")
             print("[PersonSegmentation] Error details: \(String(describing: error))")
             throw error
         }
         
-        // Get the segmentation mask
-        print("[PersonSegmentation] Checking for segmentation results")
-        if request.results == nil {
+        if request.results == nil || request.results?.isEmpty == true {
             print("[PersonSegmentation] ERROR: No results returned from segmentation request")
-        } else if request.results?.isEmpty ?? true {
-            print("[PersonSegmentation] ERROR: Empty results array returned")
-        } else {
-            print("[PersonSegmentation] Got \(request.results?.count ?? 0) results")
+            throw PersonSegmentationError.noSegmentationMask
         }
         
         guard let mask = request.results?.first?.pixelBuffer else {
             print("[PersonSegmentation] ERROR: No pixelBuffer in segmentation results")
             throw PersonSegmentationError.noSegmentationMask
         }
-        print("[PersonSegmentation] Successfully obtained segmentation mask")
-        print("[PersonSegmentation] Mask dimensions: \(CVPixelBufferGetWidth(mask)) x \(CVPixelBufferGetHeight(mask))")
         
-        // Check for the FileProvider error
-        if let results = request.results, !results.isEmpty {
-            print("[PersonSegmentation] Examining result properties")
-            let result = results[0]
-            let properties = Mirror(reflecting: result).children
-            for (label, value) in properties {
-                print("[PersonSegmentation] Property: \(label ?? "unknown") = \(value)")
-            }
-        }
-        
-        // 创建透明背景图像
         let segmentedImage = try createTransparentBackground(for: cgImage, using: mask)
         
-        // 将分割后的图像还原为原始图像的方向
         if let finalCGImage = segmentedImage.cgImage {
             return UIImage(cgImage: finalCGImage, scale: image.scale, orientation: originalOrientation)
         } else {
             return segmentedImage
         }
         #else
-        // macOS implementation would go here
-        // For now, just return the original image
         return image
         #endif
     }
@@ -170,7 +133,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
     private func createTransparentBackground(for image: CGImage, using mask: CVPixelBuffer) throws -> PlatformImage {
         #if canImport(UIKit)
         
-        // 1. --- Bounding Box Calculation ---
         CVPixelBufferLockBaseAddress(mask, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(mask, .readOnly) }
         
@@ -183,7 +145,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         let maskBytesPerRow = CVPixelBufferGetBytesPerRow(mask)
         
         var minX = maskWidth, minY = maskHeight, maxX = -1, maxY = -1
-        // Raise the threshold to be stricter about what is considered part of the person, filtering out low-confidence noise from the model.
         let personThresholdForBBox: UInt8 = 192
         
         for y in 0..<maskHeight {
@@ -199,15 +160,9 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         }
         
         if maxX < minX || maxY < minY {
-            print("[PersonSegmentation] No person found in mask to create a bounding box.")
             throw PersonSegmentationError.noSegmentationMask
         }
-        print("----------------------------------------------------")
-        print("[DEBUG] Mask Dimensions: \(maskWidth)x\(maskHeight)")
-        print("[DEBUG] Calculated Bounding Box: (\(minX), \(minY)) -> (\(maxX), \(maxY))")
-        print("----------------------------------------------------")
         
-        // 2. --- Create a new canvas with the exact cropped size ---
         let scaleX = Double(image.width) / Double(maskWidth)
         let scaleY = Double(image.height) / Double(maskHeight)
         
@@ -220,13 +175,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         
         let croppedWidth = Int(cropRect.width)
         let croppedHeight = Int(cropRect.height)
-        
-        print("----------------------------------------------------")
-        print("[DEBUG] Original Image Size: \(image.width)x\(image.height)")
-        print("[DEBUG] Scaling Factors: x=\(scaleX), y=\(scaleY)")
-        print("[DEBUG] Calculated Crop Rect in Image Coords: \(cropRect)")
-        print("[DEBUG] Final Cropped Canvas Size: \(croppedWidth)x\(croppedHeight)")
-        print("----------------------------------------------------")
         
         if croppedWidth <= 0 || croppedHeight <= 0 {
              throw PersonSegmentationError.noSegmentationMask
@@ -251,7 +199,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             throw PersonSegmentationError.graphicsContextCreationFailed
         }
         
-        // 3. --- Directly render the cropped image ---
         guard let originalImageProvider = image.dataProvider,
               let originalImageData = originalImageProvider.data,
               let originalPixels = CFDataGetBytePtr(originalImageData) else {
@@ -280,10 +227,8 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
                     let sourceOffset = sourceY * originalBytesPerRow + sourceX * originalBytesPerPixel
                     let targetOffset = y * bytesPerRow + x * bytesPerPixel
                     
-                    // Copy RGB
                     memcpy(buffer + targetOffset, originalPixels + sourceOffset, 3)
                     
-                    // Set Alpha with smoothing at the edges
                     if maskValue >= highConfidenceThreshold {
                         buffer[targetOffset + 3] = 255
                     } else {
@@ -293,16 +238,11 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             }
         }
         
-        // 4. --- Create final image ---
         guard let resultCGImage = context.makeImage() else {
             throw PersonSegmentationError.resultImageCreationFailed
         }
         
         let finalImage = UIImage(cgImage: resultCGImage, scale: 1.0, orientation: .up)
-        print("----------------------------------------------------")
-        print("[DEBUG] Successfully created final UIImage with size: \(finalImage.size.width) x \(finalImage.size.height)")
-        print("----------------------------------------------------")
-        print("[PersonSegmentation] Final cropped image created with dimensions: \(finalImage.size.width) x \(finalImage.size.height)")
         
         // Trim transparent edges from the final image to correct any mask inaccuracies
         guard let trimmedImage = trim(image: finalImage) else {
@@ -310,16 +250,75 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
             return finalImage
         }
         
-        print("[PersonSegmentation] Final trimmed image has dimensions: \(trimmedImage.size.width) x \(trimmedImage.size.height)")
-        return trimmedImage
+        print("[PersonSegmentation] Attempting to apply stroke to trimmed image...")
+        guard let strokedImage = applyStroke(to: trimmedImage) else {
+            print("[PersonSegmentation] WARNING: Failed to apply stroke, returning trimmed image without stroke.")
+            return trimmedImage
+        }
+        
+        print("[PersonSegmentation] Successfully applied stroke.")
+        return strokedImage
         #else
-        // macOS implementation would go here
-        // For now, just return a placeholder
         return NSImage()
         #endif
     }
     
     #if canImport(UIKit)
+    private func applyStroke(to image: UIImage, strokeWidth: CGFloat = 3.0, strokeColor: UIColor = .white) -> UIImage? {
+        print("[Stroke] ---- Starting NEW Stroke Process ----")
+        guard let originalCIImage = CIImage(image: image) else {
+            print("[Stroke] ERROR: Failed to create CIImage from input image.")
+            return nil
+        }
+        print("[Stroke] Step 1: CIImage created successfully.")
+
+        // Step 2: Create a dilated (expanded) version of the image's alpha channel.
+        let morphologyFilter = CIFilter.morphologyMaximum()
+        morphologyFilter.inputImage = originalCIImage
+        morphologyFilter.radius = Float(strokeWidth)
+        guard let dilatedAlpha = morphologyFilter.outputImage else {
+            print("[Stroke] ERROR: Morphology filter failed to produce output.")
+            return nil
+        }
+        print("[Stroke] Step 2: Dilated alpha mask created.")
+
+        // Step 3: Create a solid color image matching the size of the dilated mask.
+        let strokeColorCI = CIColor(color: strokeColor)
+        let strokeColorImage = CIImage(color: strokeColorCI).cropped(to: dilatedAlpha.extent)
+        print("[Stroke] Step 3: Stroke color image created and cropped.")
+        
+        // Step 4: Use CISourceInCompositing to "fill" the dilated alpha shape with the stroke color.
+        let sourceInFilter = CIFilter.sourceInCompositing()
+        sourceInFilter.inputImage = strokeColorImage
+        sourceInFilter.backgroundImage = dilatedAlpha
+        guard let strokeLayer = sourceInFilter.outputImage else {
+            print("[Stroke] ERROR: CISourceInCompositing filter failed.")
+            return nil
+        }
+        print("[Stroke] Step 4: Stroke layer created using CISourceIn.")
+
+        // Step 5: Composite the original image over the stroke layer.
+        let compositeFilter = CIFilter.sourceOverCompositing()
+        compositeFilter.inputImage = originalCIImage
+        compositeFilter.backgroundImage = strokeLayer
+        guard let finalCIImage = compositeFilter.outputImage else {
+            print("[Stroke] ERROR: Composite filter failed.")
+            return nil
+        }
+        print("[Stroke] Step 5: Final image composited.")
+
+        // Step 6: Render the final image.
+        let context = CIContext()
+        guard let finalCGImage = context.createCGImage(finalCIImage, from: finalCIImage.extent) else {
+            print("[Stroke] ERROR: Failed to render final CGImage.")
+            return nil
+        }
+        print("[Stroke] Step 6: Final CGImage created successfully.")
+        print("[Stroke] ---- NEW Stroke Process Finished ----")
+        
+        return UIImage(cgImage: finalCGImage, scale: image.scale, orientation: image.imageOrientation)
+    }
+
     private func trim(image: UIImage) -> UIImage? {
         guard let cgImage = image.cgImage else { return nil }
 
@@ -339,13 +338,11 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
 
         var minX = width, minY = height, maxX = -1, maxY = -1
         
-        // Define a threshold to ignore nearly-transparent pixels
         let alphaThreshold: UInt8 = 10
 
         for y in 0..<height {
             for x in 0..<width {
                 let offset = y * bytesPerRow + x * bytesPerPixel
-                // Check alpha channel against the threshold
                 if pixelBuffer[offset + 3] > alphaThreshold {
                     minX = min(minX, x)
                     maxX = max(maxX, x)
@@ -356,7 +353,6 @@ class PersonSegmentationService: PersonSegmentationServiceProtocol {
         }
 
         if maxX < minX || maxY < minY {
-            // The image is completely transparent.
             return image
         }
 
