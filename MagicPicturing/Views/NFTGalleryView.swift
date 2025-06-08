@@ -384,10 +384,10 @@ struct NFTCardView: View {
                 Spacer()
                 HStack {
                     Text(cardTitles[currentIndex % cardTitles.count])
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 24)
+                        .padding(.bottom, 10)
                     Spacer()
                 }
             }
