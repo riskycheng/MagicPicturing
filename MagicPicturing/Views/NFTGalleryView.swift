@@ -356,88 +356,48 @@ struct NFTCardView: View {
         ["立体九宫格", "水印边框", "滤镜", "拼图", "AI消除", "3D人像"]
     }
     
-    // Card descriptions
-    private var cardDescriptions: [String] {
-        ["立体人像 九宫格 朋友圈", 
-         "生成图片的边框水印，附带照片信息logo等", 
-         "给图片进行滤镜调整", 
-         "用于将多张照片按照不同的布局方式进行拼接", 
-         "采用AI进行物体消除", 
-         "通过对比边框，使得人像具有3D效果"]
-    }
-    
     var body: some View {
-        ZStack {
-            // Main card - 完全透明风格
-            ZStack(alignment: .bottom) {
-                // Make the entire card clickable with a transparent overlay
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        print("Card tapped in NFTCardView")
-                        onCardTap()
-                    }
-                    .frame(width: cardWidth, height: dynamicCardHeight)
-                    .zIndex(10)
-                // 使用真实图片资源
-                Image(photo.imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: cardWidth, height: dynamicCardHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 30))
-                    .opacity(cardOpacity)
-                
-                // 底部信息区域 - 半透明黑色背景
-                VStack(alignment: .leading, spacing: 8) {
-                    // Card title (name)
-                    Text(cardTitles[currentIndex % cardTitles.count])
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    // Card description
-                    Text(cardDescriptions[currentIndex % cardDescriptions.count])
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 15)
-                .background(
-                    Color.black.opacity(0.6)
-                        .blur(radius: 0.5)
-                )
-                
-                // Removed the position indicator pill
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 30))
-            .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
+        ZStack(alignment: .bottom) {
+            // Card Image
+            Image(photo.imageName)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: cardWidth, height: dynamicCardHeight)
+                .opacity(cardOpacity)
             
-            // Mode tag in corner
-            if isFocused {
-                VStack {
-                    HStack {
-                        Text("模式 \(currentIndex + 1)")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.7))
-                            )
-                        
-                        Spacer()
-                    }
-                    
+            // Elegant Gradient Overlay
+            VStack {
+                Spacer()
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        .black.opacity(0.8),
+                        .black.opacity(0)
+                    ]),
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .frame(height: dynamicCardHeight / 2) // Gradient covers lower half
+            }
+
+            // Title Text aligned to bottom-left
+            VStack {
+                Spacer()
+                HStack {
+                    Text(cardTitles[currentIndex % cardTitles.count])
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
                     Spacer()
                 }
-                .padding(15)
-                .frame(width: cardWidth, height: cardHeight)
             }
         }
-        .frame(width: cardWidth, height: cardHeight)
+        .frame(width: cardWidth, height: dynamicCardHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 30))
+        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5) // Softer shadow
+        .onTapGesture {
+            onCardTap()
+        }
     }
 }
 
