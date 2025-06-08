@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject var photoLibraryViewModel: PhotoLibraryViewModel
     @State private var selectedTab = 0
     
     var body: some View {
@@ -17,7 +16,7 @@ struct MainTabView: View {
             ZStack {
                 // Only show the selected view
                 if selectedTab == 0 {
-                    NFTGalleryView(viewModel: photoLibraryViewModel)
+                    NFTGalleryView()
                         .transition(.opacity)
                 } else if selectedTab == 1 {
                     WorksView()

@@ -9,9 +9,16 @@ import SwiftUI
 import Combine
 
 struct NFTGalleryView: View {
-    @ObservedObject var viewModel: PhotoLibraryViewModel
-    @State private var dragOffset: CGFloat = 0
-    @State private var currentIndex: Int = 0
+    @StateObject private var viewModel = PhotoLibraryViewModel()
+
+    // --- Unified Scrolling State ---
+    // The single source of truth for the carousel's position.
+    // Represents a continuous index into the photo array.
+    @State private var continuousScrollPosition: CGFloat = 0.0
+    
+    // State to manage the drag gesture, tracking its start position.
+    @State private var gestureStartScrollPosition: CGFloat = 0.0
+    
     @State private var navigateToDetailView = false
     @State private var showThreeDGridView = false
     @State private var selectedMode: Int = 0
@@ -25,10 +32,30 @@ struct NFTGalleryView: View {
     private let swipeThreshold: CGFloat = 50
     private let rotationRadius: CGFloat = 600 // 圆柱体半径
     private let angularSpacing: Double = 0.35 // 卡片之间的角度间隔
+    private var cancellables = Set<AnyCancellable>() // For managing timers
     
-    // Computed property for continuous angle offset based on drag
+    // --- Computed Properties from Unified State ---
+
+    // The number of pixels to drag to move by one full index.
+    private var pixelsPerIndex: CGFloat {
+        return CGFloat(angularSpacing * rotationRadius * 0.5)
+    }
+
+    // The discrete, "snapped" index that is closest to the current continuous position.
+    private var snappedIndex: Int {
+        Int(round(continuousScrollPosition))
+    }
+    
+    // The current "drag offset" in pixels, derived from the fractional part of the continuous position.
+    // This allows all existing geometry calculations to work without modification.
+    private var fractionalDragOffset: CGFloat {
+        let fractionalPart = continuousScrollPosition - CGFloat(snappedIndex)
+        return -fractionalPart * pixelsPerIndex
+    }
+
+    // The continuous angle offset for the 3D cylinder effect, driven by the fractional offset.
     private var continuousAngleOffset: Double {
-        return Double(dragOffset) / (rotationRadius * 0.5)
+        return Double(fractionalDragOffset) / (rotationRadius * 0.5)
     }
     
     // Helper method to get the destination view based on selected mode
@@ -175,7 +202,8 @@ struct NFTGalleryView: View {
     
     // Helper method to create a single card in the stack
     private func cardView(for index: Int) -> some View {
-        let ringIndex = getRingIndex(baseIndex: currentIndex, offset: index)
+        // The base for calculating the ring index is now the "snapped" index.
+        let ringIndex = getRingIndex(baseIndex: snappedIndex, offset: index)
         let photo = viewModel.filteredPhotos[ringIndex]
         let isFocused = abs(calculateCardAngle(for: index)) < 0.2
         
@@ -190,23 +218,24 @@ struct NFTGalleryView: View {
         return NFTCardView(
             photo: photo,
             isFocused: isFocused,
-            offset: dragOffset,
             index: index,
             totalCount: viewModel.filteredPhotos.count,
             currentIndex: ringIndex,
             onCardTap: {
-                // 任何卡片被点击时，立即将其设为中心卡片并导航
+                // Determine the absolute target position in the continuous space.
+                let targetPosition = CGFloat(snappedIndex + index)
+                
+                // If the tapped card is not focused, animate to it.
                 if !isFocused {
-                    // 如果点击的不是中心卡片，先将其移到中心
-                    currentIndex = ringIndex
-                    dragOffset = 0
-                    // 立即更新选中模式
-                    selectedMode = ringIndex % 6 // 确保在模式范围内
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        continuousScrollPosition = targetPosition
+                    }
                 } else {
-                    // 如果点击的是中心卡片，直接导航
+                    // If the focused card is tapped, perform the navigation.
                     print("Card tapped: \(ringIndex)")
-                    // 如果是3D九宫格模式，使用全屏sheet呈现
-                    if ringIndex % 6 == 0 {
+                    let finalIndex = getRingIndex(baseIndex: 0, offset: Int(targetPosition))
+                    
+                    if finalIndex % 6 == 0 {
                         showThreeDGridView = true
                     } else {
                         navigateToDetailView = true
@@ -225,6 +254,8 @@ struct NFTGalleryView: View {
         .offset(x: xOffset, y: yOffset)
         .opacity(opacity)
         .zIndex(zIndex)
+        .id(ringIndex)
+        .transition(.opacity)
     }
     
     private func cardStackView() -> some View {
@@ -239,35 +270,54 @@ struct NFTGalleryView: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 5)
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 10)
                     .onChanged { value in
-                        // 直接将拖动位移量应用到偏移量，实现跟手效果
-                        isDragging = true
-                        dragOffset = value.translation.width
+                        if !isDragging {
+                            isDragging = true
+                            // Store the starting position of the scroll when the drag begins.
+                            gestureStartScrollPosition = continuousScrollPosition
+                        }
+                        // Calculate the drag distance in terms of indices and update the continuous position.
+                        let dragDistanceInPixels = value.translation.width
+                        continuousScrollPosition = gestureStartScrollPosition - (dragDistanceInPixels / pixelsPerIndex)
                     }
                     .onEnded { value in
                         isDragging = false
-                        let velocity = value.predictedEndLocation.x - value.location.x
-                        let finalOffset = value.translation.width + velocity * 0.3
+
+                        // --- Unified Physics-Based Animation on a Single State ---
+
+                        // 1. Calculate velocity in terms of indices-per-second.
+                        let velocityInPixels = value.predictedEndLocation.x - value.location.x
+                        let velocityInIndices = velocityInPixels / pixelsPerIndex
                         
-                        // 计算最终应该停留在哪个卡片位置
-                        let angleOffset = Double(finalOffset) / (rotationRadius * 0.5)
-                        let cardIndexOffset = Int(round(angleOffset / angularSpacing))
+                        // 2. Project where the scroll would end based on current position and velocity.
+                        let projectedPosition = continuousScrollPosition - velocityInIndices * 0.1 // Momentum factor
+
+                        // 3. The animation's target is the nearest whole number index.
+                        let targetPosition = round(projectedPosition)
+
+                        // 4. Use a single, robust spring animation on the single source of truth.
+                        let springAnimation = Animation.interpolatingSpring(
+                            mass: 0.8,
+                            stiffness: 100.0,
+                            damping: 25.0, // Overdamped to prevent any bouncing/oscillation
+                            initialVelocity: -velocityInIndices // Velocity is passed to the animator
+                        )
                         
-                        // 直接更新当前索引，不要动画
-                        if abs(cardIndexOffset) > 0 {
-                            // 立即更新当前索引，无需动画
-                            currentIndex = getRingIndex(baseIndex: currentIndex, offset: -cardIndexOffset)
-                            dragOffset = 0 // 直接重置偏移量，不使用动画
-                        } else {
-                            // 如果偏移不够，直接重置而不使用动画
-                            dragOffset = 0
+                        withAnimation(springAnimation) {
+                            continuousScrollPosition = targetPosition
                         }
                         
-                        // 如果当前卡片在中心位置，直接更新选中模式
-                        let centerCardIndex = getRingIndex(baseIndex: currentIndex, offset: 0)
-                        selectedMode = centerCardIndex % 6 // 确保在模式范围内
+                        // 5. Update non-animating state after a delay.
+                        // This does not affect the geometry and will not cause a jump.
+                        let finalIndex = getRingIndex(baseIndex: 0, offset: Int(targetPosition))
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            // Ensure another drag has not started
+                            if !isDragging {
+                                self.selectedMode = finalIndex % 6
+                            }
+                        }
                     }
             )
         }
@@ -278,7 +328,6 @@ struct NFTGalleryView: View {
 struct NFTCardView: View {
     let photo: PhotoItem
     let isFocused: Bool
-    let offset: CGFloat
     let index: Int
     let totalCount: Int
     let currentIndex: Int
@@ -395,6 +444,7 @@ struct NFTCardView: View {
 // MARK: - Preview
 struct NFTGalleryView_Previews: PreviewProvider {
     static var previews: some View {
-        NFTGalleryView(viewModel: PhotoLibraryViewModel())
+        // Provide a public initializer for the preview to access.
+        NFTGalleryView()
     }
 }
