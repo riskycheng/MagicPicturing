@@ -21,6 +21,7 @@ struct NFTGalleryView: View {
     
     @State private var navigateToDetailView = false
     @State private var showThreeDGridView = false
+    @State private var showCollageFlow = false
     @State private var selectedMode: Int = 0
     @State private var isDragging = false
     
@@ -34,6 +35,9 @@ struct NFTGalleryView: View {
     private let angularSpacing: Double = 0.35 // 卡片之间的角度间隔
     private var cancellables = Set<AnyCancellable>() // For managing timers
     
+    // Card titles (central source of truth)
+    private let cardTitles: [String] = ["立体九宫格", "拼图", "水印边框", "滤镜", "AI消除", "3D人像"]
+
     // --- Computed Properties from Unified State ---
 
     // The number of pixels to drag to move by one full index.
@@ -124,6 +128,9 @@ struct NFTGalleryView: View {
         }
         .fullScreenCover(isPresented: $showThreeDGridView) {
             ThreeDGridView()
+        }
+        .fullScreenCover(isPresented: $showCollageFlow) {
+            CollageEntryView()
         }
     }
     
@@ -218,6 +225,7 @@ struct NFTGalleryView: View {
         return NFTCardView(
             photo: photo,
             isFocused: isFocused,
+            title: cardTitles[ringIndex % cardTitles.count],
             index: index,
             totalCount: viewModel.filteredPhotos.count,
             currentIndex: ringIndex,
@@ -232,12 +240,15 @@ struct NFTGalleryView: View {
                     }
                 } else {
                     // If the focused card is tapped, perform the navigation.
-                    print("Card tapped: \(ringIndex)")
                     let finalIndex = getRingIndex(baseIndex: 0, offset: Int(targetPosition))
-                    
-                    if finalIndex % 6 == 0 {
+                    let modeIndex = finalIndex % cardTitles.count
+
+                    switch modeIndex {
+                    case 0: // 立体九宫格
                         showThreeDGridView = true
-                    } else {
+                    case 1: // 拼图
+                        showCollageFlow = true
+                    default:
                         navigateToDetailView = true
                     }
                 }
@@ -328,6 +339,7 @@ struct NFTGalleryView: View {
 struct NFTCardView: View {
     let photo: PhotoItem
     let isFocused: Bool
+    let title: String
     let index: Int
     let totalCount: Int
     let currentIndex: Int
@@ -349,11 +361,6 @@ struct NFTCardView: View {
     private var randomNumber: Int {
         let numbers = [4032, 6721, 8901, 1234, 5678]
         return numbers[abs(index) % numbers.count]
-    }
-    
-    // Card titles (names)
-    private var cardTitles: [String] {
-        ["立体九宫格", "水印边框", "滤镜", "拼图", "AI消除", "3D人像"]
     }
     
     var body: some View {
@@ -383,7 +390,7 @@ struct NFTCardView: View {
             VStack {
                 Spacer()
                 HStack {
-                    Text(cardTitles[currentIndex % cardTitles.count])
+                    Text(title)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
