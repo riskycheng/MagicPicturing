@@ -4,8 +4,10 @@ import Photos
 
 class CollageViewModel: ObservableObject {
     @Published var images: [UIImage] = []
+    @Published var imageStates: [CollageImageState] = []
     @Published var availableLayouts: [CollageLayout] = []
     @Published var selectedLayout: CollageLayout?
+    @Published var selectedImageIndex: Int?
 
     private var assets: [PHAsset]
     private let photoLibraryService = PhotoLibraryService()
@@ -37,6 +39,7 @@ class CollageViewModel: ObservableObject {
         
         dispatchGroup.notify(queue: .main) {
             self.images = loadedImages.compactMap { $0 }
+            self.imageStates = self.images.map { _ in CollageImageState() }
             
             self.loadLayouts()
         }
@@ -48,13 +51,35 @@ class CollageViewModel: ObservableObject {
         self.selectedLayout = availableLayouts.first
     }
     
+    // MARK: - Image State Manipulation
+    
+    func rotateSelectedImage() {
+        guard let index = selectedImageIndex else { return }
+        imageStates[index].rotation += .degrees(90)
+    }
+    
+    func flipSelectedImageHorizontally() {
+        guard let index = selectedImageIndex else { return }
+        imageStates[index].isFlippedHorizontally.toggle()
+    }
+    
+    func flipSelectedImageVertically() {
+        guard let index = selectedImageIndex else { return }
+        imageStates[index].isFlippedVertically.toggle()
+    }
+    
+    func swapImages(from sourceIndex: Int, to destinationIndex: Int) {
+        images.swapAt(sourceIndex, destinationIndex)
+        imageStates.swapAt(sourceIndex, destinationIndex)
+    }
+
     func exportCollage(completion: @escaping (Error?) -> Void) {
         guard let layout = selectedLayout else {
             completion(NSError(domain: "CollageApp", code: -1, userInfo: [NSLocalizedDescriptionKey: "No layout selected."]))
             return
         }
 
-        let collageView = CollagePreviewView(images: images, layout: layout)
+        let collageView = CollagePreviewView(viewModel: self)
             .frame(width: 2048, height: 2048) // High resolution export
 
         guard let image = collageView.snapshot() else {

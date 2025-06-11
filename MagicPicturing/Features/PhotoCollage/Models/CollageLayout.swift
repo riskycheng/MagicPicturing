@@ -1,19 +1,36 @@
 import SwiftUI
 
 /// Defines the structure for a single collage layout.
-struct CollageLayout: Identifiable {
+class CollageLayout: Identifiable, ObservableObject, Equatable {
     let id = UUID()
     let name: String
     let aspectRatio: CGFloat
     
-    /// An array of CGRects that define the frames for each image within a unit square (1x1).
-    /// These relative frames will be scaled to the actual view size.
-    let frames: [CGRect]
+    struct Parameter {
+        var value: CGFloat
+        let range: ClosedRange<CGFloat>
+    }
     
-    /// A small preview of the layout for the selection UI.
+    @Published var parameters: [String: Parameter]
+    
+    private var frameGenerator: ([String: Parameter]) -> [CGRect]
+    
+    var frames: [CGRect] {
+        return frameGenerator(parameters)
+    }
+    
+    init(name: String, aspectRatio: CGFloat, parameters: [String: Parameter] = [:], frameGenerator: @escaping ([String: Parameter]) -> [CGRect]) {
+        self.name = name
+        self.aspectRatio = aspectRatio
+        self.parameters = parameters
+        self.frameGenerator = frameGenerator
+    }
+    
+    static func == (lhs: CollageLayout, rhs: CollageLayout) -> Bool {
+        lhs.id == rhs.id
+    }
+    
     var preview: AnyView {
-        // This will be a Shape-based view that draws the layout.
-        // For now, a placeholder.
         AnyView(
             ZStack {
                 ForEach(frames, id: \.self) { frame in

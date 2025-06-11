@@ -21,7 +21,7 @@ struct CollageWorkspaceView: View {
             Spacer()
 
             if !viewModel.images.isEmpty, let layout = viewModel.selectedLayout {
-                CollagePreviewView(images: viewModel.images, layout: layout)
+                CollagePreviewView(viewModel: viewModel)
                     // The aspect ratio is now driven by the layout itself
                     .aspectRatio(layout.aspectRatio, contentMode: .fit)
                     .padding(.horizontal)
@@ -33,11 +33,18 @@ struct CollageWorkspaceView: View {
             Spacer()
 
             // Bottom controls - Stays fixed at the bottom
-            LayoutSelectorView(
-                layouts: viewModel.availableLayouts,
-                selectedLayout: $viewModel.selectedLayout
-            )
+            if viewModel.selectedImageIndex == nil {
+                LayoutSelectorView(
+                    layouts: viewModel.availableLayouts,
+                    selectedLayout: $viewModel.selectedLayout
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else {
+                PhotoEditControlsView(viewModel: viewModel)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut, value: viewModel.selectedImageIndex)
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
         .foregroundColor(.white)
@@ -83,7 +90,7 @@ struct CollageWorkspaceView: View {
         let renderWidth: CGFloat = 1080
         let renderHeight = renderWidth / layout.aspectRatio
         
-        let collageToRender = CollagePreviewView(images: viewModel.images, layout: layout)
+        let collageToRender = CollagePreviewView(viewModel: viewModel)
             .frame(width: renderWidth, height: renderHeight)
 
         guard let renderedImage = collageToRender.snapshot() else {
@@ -131,12 +138,5 @@ private struct LayoutSelectorView: View {
         }
         .padding(.vertical)
         .background(Color.black.opacity(0.5))
-    }
-}
-
-// Conforming CollageLayout to Equatable for Binding
-extension CollageLayout: Equatable {
-    static func == (lhs: CollageLayout, rhs: CollageLayout) -> Bool {
-        lhs.id == rhs.id
     }
 } 
