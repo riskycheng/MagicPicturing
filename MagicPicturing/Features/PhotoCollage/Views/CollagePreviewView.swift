@@ -11,22 +11,12 @@ struct CollagePreviewView: View {
                     let image = images[index]
                     let frame = layout.frames[index]
                     
-                    // Create a "window" for the image using a Rectangle.
-                    // Then, overlay the image and let it fill the window,
-                    // preserving its aspect ratio. Finally, clip it.
-                    // This is the correct way to crop, not squash.
-                    Rectangle()
-                        .fill(Color.clear) // The frame itself is invisible
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
                         .frame(
                             width: geometry.size.width * frame.width,
                             height: geometry.size.height * frame.height
-                        )
-                        .overlay(
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit() // Changed from .scaledToFill to fit the whole image
-                                .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
-                                .background(Color.black) // Add black background for letterboxing
                         )
                         .clipped()
                         .position(
