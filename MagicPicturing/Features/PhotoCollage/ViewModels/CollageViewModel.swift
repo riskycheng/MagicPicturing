@@ -6,15 +6,27 @@ class CollageViewModel: ObservableObject {
     @Published var images: [UIImage] = []
     @Published var imageStates: [CollageImageState] = []
     @Published var availableLayouts: [CollageLayout] = []
-    @Published var selectedLayout: CollageLayout?
+    @Published var selectedLayout: CollageLayout? {
+        didSet {
+            setupLayoutSubscription()
+        }
+    }
     @Published var selectedImageIndex: Int?
 
     private var assets: [PHAsset]
     private let photoLibraryService = PhotoLibraryService()
+    private var layoutCancellable: AnyCancellable?
     
     init(assets: [PHAsset]) {
         self.assets = assets
         loadFullSizeImages()
+    }
+
+    private func setupLayoutSubscription() {
+        layoutCancellable?.cancel()
+        layoutCancellable = selectedLayout?.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
     }
 
     private func loadFullSizeImages() {

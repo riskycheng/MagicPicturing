@@ -6,8 +6,24 @@ struct CollageLayoutProvider {
         switch imageCount {
         case 2:
             return [
-                CollageLayout(name: "2-H", aspectRatio: 4/3, frameGenerator: { _ in [h_split(0, of: 2), h_split(1, of: 2)] }),
-                CollageLayout(name: "2-V", aspectRatio: 3/4, frameGenerator: { _ in [v_split(0, of: 2), v_split(1, of: 2)] })
+                CollageLayout(
+                    name: "2-H-Adjustable",
+                    aspectRatio: 4/3,
+                    parameters: ["h_split": .init(value: 0.5, range: 0.2...0.8)],
+                    frameGenerator: { params in
+                        let split = params["h_split"]!.value
+                        return [h_split_fract(0, frac: split), h_split_fract(1, frac: 1 - split, from: split)]
+                    }
+                ),
+                CollageLayout(
+                    name: "2-V-Adjustable",
+                    aspectRatio: 3/4,
+                    parameters: ["v_split": .init(value: 0.5, range: 0.2...0.8)],
+                    frameGenerator: { params in
+                        let split = params["v_split"]!.value
+                        return [v_split_fract(0, frac: split), v_split_fract(1, frac: 1 - split, from: split)]
+                    }
+                )
             ]
         case 3:
             return [
@@ -31,17 +47,28 @@ struct CollageLayoutProvider {
                 CollageLayout(
                     name: "5-L-Big-Grid-Adjustable",
                     aspectRatio: 1,
-                    parameters: ["h_split": .init(value: 2/3, range: 0.2...0.8)],
+                    parameters: [
+                        "h_split": .init(value: 2/3, range: 0.2...0.8),
+                        "v_split1": .init(value: 0.25, range: 0.1...0.9),
+                        "v_split2": .init(value: 0.5, range: 0.1...0.9),
+                        "v_split3": .init(value: 0.75, range: 0.1...0.9)
+                    ],
                     frameGenerator: { params in
-                        let split = params["h_split"]!.value
-                        let rightFrames = h_split_fract(1, frac: 1 - split, from: split)
-                        return [
-                            h_split_fract(0, frac: split),
-                            grid(0, cols: 1, rows: 4, in: rightFrames),
-                            grid(1, cols: 1, rows: 4, in: rightFrames),
-                            grid(2, cols: 1, rows: 4, in: rightFrames),
-                            grid(3, cols: 1, rows: 4, in: rightFrames)
+                        let h_split = params["h_split"]!.value
+                        let v1 = params["v_split1"]!.value
+                        let v2 = params["v_split2"]!.value
+                        let v3 = params["v_split3"]!.value
+                        
+                        let rightColumnRect = h_split_fract(1, frac: 1 - h_split, from: h_split)
+
+                        let rightFrames = [
+                            v_split_fract(0, frac: v1, in: rightColumnRect),
+                            v_split_fract(1, frac: v2 - v1, from: v1, in: rightColumnRect),
+                            v_split_fract(2, frac: v3 - v2, from: v2, in: rightColumnRect),
+                            v_split_fract(3, frac: 1.0 - v3, from: v3, in: rightColumnRect)
                         ]
+                        
+                        return [h_split_fract(0, frac: h_split)] + rightFrames
                     }
                 ),
                 CollageLayout(name: "5-L-Big-Grid", aspectRatio: 1, frameGenerator: { _ in

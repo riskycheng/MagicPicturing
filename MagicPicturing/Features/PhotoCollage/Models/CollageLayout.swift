@@ -30,6 +30,42 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
         lhs.id == rhs.id
     }
     
+    func updateParameter(_ name: String, value: CGFloat) {
+        objectWillChange.send()
+        
+        guard var param = self.parameters[name] else { return }
+
+        var finalValue = value
+        
+        // Custom logic for the adjustable layout to prevent dividers from crossing
+        if self.name == "5-L-Big-Grid-Adjustable" && name.starts(with: "v_split") {
+            let v1 = parameters["v_split1"]!.value
+            let v2 = parameters["v_split2"]!.value
+            let v3 = parameters["v_split3"]!.value
+            
+            let minSpacing: CGFloat = 0.05 // 5% minimum height for a cell
+
+            if name == "v_split1" {
+                // Dragging the first divider. It can't go past the second divider.
+                finalValue = min(finalValue, v2 - minSpacing)
+            } else if name == "v_split2" {
+                // Dragging the second divider. It must stay between the first and third.
+                finalValue = min(max(finalValue, v1 + minSpacing), v3 - minSpacing)
+            } else if name == "v_split3" {
+                // Dragging the third divider. It can't go before the second.
+                finalValue = max(finalValue, v2 + minSpacing)
+            }
+        }
+        
+        // Clamp to the parameter's originally defined range
+        let clampedValue = min(max(finalValue, param.range.lowerBound), param.range.upperBound)
+        
+        if self.parameters[name]?.value != clampedValue {
+            self.parameters[name]?.value = clampedValue
+            print("LOG: Layout Parameter Updated: \(name) = \(clampedValue)")
+        }
+    }
+    
     var preview: AnyView {
         AnyView(
             ZStack {

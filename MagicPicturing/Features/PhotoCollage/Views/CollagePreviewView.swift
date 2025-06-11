@@ -4,6 +4,7 @@ struct CollagePreviewView: View {
     @ObservedObject var viewModel: CollageViewModel
     
     var body: some View {
+        let _ = print("LOG: CollagePreviewView rendering...")
         GeometryReader { geometry in
             ZStack {
                 // Background to dismiss selection
@@ -36,13 +37,53 @@ struct CollagePreviewView: View {
                     }
                     
                     // Add Divider Handle for adjustable layouts
-                    if let layout = viewModel.selectedLayout, layout.name.contains("Adjustable") {
-                        // Example for the '5-L-Big-Grid-Adjustable'
-                        if layout.name == "5-L-Big-Grid-Adjustable" {
-                            let frame = layout.frames[0] // Divider is at the right edge of the first frame
-                            
+                    if let layout = viewModel.selectedLayout,
+                       viewModel.selectedImageIndex != nil, // Only show when an image is selected
+                       layout.name.contains("Adjustable") {
+                        
+                        // Logic for 2-image layouts
+                        if layout.name == "2-H-Adjustable" {
+                            let frame = layout.frames[0]
                             DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .offset(x: geometry.size.width * (frame.maxX - 0.5))
+                                .offset(x: (frame.maxX - 0.5) * geometry.size.width)
+                        } else if layout.name == "2-V-Adjustable" {
+                            let frame = layout.frames[0]
+                            DividerView(layout: layout, parameterName: "v_split", axis: .horizontal, viewSize: geometry.size)
+                                .offset(y: (frame.maxY - 0.5) * geometry.size.height)
+                        }
+                        
+                        // Previous logic for 5-image layout can be adapted similarly...
+                        else if let selectedIndex = viewModel.selectedImageIndex, layout.name == "5-L-Big-Grid-Adjustable" {
+                            let frames = layout.frames
+                            
+                            // Vertical Divider Handle
+                            let vDividerX = (frames[0].maxX - 0.5) * geometry.size.width
+                            let vDivider = DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
+                                .offset(x: vDividerX)
+
+                            if selectedIndex == 0 || selectedIndex > 0 { // Show for left frame or any right frame
+                               vDivider
+                            }
+                            
+                            // Horizontal Divider Handles
+                            if selectedIndex > 0 && selectedIndex < 5 {
+                                // Divider above selected cell
+                                if selectedIndex > 1 {
+                                    let frame = frames[selectedIndex - 1]
+                                    let hDividerY = (frame.maxY - 0.5) * geometry.size.height
+                                    let hDividerX = (frame.midX - 0.5) * geometry.size.width
+                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex-1)", axis: .horizontal, viewSize: geometry.size)
+                                        .offset(x: hDividerX, y: hDividerY)
+                                }
+                                // Divider below selected cell
+                                if selectedIndex < 4 {
+                                    let frame = frames[selectedIndex]
+                                    let hDividerY = (frame.maxY - 0.5) * geometry.size.height
+                                    let hDividerX = (frame.midX - 0.5) * geometry.size.width
+                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex)", axis: .horizontal, viewSize: geometry.size)
+                                        .offset(x: hDividerX, y: hDividerY)
+                                }
+                            }
                         }
                     }
                 }
@@ -53,7 +94,23 @@ struct CollagePreviewView: View {
                     viewModel.selectedLayout = viewModel.availableLayouts.first
                 }
             }
+            .onChange(of: viewModel.selectedImageIndex) { _, newValue in
+                if newValue != nil && viewModel.selectedLayout?.name.contains("Adjustable") ?? false {
+                    Haptics.impact(style: .medium)
+                }
+            }
         }
+    }
+}
+
+fileprivate struct Haptics {
+    static func impact(style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
+    }
+    
+    static func selection() {
+        UISelectionFeedbackGenerator().selectionChanged()
     }
 }
 
@@ -64,34 +121,48 @@ struct DividerView: View {
     let viewSize: CGSize
     
     @State private var initialValue: CGFloat?
+    @State private var lastHapticValue: CGFloat?
 
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.4))
-            .frame(width: axis == .vertical ? 10 : viewSize.width, height: axis == .horizontal ? 10 : viewSize.height)
+            .fill(Color.green.opacity(0.8))
+            .frame(width: axis == .vertical ? 12 : 50, height: axis == .horizontal ? 12 : 50)
+            .cornerRadius(6)
+            .overlay(
+                Rectangle()
+                    .stroke(Color.white, lineWidth: 1)
+                    .cornerRadius(6)
+            )
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if initialValue == nil {
                             initialValue = layout.parameters[parameterName]?.value
+                            lastHapticValue = initialValue
                         }
                         
-                        guard let startValue = initialValue, let param = layout.parameters[parameterName] else { return }
+                        guard let startValue = initialValue else { return }
 
-                        let dragAmount = axis == .vertical ? gesture.translation.width / viewSize.width : gesture.translation.height / viewSize.height
+                        let dragProportion = axis == .vertical ? gesture.translation.width / viewSize.width : gesture.translation.height / viewSize.height
                         
-                        let newValue = startValue + dragAmount
+                        let newValue = startValue + dragProportion
+                        print("LOG: Divider Dragged: param=\(parameterName), newValue=\(newValue)")
                         
-                        // Clamp the value within the allowed range
-                        let clampedValue = min(max(newValue, param.range.lowerBound), param.range.upperBound)
+                        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
+                            layout.updateParameter(parameterName, value: newValue)
+                        }
                         
-                        if clampedValue != param.value {
-                             layout.parameters[parameterName]?.value = clampedValue
+                        if let currentValue = layout.parameters[parameterName]?.value,
+                           let lastVal = lastHapticValue,
+                           abs(currentValue - lastVal) > 0.02 {
+                            Haptics.selection()
+                            lastHapticValue = currentValue
                         }
                     }
                     .onEnded { _ in
                         initialValue = nil
+                        lastHapticValue = nil
                     }
             )
     }
