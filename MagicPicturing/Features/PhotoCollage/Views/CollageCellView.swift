@@ -31,18 +31,22 @@ struct CollageCellView: View {
             
         let combinedGesture = dragGesture.simultaneously(with: magnificationGesture)
 
-        return Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-            .scaleEffect(state.scale * currentScale)
-            .offset(x: state.offset.width + currentOffset.width, y: state.offset.height + currentOffset.height)
-            .rotationEffect(state.rotation)
-            .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
-            .overlay(
+        return ZStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .scaleEffect(state.scale * currentScale)
+                .offset(x: state.offset.width + currentOffset.width, y: state.offset.height + currentOffset.height)
+                .rotationEffect(state.rotation)
+                .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
+            
+            if isSelected {
                 Rectangle()
-                    .stroke(isSelected ? Color.green : Color.clear, lineWidth: 4)
-            )
-            .contentShape(Rectangle())
-            .gesture(isSelected ? combinedGesture : nil)
+                    .stroke(Color.green, lineWidth: 4)
+            }
+        }
+        .clipped()
+        .contentShape(Rectangle())
+        .gesture(isSelected ? combinedGesture : nil)
     }
 } 

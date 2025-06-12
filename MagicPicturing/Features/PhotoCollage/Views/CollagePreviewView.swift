@@ -17,20 +17,15 @@ struct CollagePreviewView: View {
                 if let layout = viewModel.selectedLayout {
                     ForEach(0..<min(viewModel.images.count, layout.frames.count), id: \.self) { index in
                         let frame = layout.frames[index]
+                        
+                        // Use a container to position and size the cell
                         CollageCellView(
                             image: viewModel.images[index],
                             state: $viewModel.imageStates[index],
                             isSelected: viewModel.selectedImageIndex == index
                         )
-                        .frame(
-                            width: geometry.size.width * frame.width,
-                            height: geometry.size.height * frame.height
-                        )
-                        .clipped()
-                        .offset(
-                            x: geometry.size.width * (frame.midX - 0.5),
-                            y: geometry.size.height * (frame.midY - 0.5)
-                        )
+                        .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
+                        .position(x: geometry.size.width * frame.midX, y: geometry.size.height * frame.midY)
                         .onTapGesture {
                             viewModel.selectedImageIndex = index
                         }
@@ -45,11 +40,11 @@ struct CollagePreviewView: View {
                         if layout.name == "2-H-Adjustable" {
                             let frame = layout.frames[0]
                             DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .offset(x: (frame.maxX - 0.5) * geometry.size.width)
+                                .position(x: frame.maxX * geometry.size.width, y: geometry.size.height / 2)
                         } else if layout.name == "2-V-Adjustable" {
                             let frame = layout.frames[0]
                             DividerView(layout: layout, parameterName: "v_split", axis: .horizontal, viewSize: geometry.size)
-                                .offset(y: (frame.maxY - 0.5) * geometry.size.height)
+                                .position(x: geometry.size.width / 2, y: frame.maxY * geometry.size.height)
                         }
                         
                         // Previous logic for 5-image layout can be adapted similarly...
@@ -59,7 +54,7 @@ struct CollagePreviewView: View {
                             // Vertical Divider Handle
                             let vDividerX = (frames[0].maxX - 0.5) * geometry.size.width
                             let vDivider = DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .offset(x: vDividerX)
+                                .position(x: vDividerX, y: geometry.size.height / 2)
 
                             if selectedIndex == 0 || selectedIndex > 0 { // Show for left frame or any right frame
                                vDivider
@@ -70,18 +65,14 @@ struct CollagePreviewView: View {
                                 // Divider above selected cell
                                 if selectedIndex > 1 {
                                     let frame = frames[selectedIndex - 1]
-                                    let hDividerY = (frame.maxY - 0.5) * geometry.size.height
-                                    let hDividerX = (frame.midX - 0.5) * geometry.size.width
                                     DividerView(layout: layout, parameterName: "v_split\(selectedIndex-1)", axis: .horizontal, viewSize: geometry.size)
-                                        .offset(x: hDividerX, y: hDividerY)
+                                        .position(x: (frame.midX) * geometry.size.width, y: frame.maxY * geometry.size.height)
                                 }
                                 // Divider below selected cell
                                 if selectedIndex < 4 {
                                     let frame = frames[selectedIndex]
-                                    let hDividerY = (frame.maxY - 0.5) * geometry.size.height
-                                    let hDividerX = (frame.midX - 0.5) * geometry.size.width
                                     DividerView(layout: layout, parameterName: "v_split\(selectedIndex)", axis: .horizontal, viewSize: geometry.size)
-                                        .offset(x: hDividerX, y: hDividerY)
+                                        .position(x: (frame.midX) * geometry.size.width, y: frame.maxY * geometry.size.height)
                                 }
                             }
                         }

@@ -1,6 +1,11 @@
 import SwiftUI
 import Photos
 
+fileprivate struct SelectionState {
+    let isSelected: Bool
+    let selectionIndex: Int?
+}
+
 struct CollageImageSelectionView: View {
     
     var onCancel: () -> Void
@@ -8,6 +13,10 @@ struct CollageImageSelectionView: View {
     @State private var allPhotos: [PHAsset] = []
     @State private var selectedPhotos: [PHAsset] = []
     
+    // A dictionary to hold the selection state for each asset.
+    // This is more robust for LazyVGrid updates.
+    @State private var selectionState: [PHAsset: SelectionState] = [:]
+
     private let imageSize = UIScreen.main.bounds.width / 3
     private let selectionLimit = 9
 
@@ -18,7 +27,7 @@ struct CollageImageSelectionView: View {
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(imageSize), spacing: 2), count: 3), spacing: 2) {
                     ForEach(allPhotos, id: \.self) { asset in
-                        PhotoCell(asset: asset, isSelected: selectedPhotos.contains(asset), selectionIndex: selectedPhotos.firstIndex(of: asset))
+                        PhotoCell(asset: asset, selectionState: selectionState[asset])
                             .onTapGesture {
                                 toggleSelection(for: asset)
                             }
@@ -40,13 +49,20 @@ struct CollageImageSelectionView: View {
     }
     
     private func toggleSelection(for asset: PHAsset) {
-        if let index = selectedPhotos.firstIndex(of: asset) {
-            selectedPhotos.remove(at: index)
+        if selectedPhotos.contains(asset) {
+            selectedPhotos.removeAll { $0 == asset }
         } else {
             if selectedPhotos.count < selectionLimit {
                 selectedPhotos.append(asset)
             }
         }
+        
+        // Rebuild the selection state dictionary after every change
+        var newSelectionState: [PHAsset: SelectionState] = [:]
+        for (index, photo) in selectedPhotos.enumerated() {
+            newSelectionState[photo] = SelectionState(isSelected: true, selectionIndex: index + 1)
+        }
+        self.selectionState = newSelectionState
     }
     
     private var headerView: some View {
@@ -92,41 +108,45 @@ struct CollageImageSelectionView: View {
 // MARK: - Photo Cell
 private struct PhotoCell: View {
     let asset: PHAsset
-    let isSelected: Bool
-    let selectionIndex: Int?
+    let selectionState: SelectionState?
     
     @State private var image: UIImage? = nil
     private let imageSize = UIScreen.main.bounds.width / 3
 
     var body: some View {
-        ZStack {
+        Group {
             if let image = image {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .scaledToFill()
             } else {
                 Color.gray.opacity(0.3)
-            }
-            
-            if isSelected {
-                ZStack(alignment: .topTrailing) {
-                    Color.black.opacity(0.4)
-                    
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            Text("\(selectionIndex.map { $0 + 1 } ?? 0)")
-                                .foregroundColor(.white)
-                                .fontWeight(.bold)
-                        )
-                        .padding(4)
-                }
-                Rectangle().stroke(Color.blue, lineWidth: 4)
             }
         }
         .frame(width: imageSize, height: imageSize)
         .clipped()
+        .overlay(
+            Group {
+                if let state = selectionState, state.isSelected {
+                    ZStack(alignment: .topTrailing) {
+                        Color.black.opacity(0.4)
+                        
+                        Rectangle()
+                            .stroke(Color.blue, lineWidth: 4)
+                        
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 24, height: 24)
+                            .overlay(
+                                Text("\(state.selectionIndex ?? 0)")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                            )
+                            .padding(4)
+                    }
+                }
+            }
+        )
         .onAppear {
             let retinaSize = CGSize(width: imageSize * UIScreen.main.scale, height: imageSize * UIScreen.main.scale)
             PhotoLibraryService.fetchImage(for: asset, targetSize: retinaSize) { fetchedImage in
