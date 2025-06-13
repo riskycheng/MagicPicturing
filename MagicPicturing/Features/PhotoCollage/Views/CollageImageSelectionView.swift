@@ -13,6 +13,7 @@ struct CollageImageSelectionView: View {
     @State private var allPhotos: [PHAsset] = []
     @State private var selectedPhotoIDs: [String] = []
     @State private var selectionState: [String: SelectionState] = [:]
+    @State private var imageDict: [String: UIImage] = [:]
 
     private let imageSize = UIScreen.main.bounds.width / 3
     private let selectionLimit = 9
@@ -24,10 +25,14 @@ struct CollageImageSelectionView: View {
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(imageSize), spacing: 2), count: 3), spacing: 2) {
                     ForEach(allPhotos, id: \.localIdentifier) { asset in
-                        PhotoCell(asset: asset, selectionState: selectionState[asset.localIdentifier])
-                            .onTapGesture {
-                                toggleSelection(for: asset)
-                            }
+                        PhotoCell(
+                            asset: asset,
+                            selectionState: selectionState[asset.localIdentifier],
+                            imageDict: $imageDict
+                        )
+                        .onTapGesture {
+                            toggleSelection(for: asset)
+                        }
                     }
                 }
             }
@@ -90,7 +95,8 @@ struct CollageImageSelectionView: View {
         let isValidSelection = selectedPhotoIDs.count >= 2
         // 通过ID找到已选asset
         let selectedAssets = allPhotos.filter { selectedPhotoIDs.contains($0.localIdentifier) }
-        let destination = CollageWorkspaceView(assets: selectedAssets)
+        let selectedImages = selectedAssets.compactMap { imageDict[$0.localIdentifier] }
+        let destination = CollageCanvasWorkspaceView(selectedAssets: selectedAssets, images: selectedImages)
         return NavigationLink(destination: destination) {
             Text("下一步 (\(selectedPhotoIDs.count))")
                 .font(.headline)
@@ -109,7 +115,7 @@ struct CollageImageSelectionView: View {
 private struct PhotoCell: View {
     let asset: PHAsset
     let selectionState: SelectionState?
-    
+    @Binding var imageDict: [String: UIImage]
     @State private var image: UIImage? = nil
     private let imageSize = UIScreen.main.bounds.width / 3
 
@@ -130,10 +136,8 @@ private struct PhotoCell: View {
                 if let state = selectionState, state.isSelected {
                     ZStack(alignment: .topTrailing) {
                         Color.black.opacity(0.4)
-                        
                         Rectangle()
                             .stroke(Color.blue, lineWidth: 4)
-                        
                         Circle()
                             .fill(Color.blue)
                             .frame(width: 24, height: 24)
@@ -151,6 +155,9 @@ private struct PhotoCell: View {
             let retinaSize = CGSize(width: imageSize * UIScreen.main.scale, height: imageSize * UIScreen.main.scale)
             PhotoLibraryService.fetchImage(for: asset, targetSize: retinaSize) { fetchedImage in
                 self.image = fetchedImage
+                if let img = fetchedImage {
+                    imageDict[asset.localIdentifier] = img
+                }
             }
         }
     }
