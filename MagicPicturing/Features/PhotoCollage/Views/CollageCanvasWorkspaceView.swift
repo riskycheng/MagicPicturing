@@ -9,7 +9,6 @@ struct CollageCanvasWorkspaceView: View {
     @State private var draggingImage: CanvasViewModel.UIImageWithID? = nil
     @State private var dragPosition: CGPoint? = nil
     @State private var isDragging: Bool = false
-    @State private var dragImageOffset: CGSize? = nil // 新增，记录手指在图片内的偏移
 
     // 画布区域的全局frame
     @State private var canvasFrame: CGRect = .zero
@@ -41,41 +40,41 @@ struct CollageCanvasWorkspaceView: View {
                     onDragStart: { img, startLocation, imageFrame in
                         draggingImage = img
                         dragPosition = startLocation
-                        let offset = CGSize(width: startLocation.x - imageFrame.minX, height: startLocation.y - imageFrame.minY)
-                        dragImageOffset = offset
                         isDragging = true
                     },
                     onDragUpdate: { location in
                         dragPosition = location
                     },
                     onDragEnd: { location in
-                        if let img = draggingImage, let pos = location, let offset = dragImageOffset {
-                            let dropPoint = CGPoint(x: pos.x - offset.width + 40, y: pos.y - offset.height + 40)
+                        if let img = draggingImage, let pos = location {
+                            // The drop point is the final center of the dragged image preview, which is the finger's last position
+                            let dropPoint = pos
                             if canvasFrame.contains(dropPoint) {
+                                // Convert to canvas-local coordinates
                                 let canvasPoint = CGPoint(x: dropPoint.x - canvasFrame.minX, y: dropPoint.y - canvasFrame.minY)
                                 viewModel.addImage(at: canvasPoint, image: img, canvasSize: canvasSize)
                             }
                         }
                         draggingImage = nil
                         dragPosition = nil
-                        dragImageOffset = nil
                         isDragging = false
                     }
                 )
             }
 
-            if let draggingImage = draggingImage, let dragPosition = dragPosition, let offset = dragImageOffset, isDragging {
+            if let draggingImage = draggingImage, let dragPosition = dragPosition, isDragging {
                 Image(uiImage: draggingImage.image)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 80, height: 80)
                     .cornerRadius(8)
                     .opacity(0.8)
-                    .position(x: dragPosition.x - offset.width + 40, y: dragPosition.y - offset.height + 40)
+                    .position(x: dragPosition.x, y: dragPosition.y)
                     .allowsHitTesting(false)
                     .zIndex(10)
             }
         }
+        .coordinateSpace(name: "workspace")
         .background(Color.black.edgesIgnoringSafeArea(.all))
     }
 } 
