@@ -11,11 +11,8 @@ struct CollageImageSelectionView: View {
     var onCancel: () -> Void
     
     @State private var allPhotos: [PHAsset] = []
-    @State private var selectedPhotos: [PHAsset] = []
-    
-    // A dictionary to hold the selection state for each asset.
-    // This is more robust for LazyVGrid updates.
-    @State private var selectionState: [PHAsset: SelectionState] = [:]
+    @State private var selectedPhotoIDs: [String] = []
+    @State private var selectionState: [String: SelectionState] = [:]
 
     private let imageSize = UIScreen.main.bounds.width / 3
     private let selectionLimit = 9
@@ -26,8 +23,8 @@ struct CollageImageSelectionView: View {
             
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(imageSize), spacing: 2), count: 3), spacing: 2) {
-                    ForEach(allPhotos, id: \.self) { asset in
-                        PhotoCell(asset: asset, selectionState: selectionState[asset])
+                    ForEach(allPhotos, id: \.localIdentifier) { asset in
+                        PhotoCell(asset: asset, selectionState: selectionState[asset.localIdentifier])
                             .onTapGesture {
                                 toggleSelection(for: asset)
                             }
@@ -43,24 +40,27 @@ struct CollageImageSelectionView: View {
     private func loadPhotos() {
         PhotoLibraryService.requestAuthorization {
             PhotoLibraryService.fetchAllPhotos { assets in
-                self.allPhotos = assets
+                // 按创建时间降序排列，和系统相册一致
+                let sorted = assets.sorted { (a, b) -> Bool in
+                    (a.creationDate ?? Date.distantPast) > (b.creationDate ?? Date.distantPast)
+                }
+                self.allPhotos = sorted
+                print("LOG: allPhotos order: \(sorted.map { $0.localIdentifier })")
             }
         }
     }
     
     private func toggleSelection(for asset: PHAsset) {
-        if selectedPhotos.contains(asset) {
-            selectedPhotos.removeAll { $0 == asset }
-        } else {
-            if selectedPhotos.count < selectionLimit {
-                selectedPhotos.append(asset)
-            }
+        let id = asset.localIdentifier
+        if let index = selectedPhotoIDs.firstIndex(of: id) {
+            selectedPhotoIDs.remove(at: index)
+        } else if selectedPhotoIDs.count < selectionLimit {
+            selectedPhotoIDs.append(id)
         }
-        
         // Rebuild the selection state dictionary after every change
-        var newSelectionState: [PHAsset: SelectionState] = [:]
-        for (index, photo) in selectedPhotos.enumerated() {
-            newSelectionState[photo] = SelectionState(isSelected: true, selectionIndex: index + 1)
+        var newSelectionState: [String: SelectionState] = [:]
+        for (index, id) in selectedPhotoIDs.enumerated() {
+            newSelectionState[id] = SelectionState(isSelected: true, selectionIndex: index + 1)
         }
         self.selectionState = newSelectionState
     }
@@ -87,12 +87,12 @@ struct CollageImageSelectionView: View {
     }
     
     private var nextButton: some View {
-        let isValidSelection = selectedPhotos.count >= 2
-        
-        let destination = CollageWorkspaceView(assets: selectedPhotos)
-        
+        let isValidSelection = selectedPhotoIDs.count >= 2
+        // 通过ID找到已选asset
+        let selectedAssets = allPhotos.filter { selectedPhotoIDs.contains($0.localIdentifier) }
+        let destination = CollageWorkspaceView(assets: selectedAssets)
         return NavigationLink(destination: destination) {
-            Text("下一步 (\(selectedPhotos.count))")
+            Text("下一步 (\(selectedPhotoIDs.count))")
                 .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(isValidSelection ? .blue : .gray)

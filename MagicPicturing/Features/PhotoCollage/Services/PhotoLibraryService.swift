@@ -38,6 +38,7 @@ class PhotoLibraryService {
             }
             
             DispatchQueue.main.async {
+                print("LOG: fetchAllPhotos order: \(assets.map { $0.localIdentifier })")
                 completion(assets)
             }
         }
