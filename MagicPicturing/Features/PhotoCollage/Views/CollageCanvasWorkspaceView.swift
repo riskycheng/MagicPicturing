@@ -23,6 +23,10 @@ struct CollageCanvasWorkspaceView: View {
                 CanvasView(viewModel: viewModel, canvasSize: canvasSize)
                     .frame(width: canvasSize.width, height: canvasSize.height)
                     .padding(.top, 32)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.clear, lineWidth: 0)
+                    )
                     .background(
                         GeometryReader { geo in
                             Color.clear

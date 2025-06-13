@@ -9,6 +9,8 @@ struct CanvasImageState: Identifiable {
     var rotation: Angle
     var size: CGSize
     var isSelected: Bool
+    var isFlippedHorizontally: Bool = false
+    var isFlippedVertically: Bool = false
 }
 
 class CanvasViewModel: ObservableObject {
@@ -40,7 +42,9 @@ class CanvasViewModel: ObservableObject {
             scale: 1.0,
             rotation: .zero,
             size: CGSize(width: 120, height: 120),
-            isSelected: false
+            isSelected: false,
+            isFlippedHorizontally: false,
+            isFlippedVertically: false
         )
         canvasImages.append(state)
         // 从底部移除
@@ -68,14 +72,22 @@ class CanvasViewModel: ObservableObject {
         // 限制图片中心点不能超出画布
         let safeX = min(max(point.x, 60), canvasSize.width - 60)
         let safeY = min(max(point.y, 60), canvasSize.height - 60)
+        
+        // 根据图片原始比例计算尺寸
+        let aspectRatio = image.image.size.height > 0 ? image.image.size.width / image.image.size.height : 1.0
+        let initialWidth: CGFloat = 150
+        let initialSize = CGSize(width: initialWidth, height: initialWidth / aspectRatio)
+
         let state = CanvasImageState(
             id: image.id,
             image: image.image,
             position: CGPoint(x: safeX, y: safeY),
             scale: 1.0,
             rotation: .zero,
-            size: CGSize(width: 120, height: 120),
-            isSelected: false
+            size: initialSize,
+            isSelected: false,
+            isFlippedHorizontally: false,
+            isFlippedVertically: false
         )
         canvasImages.append(state)
         // 从底部移除

@@ -6,93 +6,108 @@ struct CanvasImageView: View {
     let onUpdate: (CanvasImageState) -> Void
     let onSelect: (String) -> Void
     let onRemove: (String) -> Void
-    var allImages: [CanvasImageState] = []
+    let allImages: [CanvasImageState]
 
-    @GestureState private var dragOffset: CGSize = .zero
-    @GestureState private var scale: CGFloat = 1.0
-    @State private var showGuideLine: Bool = false
+    // Gesture states
+    @State private var dragStartPosition: CGPoint? = nil
+    @State private var startScale: CGFloat? = nil
+    
+    @State private var showGuideLine = false
     @State private var guideLinePos: CGPoint = .zero
-    @State private var guideLineAxis: Axis? = nil
-
-    let snapThreshold: CGFloat = 20
+    @State private var guideLineAxis: Axis = .horizontal
+    
+    // Snap threshold
+    private let snapThreshold: CGFloat = 10.0
 
     var body: some View {
-        ZStack {
-            Image(uiImage: state.image)
-                .resizable()
-                .frame(width: state.size.width, height: state.size.height)
-                .scaleEffect(state.scale * scale)
-                .rotationEffect(state.rotation)
-                .position(x: state.position.x + dragOffset.width, y: state.position.y + dragOffset.height)
-                .border(isSelected ? Color.blue : Color.clear, width: 3)
-                .gesture(
-                    DragGesture()
-                        .updating($dragOffset) { value, state, _ in
-                            state = value.translation
-                        }
-                        .onChanged { value in
-                            var newPos = CGPoint(x: state.position.x + value.translation.width, y: state.position.y + value.translation.height)
-                            var snapped = false
-                            for other in allImages where other.id != state.id {
-                                if abs(newPos.x - other.position.x) < snapThreshold {
-                                    newPos.x = other.position.x
-                                    showGuideLine = true
-                                    guideLinePos = CGPoint(x: newPos.x, y: newPos.y)
-                                    guideLineAxis = .vertical
-                                    snapped = true
-                                    UISelectionFeedbackGenerator().selectionChanged()
-                                }
-                                if abs(newPos.y - other.position.y) < snapThreshold {
-                                    newPos.y = other.position.y
-                                    showGuideLine = true
-                                    guideLinePos = CGPoint(x: newPos.x, y: newPos.y)
-                                    guideLineAxis = .horizontal
-                                    snapped = true
-                                    UISelectionFeedbackGenerator().selectionChanged()
-                                }
-                            }
-                            if !snapped { showGuideLine = false }
-                        }
-                        .onEnded { value in
-                            var newState = state
-                            newState.position.x += value.translation.width
-                            newState.position.y += value.translation.height
-                            onUpdate(newState)
-                            showGuideLine = false
-                        }
-                )
-                .gesture(
-                    MagnificationGesture()
-                        .updating($scale) { value, state, _ in
-                            state = value
-                        }
-                        .onEnded { value in
-                            var newState = state
-                            newState.scale *= value
-                            onUpdate(newState)
-                        }
-                )
-                .onTapGesture {
-                    onSelect(state.id)
+        // Define gestures for when the view is selected
+        let dragGesture = DragGesture()
+            .onChanged { value in
+                if dragStartPosition == nil {
+                    dragStartPosition = state.position
                 }
-                .contextMenu {
-                    Button("移回底部") {
-                        onRemove(state.id)
+                guard let startPosition = dragStartPosition else { return }
+
+                var newPos = CGPoint(
+                    x: startPosition.x + value.translation.width,
+                    y: startPosition.y + value.translation.height
+                )
+                
+                // Snapping logic...
+                var snapped = false
+                for other in allImages where other.id != state.id {
+                    if abs(newPos.x - other.position.x) < snapThreshold {
+                        newPos.x = other.position.x
+                        showGuideLine = true
+                        guideLinePos = CGPoint(x: newPos.x, y: (newPos.y + other.position.y) / 2)
+                        guideLineAxis = .vertical
+                        snapped = true
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    }
+                    if abs(newPos.y - other.position.y) < snapThreshold {
+                        newPos.y = other.position.y
+                        showGuideLine = true
+                        guideLinePos = CGPoint(x: (newPos.x + other.position.x) / 2, y: newPos.y)
+                        guideLineAxis = .horizontal
+                        snapped = true
+                        UISelectionFeedbackGenerator().selectionChanged()
                     }
                 }
-            if showGuideLine, let axis = guideLineAxis {
-                if axis == .vertical {
+                if !snapped {
+                    showGuideLine = false
+                }
+                
+                var updatedState = state
+                updatedState.position = newPos
+                onUpdate(updatedState)
+            }
+            .onEnded { value in
+                dragStartPosition = nil
+                showGuideLine = false
+            }
+
+        let magnificationGesture = MagnificationGesture()
+            .onChanged { value in
+                if startScale == nil {
+                    startScale = state.scale
+                }
+                guard let startingScale = startScale else { return }
+                var updatedState = state
+                updatedState.scale = startingScale * value
+                onUpdate(updatedState)
+            }
+            .onEnded { value in
+                startScale = nil
+            }
+        
+        let activeGestures = dragGesture.simultaneously(with: magnificationGesture)
+
+        let view = ZStack {
+            Image(uiImage: state.image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: state.size.width * state.scale, height: state.size.height * state.scale)
+                .rotationEffect(state.rotation)
+                .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1)
+        }
+        .overlay(
+            Group {
+                if isSelected {
                     Rectangle()
-                        .fill(Color.green)
-                        .frame(width: 2, height: 200)
-                        .position(x: guideLinePos.x, y: guideLinePos.y)
-                } else {
-                    Rectangle()
-                        .fill(Color.green)
-                        .frame(width: 200, height: 2)
-                        .position(x: guideLinePos.x, y: guideLinePos.y)
+                        .stroke(Color.green, lineWidth: 2)
                 }
             }
+        )
+        .position(x: state.position.x, y: state.position.y)
+        .onTapGesture {
+            onSelect(state.id)
+        }
+
+        // Conditionally apply drag and scale gestures only if the image is selected
+        if isSelected {
+            return AnyView(view.gesture(activeGestures))
+        } else {
+            return AnyView(view)
         }
     }
 } 

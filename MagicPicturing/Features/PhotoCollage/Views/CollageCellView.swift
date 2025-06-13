@@ -39,14 +39,17 @@ struct CollageCellView: View {
                 .offset(x: state.offset.width + currentOffset.width, y: state.offset.height + currentOffset.height)
                 .rotationEffect(state.rotation)
                 .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
-            
-            if isSelected {
-                Rectangle()
-                    .stroke(Color.green, lineWidth: 4)
-            }
         }
         .clipped()
         .contentShape(Rectangle())
         .gesture(isSelected ? combinedGesture : nil)
+        .overlay(
+            Group {
+                if isSelected {
+                    Rectangle()
+                        .stroke(Color.green, lineWidth: 4)
+                }
+            }
+        )
     }
 } 
