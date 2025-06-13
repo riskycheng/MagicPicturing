@@ -17,6 +17,7 @@ struct BottomImagePickerView: View {
                         GeometryReader { geo in
                             Image(uiImage: img.image)
                                 .resizable()
+                                .scaledToFill()
                                 .frame(width: 60, height: 60)
                                 .cornerRadius(8)
                                 .contentShape(Rectangle())
