@@ -9,6 +9,7 @@ struct CanvasImageView: View {
     let allImages: [CanvasImageState]
 
     // Gesture states
+    @State private var previousMoveLocation: CGPoint? = nil
     @State private var startImageOffset: CGPoint? = nil
     @State private var startScale: CGFloat? = nil
     
@@ -21,12 +22,13 @@ struct CanvasImageView: View {
 
     // To identify which handle is being dragged
     @State private var draggingHandle: Edge? = nil
+    @State private var draggingMoveHandle = false
 
     var body: some View {
         // Define gestures for when the view is selected
         let dragGesture = DragGesture()
             .onChanged { value in
-                guard draggingHandle == nil else { return }
+                guard draggingHandle == nil, !draggingMoveHandle else { return }
 
                 if startImageOffset == nil {
                     startImageOffset = state.imageOffset
@@ -65,7 +67,7 @@ struct CanvasImageView: View {
 
         let magnificationGesture = MagnificationGesture()
             .onChanged { value in
-                guard draggingHandle == nil else { return }
+                guard draggingHandle == nil, !draggingMoveHandle else { return }
                 if startScale == nil {
                     startScale = state.scale
                 }
@@ -121,6 +123,10 @@ struct CanvasImageView: View {
                     // Right handle
                     handleView(for: .trailing, width: handleWidth, height: handleHeight, visualWidth: visualHandleHeight, visualHeight: visualHandleWidth)
                         .position(x: state.size.width, y: state.size.height / 2)
+
+                    // Center move handle
+                    moveHandleView()
+                        .position(x: state.size.width / 2, y: state.size.height / 2)
                 }
             }
         )
@@ -152,6 +158,7 @@ struct CanvasImageView: View {
             .gesture(
                 DragGesture()
                     .onChanged { value in
+                        guard !draggingMoveHandle else { return }
                         if draggingHandle == nil {
                             draggingHandle = edge
                         }
@@ -209,6 +216,76 @@ struct CanvasImageView: View {
                         draggingHandle = nil
                     }
             )
+    }
+
+    @ViewBuilder
+    private func moveHandleView() -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.8), lineWidth: 1)
+                .background(Circle().fill(Color.black.opacity(0.3)))
+                .frame(width: 32, height: 32)
+            
+            Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                .foregroundColor(Color.white.opacity(0.9))
+                .font(.system(size: 16))
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                .onChanged { value in
+                    if !draggingMoveHandle {
+                        draggingMoveHandle = true
+                        previousMoveLocation = value.location
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    }
+                    
+                    guard let previousLocation = previousMoveLocation else { return }
+
+                    let delta = CGPoint(
+                        x: value.location.x - previousLocation.x,
+                        y: value.location.y - previousLocation.y
+                    )
+
+                    var newPos = CGPoint(
+                        x: state.position.x + delta.x,
+                        y: state.position.y + delta.y
+                    )
+
+                    self.previousMoveLocation = value.location
+                    
+                    var snapped = false
+                    for other in allImages where other.id != state.id {
+                        if abs(newPos.x - other.position.x) < snapThreshold {
+                            newPos.x = other.position.x
+                            showGuideLine = true
+                            guideLinePos = CGPoint(x: newPos.x, y: (newPos.y + other.position.y) / 2)
+                            guideLineAxis = .vertical
+                            snapped = true
+                            UISelectionFeedbackGenerator().selectionChanged()
+                        }
+                        if abs(newPos.y - other.position.y) < snapThreshold {
+                            newPos.y = other.position.y
+                            showGuideLine = true
+                            guideLinePos = CGPoint(x: (newPos.x + other.position.x) / 2, y: newPos.y)
+                            guideLineAxis = .horizontal
+                            snapped = true
+                            UISelectionFeedbackGenerator().selectionChanged()
+                        }
+                    }
+                    if !snapped {
+                        showGuideLine = false
+                    }
+                    
+                    var updatedState = state
+                    updatedState.position = newPos
+                    onUpdate(updatedState)
+                }
+                .onEnded { _ in
+                    draggingMoveHandle = false
+                    previousMoveLocation = nil
+                    showGuideLine = false
+                }
+        )
     }
 
     private func cropGesture() -> some Gesture {
