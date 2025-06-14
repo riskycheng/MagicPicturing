@@ -5,9 +5,10 @@ struct CanvasImageState: Identifiable {
     let id: String // asset.localIdentifier
     var image: UIImage
     var position: CGPoint
-    var scale: CGFloat
+    var scale: CGFloat // a new property to control the scale of the image within the frame
     var rotation: Angle
-    var size: CGSize
+    var size: CGSize // this will now represent the size of the crop frame
+    var imageOffset: CGPoint = .zero // new property to control the offset of the image within the frame
     var isSelected: Bool
     var isFlippedHorizontally: Bool = false
     var isFlippedVertically: Bool = false
