@@ -45,12 +45,9 @@ struct CollageImageSelectionView: View {
     private func loadPhotos() {
         PhotoLibraryService.requestAuthorization {
             PhotoLibraryService.fetchAllPhotos { assets in
-                // 按创建时间降序排列，和系统相册一致
-                let sorted = assets.sorted { (a, b) -> Bool in
-                    (a.creationDate ?? Date.distantPast) > (b.creationDate ?? Date.distantPast)
+                self.allPhotos = assets.sorted {
+                    $0.creationDate ?? .distantPast > $1.creationDate ?? .distantPast
                 }
-                self.allPhotos = sorted
-                print("LOG: allPhotos order: \(sorted.map { $0.localIdentifier })")
             }
         }
     }

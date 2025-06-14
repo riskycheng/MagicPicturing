@@ -33,18 +33,20 @@ struct CollageWorkspaceView: View {
             Spacer()
 
             // Bottom controls - Stays fixed at the bottom
-            if viewModel.selectedImageIndex == nil {
-                LayoutSelectorView(
-                    layouts: viewModel.availableLayouts,
-                    selectedLayout: $viewModel.selectedLayout
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else {
-                PhotoEditControlsView(viewModel: viewModel)
+            Group {
+                if viewModel.selectedImageIndex == nil {
+                    LayoutSelectorView(
+                        layouts: viewModel.availableLayouts,
+                        selectedLayout: $viewModel.selectedLayout
+                    )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    PhotoEditControlsView(viewModel: viewModel)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+            // .animation(.easeInOut, value: viewModel.selectedImageIndex) // DEBUG: Temporarily disable to fix animation conflict
         }
-        .animation(.easeInOut, value: viewModel.selectedImageIndex)
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
         .foregroundColor(.white)

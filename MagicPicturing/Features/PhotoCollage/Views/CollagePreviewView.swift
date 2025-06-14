@@ -25,7 +25,7 @@ struct CollagePreviewView: View {
                             isSelected: viewModel.selectedImageIndex == index
                         )
                         .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
-                        .position(x: geometry.size.width * frame.midX, y: geometry.size.height * frame.midY)
+                        .offset(x: geometry.size.width * (frame.minX - 0.5 * (1 - frame.width)), y: geometry.size.height * (frame.minY - 0.5 * (1 - frame.height)))
                         .onTapGesture {
                             viewModel.selectedImageIndex = index
                         }

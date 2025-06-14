@@ -4,6 +4,9 @@ import SwiftUI
 struct CollageImageState: Identifiable {
     let id = UUID()
     
+    /// The visible portion of the image, normalized from (0,0) to (1,1).
+    var cropRect: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+    
     /// The zoom level of the image.
     var scale: CGFloat = 1.0
     
