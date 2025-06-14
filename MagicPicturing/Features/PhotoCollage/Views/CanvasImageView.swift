@@ -9,7 +9,7 @@ struct CanvasImageView: View {
     let allImages: [CanvasImageState]
 
     // Gesture states
-    @State private var dragStartPosition: CGPoint? = nil
+    @State private var startImageOffset: CGPoint? = nil
     @State private var startScale: CGFloat? = nil
     
     @State private var showGuideLine = false
@@ -27,47 +27,40 @@ struct CanvasImageView: View {
         let dragGesture = DragGesture()
             .onChanged { value in
                 guard draggingHandle == nil else { return }
-                if dragStartPosition == nil {
-                    dragStartPosition = state.position
-                }
-                guard let startPosition = dragStartPosition else { return }
 
-                var newPos = CGPoint(
-                    x: startPosition.x + value.translation.width,
-                    y: startPosition.y + value.translation.height
-                )
-                
-                // Snapping logic...
-                var snapped = false
-                for other in allImages where other.id != state.id {
-                    if abs(newPos.x - other.position.x) < snapThreshold {
-                        newPos.x = other.position.x
-                        showGuideLine = true
-                        guideLinePos = CGPoint(x: newPos.x, y: (newPos.y + other.position.y) / 2)
-                        guideLineAxis = .vertical
-                        snapped = true
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    }
-                    if abs(newPos.y - other.position.y) < snapThreshold {
-                        newPos.y = other.position.y
-                        showGuideLine = true
-                        guideLinePos = CGPoint(x: (newPos.x + other.position.x) / 2, y: newPos.y)
-                        guideLineAxis = .horizontal
-                        snapped = true
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    }
+                if startImageOffset == nil {
+                    startImageOffset = state.imageOffset
                 }
-                if !snapped {
-                    showGuideLine = false
-                }
-                
+                guard let startOffset = startImageOffset else { return }
+
                 var updatedState = state
-                updatedState.position = newPos
+                let newOffsetX = startOffset.x + value.translation.width
+                let newOffsetY = startOffset.y + value.translation.height
+                
+                let scaledImageSize = CGSize(
+                    width: state.image.size.width * state.scale,
+                    height: state.image.size.height * state.scale
+                )
+
+                let xLimit = (scaledImageSize.width - state.size.width) / 2
+                let yLimit = (scaledImageSize.height - state.size.height) / 2
+
+                if xLimit > 0 {
+                    updatedState.imageOffset.x = max(-xLimit, min(xLimit, newOffsetX))
+                } else {
+                    updatedState.imageOffset.x = 0
+                }
+
+                if yLimit > 0 {
+                    updatedState.imageOffset.y = max(-yLimit, min(yLimit, newOffsetY))
+                } else {
+                    updatedState.imageOffset.y = 0
+                }
+                
                 onUpdate(updatedState)
             }
             .onEnded { value in
-                dragStartPosition = nil
-                showGuideLine = false
+                startImageOffset = nil
             }
 
         let magnificationGesture = MagnificationGesture()
