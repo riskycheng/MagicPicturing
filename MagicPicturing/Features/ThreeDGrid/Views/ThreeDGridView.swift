@@ -102,6 +102,21 @@ class ThreeDGridViewModel: ObservableObject {
         self.segmentationService = segmentationService
     }
     
+    convenience init(selectedImages: [PlatformImage], segmentationService: PersonSegmentationServiceProtocol = PersonSegmentationService()) {
+        self.init(segmentationService: segmentationService)
+        
+        guard !selectedImages.isEmpty else { return }
+        
+        // Use the first image as the main subject
+        self.mainSubjectPhoto = selectedImages.first
+        
+        // Use the rest of the images for the grid
+        let gridImgs = selectedImages.count > 1 ? Array(selectedImages.dropFirst()) : []
+        for i in 0..<min(gridImgs.count, 9) {
+            self.gridPhotos[i] = gridImgs[i]
+        }
+    }
+    
     var isReadyToGenerate: Bool {
         // Check if we have at least one grid photo and a main subject photo
         return gridPhotos.contains(where: { $0 != nil }) && mainSubjectPhoto != nil
@@ -617,6 +632,7 @@ struct ThreeDGridView: View {
     @State private var previewIndex: Int? = nil
     @State private var selectedGridIndex: Int? = nil
     @State private var previewContainerSize: CGSize = .zero
+    @State private var showPermissionAlert = false
     
     // 固定的图片容器尺寸和边距
     #if canImport(UIKit)
@@ -640,8 +656,12 @@ struct ThreeDGridView: View {
     private var navBarHeight: CGFloat { 60 } // 你自定义的导航栏高度
     private var buttonHeight: CGFloat { 70 } // 按钮高度+间距
     
-    init(segmentationService: PersonSegmentationServiceProtocol = PersonSegmentationService()) {
-        _viewModel = StateObject(wrappedValue: ThreeDGridViewModel(segmentationService: segmentationService))
+    init() {
+        _viewModel = StateObject(wrappedValue: ThreeDGridViewModel())
+    }
+    
+    init(selectedImages: [PlatformImage]) {
+        _viewModel = StateObject(wrappedValue: ThreeDGridViewModel(selectedImages: selectedImages))
     }
     
     var body: some View {

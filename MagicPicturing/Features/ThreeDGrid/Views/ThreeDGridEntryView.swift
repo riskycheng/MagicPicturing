@@ -1,40 +1,45 @@
 import SwiftUI
 import Photos
 
-/// The main entry point for the photo collage feature.
-/// This view wraps the entire flow in a NavigationView and handles dismissal.
-struct CollageEntryView: View {
+struct ThreeDGridEntryView: View {
     @Environment(\.presentationMode) var presentationMode
+    
+    // State to manage the navigation to the main grid workspace
     @State private var isNavigatingToWorkspace = false
+    
+    // State to hold the selected photos from the picker
     @State private var selectedAssets: [PHAsset] = []
     @State private var selectedImages: [UIImage] = []
     
     var body: some View {
         NavigationView {
             VStack {
-                // The background of the navigation view content
+                // Hidden NavigationLink to programmatically trigger navigation
                 NavigationLink(
-                    destination: CollageCanvasWorkspaceView(selectedAssets: selectedAssets, images: selectedImages),
+                    destination: ThreeDGridView(selectedImages: selectedImages),
                     isActive: $isNavigatingToWorkspace
                 ) {
                     EmptyView()
                 }
                 
+                // Our unified, reusable image picker
                 ImagePickerView(
                     onCancel: {
+                        // Dismiss the modal presentation
                         presentationMode.wrappedValue.dismiss()
                     },
                     onNext: { assets, images in
+                        // When the user taps "Next", store the selections and trigger the navigation
                         self.selectedAssets = assets
                         self.selectedImages = images
                         self.isNavigatingToWorkspace = true
                     },
-                    selectionLimit: 9,
-                    minSelection: 2
+                    selectionLimit: 10, // Max 1 for main subject + 9 for grid
+                    minSelection: 2      // Min 1 for main subject + 1 for grid
                 )
             }
             .navigationBarHidden(true)
+            .preferredColorScheme(.dark)
         }
-        .preferredColorScheme(.dark)
     }
 } 

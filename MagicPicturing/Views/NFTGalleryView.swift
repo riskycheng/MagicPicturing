@@ -22,6 +22,7 @@ struct NFTGalleryView: View {
     @State private var navigateToDetailView = false
     @State private var showThreeDGridView = false
     @State private var showCollageFlow = false
+    @State private var showThreeDGridEntry = false
     @State private var selectedMode: Int = 0
     @State private var isDragging = false
     
@@ -132,6 +133,9 @@ struct NFTGalleryView: View {
         .fullScreenCover(isPresented: $showCollageFlow) {
             CollageEntryView()
         }
+        .fullScreenCover(isPresented: $showThreeDGridEntry) {
+            ThreeDGridEntryView()
+        }
     }
     
     // 获取环形索引 - 实现环形缓冲区
@@ -241,11 +245,11 @@ struct NFTGalleryView: View {
                 } else {
                     // If the focused card is tapped, perform the navigation.
                     let finalIndex = getRingIndex(baseIndex: 0, offset: Int(targetPosition))
-                    let modeIndex = finalIndex % cardTitles.count
+                    selectedMode = finalIndex % cardTitles.count
 
-                    switch modeIndex {
+                    switch selectedMode {
                     case 0: // 立体九宫格
-                        showThreeDGridView = true
+                        showThreeDGridEntry = true
                     case 1: // 拼图
                         showCollageFlow = true
                     default:

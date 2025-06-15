@@ -6,17 +6,20 @@ fileprivate struct SelectionState {
     let selectionIndex: Int?
 }
 
-struct CollageImageSelectionView: View {
+struct ImagePickerView: View {
     
     var onCancel: () -> Void
-    
+    var onNext: ([PHAsset], [UIImage]) -> Void // Use a closure for the next step
+
     @State private var allPhotos: [PHAsset] = []
     @State private var selectedPhotoIDs: [String] = []
     @State private var selectionState: [String: SelectionState] = [:]
     @State private var imageDict: [String: UIImage] = [:]
 
     private let imageSize = UIScreen.main.bounds.width / 3
-    private let selectionLimit = 9
+    // Allow selecting a single image for ThreeDGrid, or multiple for others
+    var selectionLimit: Int = 9
+    var minSelection: Int = 2
 
     var body: some View {
         VStack(spacing: 0) {
@@ -89,12 +92,14 @@ struct CollageImageSelectionView: View {
     }
     
     private var nextButton: some View {
-        let isValidSelection = selectedPhotoIDs.count >= 2
-        // 通过ID找到已选asset
-        let selectedAssets = allPhotos.filter { selectedPhotoIDs.contains($0.localIdentifier) }
-        let selectedImages = selectedAssets.compactMap { imageDict[$0.localIdentifier] }
-        let destination = CollageCanvasWorkspaceView(selectedAssets: selectedAssets, images: selectedImages)
-        return NavigationLink(destination: destination) {
+        let isValidSelection = selectedPhotoIDs.count >= minSelection
+        
+        return Button(action: {
+            // Fetch selected assets and images and pass them to the closure
+            let selectedAssets = allPhotos.filter { selectedPhotoIDs.contains($0.localIdentifier) }
+            let selectedImages = selectedAssets.compactMap { imageDict[$0.localIdentifier] }
+            onNext(selectedAssets, selectedImages)
+        }) {
             Text("下一步 (\(selectedPhotoIDs.count))")
                 .font(.headline)
                 .fontWeight(.bold)
