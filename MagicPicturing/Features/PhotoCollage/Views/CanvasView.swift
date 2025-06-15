@@ -6,6 +6,12 @@ struct CanvasView: View {
 
     var body: some View {
         ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    viewModel.selectedImageID = nil
+                }
+            
             ForEach(viewModel.canvasImages) { imgState in
                 CanvasImageView(
                     state: imgState,

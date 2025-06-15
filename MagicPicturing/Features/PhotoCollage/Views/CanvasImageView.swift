@@ -28,7 +28,7 @@ struct CanvasImageView: View {
         // Define gestures for when the view is selected
         let dragGesture = DragGesture()
             .onChanged { value in
-                guard draggingHandle == nil, !draggingMoveHandle else { return }
+                guard isSelected, draggingHandle == nil, !draggingMoveHandle else { return }
 
                 if startImageOffset == nil {
                     startImageOffset = state.imageOffset
@@ -67,7 +67,7 @@ struct CanvasImageView: View {
 
         let magnificationGesture = MagnificationGesture()
             .onChanged { value in
-                guard draggingHandle == nil, !draggingMoveHandle else { return }
+                guard isSelected, draggingHandle == nil, !draggingMoveHandle else { return }
                 if startScale == nil {
                     startScale = state.scale
                 }
@@ -80,7 +80,7 @@ struct CanvasImageView: View {
                 startScale = nil
             }
         
-        let activeGestures = dragGesture.simultaneously(with: magnificationGesture)
+        let imageContentGestures = dragGesture.simultaneously(with: magnificationGesture)
 
         let view = ZStack {
             Image(uiImage: state.image)
@@ -94,6 +94,7 @@ struct CanvasImageView: View {
         }
         .frame(width: state.size.width, height: state.size.height)
         .clipped()
+        .contentShape(Rectangle())
         .rotationEffect(state.rotation)
         .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1)
         .overlay(
@@ -134,10 +135,9 @@ struct CanvasImageView: View {
         .onTapGesture {
             onSelect(state.id)
         }
-
-        // Conditionally apply drag and scale gestures only if the image is selected
+        
         if isSelected {
-            return AnyView(view.gesture(activeGestures).gesture(cropGesture()))
+            return AnyView(view.gesture(imageContentGestures))
         } else {
             return AnyView(view)
         }
@@ -149,72 +149,72 @@ struct CanvasImageView: View {
         Rectangle()
             .fill(Color.clear)
             .frame(width: width, height: height)
-            .contentShape(Rectangle())
             .overlay(
                 Capsule()
                     .fill(Color.green)
                     .frame(width: visualWidth, height: visualHeight)
-            )
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        guard !draggingMoveHandle else { return }
-                        if draggingHandle == nil {
-                            draggingHandle = edge
-                        }
-                        guard draggingHandle == edge else { return }
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                guard !draggingMoveHandle else { return }
+                                if draggingHandle == nil {
+                                    draggingHandle = edge
+                                }
+                                guard draggingHandle == edge else { return }
 
-                        var updatedState = state
-                        let translation = value.translation
-                        
-                        let scaledImageSize = CGSize(
-                            width: state.image.size.width * state.scale,
-                            height: state.image.size.height * state.scale
-                        )
+                                var updatedState = state
+                                let translation = value.translation
+                                
+                                let scaledImageSize = CGSize(
+                                    width: state.image.size.width * state.scale,
+                                    height: state.image.size.height * state.scale
+                                )
 
-                        switch edge {
-                        case .top:
-                            let delta = translation.height
-                            let newHeight = updatedState.size.height - delta
-                            let maxCropHeight = scaledImageSize.height - 2 * updatedState.imageOffset.y
-                            if newHeight > 0, newHeight <= maxCropHeight {
-                                updatedState.size.height = newHeight
-                                updatedState.position.y += delta / 2
-                                updatedState.imageOffset.y -= delta / 2
+                                switch edge {
+                                case .top:
+                                    let delta = translation.height
+                                    let newHeight = updatedState.size.height - delta
+                                    let maxCropHeight = scaledImageSize.height - 2 * updatedState.imageOffset.y
+                                    if newHeight > 0, newHeight <= maxCropHeight {
+                                        updatedState.size.height = newHeight
+                                        updatedState.position.y += delta / 2
+                                        updatedState.imageOffset.y -= delta / 2
+                                    }
+                                case .bottom:
+                                    let delta = translation.height
+                                    let newHeight = updatedState.size.height + delta
+                                    let maxCropHeight = scaledImageSize.height + 2 * updatedState.imageOffset.y
+                                    if newHeight > 0, newHeight <= maxCropHeight {
+                                        updatedState.size.height = newHeight
+                                        updatedState.position.y += delta / 2
+                                        updatedState.imageOffset.y -= delta / 2
+                                    }
+                                case .leading:
+                                    let delta = translation.width
+                                    let newWidth = updatedState.size.width - delta
+                                    let maxCropWidth = scaledImageSize.width - 2 * updatedState.imageOffset.x
+                                    if newWidth > 0, newWidth <= maxCropWidth {
+                                        updatedState.size.width = newWidth
+                                        updatedState.position.x += delta / 2
+                                        updatedState.imageOffset.x -= delta / 2
+                                    }
+                                case .trailing:
+                                    let delta = translation.width
+                                    let newWidth = updatedState.size.width + delta
+                                    let maxCropWidth = scaledImageSize.width + 2 * updatedState.imageOffset.x
+                                    if newWidth > 0, newWidth <= maxCropWidth {
+                                        updatedState.size.width = newWidth
+                                        updatedState.position.x += delta / 2
+                                        updatedState.imageOffset.x -= delta / 2
+                                    }
+                                }
+                                onUpdate(updatedState)
                             }
-                        case .bottom:
-                            let delta = translation.height
-                            let newHeight = updatedState.size.height + delta
-                            let maxCropHeight = scaledImageSize.height + 2 * updatedState.imageOffset.y
-                            if newHeight > 0, newHeight <= maxCropHeight {
-                                updatedState.size.height = newHeight
-                                updatedState.position.y += delta / 2
-                                updatedState.imageOffset.y -= delta / 2
+                            .onEnded { _ in
+                                draggingHandle = nil
                             }
-                        case .leading:
-                            let delta = translation.width
-                            let newWidth = updatedState.size.width - delta
-                            let maxCropWidth = scaledImageSize.width - 2 * updatedState.imageOffset.x
-                            if newWidth > 0, newWidth <= maxCropWidth {
-                                updatedState.size.width = newWidth
-                                updatedState.position.x += delta / 2
-                                updatedState.imageOffset.x -= delta / 2
-                            }
-                        case .trailing:
-                            let delta = translation.width
-                            let newWidth = updatedState.size.width + delta
-                            let maxCropWidth = scaledImageSize.width + 2 * updatedState.imageOffset.x
-                            if newWidth > 0, newWidth <= maxCropWidth {
-                                updatedState.size.width = newWidth
-                                updatedState.position.x += delta / 2
-                                updatedState.imageOffset.x -= delta / 2
-                            }
-                        }
-                        onUpdate(updatedState)
-                    }
-                    .onEnded { _ in
-                        draggingHandle = nil
-                    }
+                    )
             )
     }
 
