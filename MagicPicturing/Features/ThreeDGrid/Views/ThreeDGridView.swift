@@ -107,13 +107,12 @@ class ThreeDGridViewModel: ObservableObject {
         
         guard !selectedImages.isEmpty else { return }
         
-        // Use the first image as the main subject
-        self.mainSubjectPhoto = selectedImages.first
+        // The main subject photo will be selected manually by the user.
+        // self.mainSubjectPhoto = selectedImages.first
         
-        // Use the rest of the images for the grid
-        let gridImgs = selectedImages.count > 1 ? Array(selectedImages.dropFirst()) : []
-        for i in 0..<min(gridImgs.count, 9) {
-            self.gridPhotos[i] = gridImgs[i]
+        // Use all selected images for the grid
+        for i in 0..<min(selectedImages.count, 9) {
+            self.gridPhotos[i] = selectedImages[i]
         }
     }
     
