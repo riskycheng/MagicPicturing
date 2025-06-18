@@ -1085,27 +1085,30 @@ struct GridCellView: View {
     @State private var dragEnabled = false
 
     var body: some View {
-        ZStack {
-            if let image = image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(1, contentMode: .fill) // 保证正方形裁剪
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.2))
-                    .overlay(
-                        Image(systemName: "plus")
-                            .foregroundColor(.gray)
-                    )
+        GeometryReader { geo in
+            ZStack {
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.2))
+                        .overlay(
+                            Image(systemName: "plus")
+                                .foregroundColor(.gray)
+                        )
+                }
             }
         }
+        .clipped()
         .aspectRatio(1, contentMode: .fit)
         .offset(isDragging ? dragOffset : .zero)
         .scaleEffect(isDragging ? 1.05 : 1.0)
         .shadow(radius: isDragging ? 10 : 0)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isDragging)
+        .contentShape(Rectangle())
         .simultaneousGesture(
             TapGesture()
                 .onEnded {
