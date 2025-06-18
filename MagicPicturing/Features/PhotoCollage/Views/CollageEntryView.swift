@@ -3,38 +3,65 @@ import Photos
 
 /// The main entry point for the photo collage feature.
 /// This view wraps the entire flow in a NavigationView and handles dismissal.
+
+// A simple ViewModel to manage the state and navigation logic, mirroring the ThreeDGrid pattern.
+class CollageEntryViewModel: ObservableObject {
+    @Published var selectedAssets: [PHAsset] = []
+    @Published var selectedImages: [UIImage] = []
+    @Published var isNavigatingToWorkspace = false
+    
+    func processSelectedPhotos(assets: [PHAsset], images: [UIImage]) {
+        self.selectedAssets = assets
+        self.selectedImages = images
+        
+        // Use a slight delay to allow the dismiss animation of the picker to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.isNavigatingToWorkspace = true
+        }
+    }
+}
+
 struct CollageEntryView: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var isNavigatingToWorkspace = false
-    @State private var selectedAssets: [PHAsset] = []
-    @State private var selectedImages: [UIImage] = []
+    @StateObject private var viewModel = CollageEntryViewModel()
+    
+    // State to control the picker presentation
+    @State private var showPicker = true
     
     var body: some View {
         NavigationView {
-            VStack {
-                // The background of the navigation view content
+            ZStack {
+                // A hidden NavigationLink to the workspace, controlled by the ViewModel.
                 NavigationLink(
-                    destination: CollageCanvasWorkspaceView(selectedAssets: selectedAssets, images: selectedImages),
-                    isActive: $isNavigatingToWorkspace
+                    destination: CollageCanvasWorkspaceView(selectedAssets: viewModel.selectedAssets, images: viewModel.selectedImages),
+                    isActive: $viewModel.isNavigatingToWorkspace
                 ) {
                     EmptyView()
                 }
                 
-                ImagePickerView(
-                    onCancel: {
-                        presentationMode.wrappedValue.dismiss()
-                    },
-                    onNext: { assets, images in
-                        self.selectedAssets = assets
-                        self.selectedImages = images
-                        self.isNavigatingToWorkspace = true
-                    },
-                    selectionLimit: 9,
-                    minSelection: 2
-                )
+                // A placeholder background.
+                Color.black.edgesIgnoringSafeArea(.all)
             }
             .navigationBarHidden(true)
+            .onAppear {
+                // When this view appears again after navigating away, dismiss it.
+                if viewModel.isNavigatingToWorkspace {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
         }
-        .preferredColorScheme(.dark)
+        .navigationViewStyle(.stack)
+        .fullScreenCover(isPresented: $showPicker) {
+            ImagePickerView(
+                onCancel: {
+                    self.presentationMode.wrappedValue.dismiss()
+                },
+                onNext: { assets, images in
+                    viewModel.processSelectedPhotos(assets: assets, images: images)
+                },
+                selectionLimit: 9,
+                minSelection: 2
+            )
+        }
     }
 } 
