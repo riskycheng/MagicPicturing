@@ -11,6 +11,7 @@ struct ImageGalleryView: View {
     let images: [PlatformImage]
     let onDelete: (Int) -> Void
     let onDismiss: () -> Void
+    var onEdit: ((Int, PlatformImage) -> Void)? = nil
     
     @State private var currentIndex: Int
     @State private var scale: CGFloat = 1.0
@@ -21,12 +22,14 @@ struct ImageGalleryView: View {
     @State private var showHeader: Bool = true
     @State private var doubleTapAnchor: CGPoint? = nil
     @State private var dragProgress: CGFloat = 0 // 新增：用于跟踪下拉进度
+    @State private var isEditing: Bool = false // 新增：用于显示编辑视图
     
-    init(initialIndex: Int, images: [PlatformImage], onDelete: @escaping (Int) -> Void, onDismiss: @escaping () -> Void) {
+    init(initialIndex: Int, images: [PlatformImage], onDelete: @escaping (Int) -> Void, onDismiss: @escaping () -> Void, onEdit: ((Int, PlatformImage) -> Void)? = nil) {
         self.initialIndex = initialIndex
         self.images = images
         self.onDelete = onDelete
         self.onDismiss = onDismiss
+        self.onEdit = onEdit
         _currentIndex = State(initialValue: initialIndex)
     }
     
@@ -54,6 +57,18 @@ struct ImageGalleryView: View {
                                 .foregroundColor(.white)
                             
                             Spacer()
+                            
+                            // Edit button
+                            if let onEdit = onEdit {
+                                Button(action: {
+                                    onEdit(currentIndex, images[currentIndex])
+                                }) {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                                .padding(.trailing, 16) // Spacing between buttons
+                            }
                             
                             Button(action: {
                                 onDelete(currentIndex)

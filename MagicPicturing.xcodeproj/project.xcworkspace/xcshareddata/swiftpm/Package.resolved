@@ -1,0 +1,33 @@
+{
+  "originHash" : "bab15117eaaf23aade95c6c25428c7478ac43ca54edf7873d10088420ba52898",
+  "pins" : [
+    {
+      "identity" : "anyimagekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AnyImageKit/AnyImageKit.git",
+      "state" : {
+        "revision" : "0ee074fcb28a835875ab26e1911ae22d661bd022",
+        "version" : "0.18.4"
+      }
+    },
+    {
+      "identity" : "kingfisher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Kingfisher.git",
+      "state" : {
+        "revision" : "7deda23bbdca612076c5c315003d8638a08ed0f1",
+        "version" : "8.3.2"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SnapKit/SnapKit",
+      "state" : {
+        "revision" : "2842e6e84e82eb9a8dac0100ca90d9444b0307f4",
+        "version" : "5.7.1"
+      }
+    }
+  ],
+  "version" : 3
+}
