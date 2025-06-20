@@ -33,7 +33,7 @@ struct CollageEntryView: View {
             ZStack {
                 // A hidden NavigationLink to the workspace, controlled by the ViewModel.
                 NavigationLink(
-                    destination: CollageCanvasWorkspaceView(selectedAssets: viewModel.selectedAssets, images: viewModel.selectedImages),
+                    destination: CollageModeSelectionView(assets: viewModel.selectedAssets, images: viewModel.selectedImages),
                     isActive: $viewModel.isNavigatingToWorkspace
                 ) {
                     EmptyView()
