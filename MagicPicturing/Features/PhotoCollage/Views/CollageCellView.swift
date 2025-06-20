@@ -10,15 +10,18 @@ struct CollageCellView: View {
     @State private var currentScale: CGFloat = 1.0
     
     var body: some View {
-        let _ = print("--- CollageCellView LOG --- isSelected: \(isSelected)")
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             let magnificationGesture = MagnificationGesture()
                 .onChanged { value in
                     self.currentScale = value
                 }
                 .onEnded { value in
-                    state.scale *= value
+                    // Apply the cumulative scale, ensuring it doesn't go below a minimum useful value
+                    state.scale = max(state.scale * value, 0.5)
                     self.currentScale = 1.0
+                    
+                    // After scaling, we need to clamp the offset
+                    clampOffset(geometry: geometry)
                 }
             
             let dragGesture = DragGesture()
@@ -29,42 +32,47 @@ struct CollageCellView: View {
                     state.offset.width += value.translation.width
                     state.offset.height += value.translation.height
                     self.currentOffset = .zero
+                    
+                    // After dragging, clamp the offset
+                    clampOffset(geometry: geometry)
                 }
             
             let combinedGesture = dragGesture.simultaneously(with: magnificationGesture)
 
             ZStack {
-                // MARK: - Clipped Image
-                ZStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .scaleEffect(x: 1 / state.cropRect.width, y: 1 / state.cropRect.height, anchor: .topLeading)
-                        .offset(x: -state.cropRect.origin.x * geometry.size.width / state.cropRect.width, y: -state.cropRect.origin.y * geometry.size.height / state.cropRect.height)
-                        .scaleEffect(state.scale * currentScale)
-                        .offset(x: state.offset.width + currentOffset.width, y: state.offset.height + currentOffset.height)
-                        .rotationEffect(state.rotation)
-                        .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
-                }
-                .clipped()
-                .contentShape(Rectangle())
-                .gesture(isSelected ? combinedGesture : nil)
-
-                // MARK: - Selection Overlay (not clipped)
-                if isSelected {
-                    let _ = print("--- BORDER LOG --- Green border and its overlay are being evaluated.")
-                    Rectangle()
-                        .stroke(Color.green, lineWidth: 4)
-                        .overlay(
-                            // Ultimate Debug: A simple, hardcoded shape to test rendering.
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 50, height: 50)
-                        )
-                }
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    // Apply transformations
+                    .scaleEffect(state.scale * currentScale)
+                    .offset(x: state.offset.width + currentOffset.width, y: state.offset.height + currentOffset.height)
+                    .rotationEffect(state.rotation)
+                    .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
             }
+            .clipped()
+            .contentShape(Rectangle())
+            .overlay(
+                // Selection highlight
+                isSelected ? Rectangle().stroke(Color.green, lineWidth: 4) : nil
+            )
+            .gesture(isSelected ? combinedGesture : nil)
         }
+    }
+
+    private func clampOffset(geometry: GeometryProxy) {
+        let imageSize = image.size
+        let viewSize = geometry.size
+        
+        let scaledImageSize = CGSize(width: imageSize.width * state.scale, height: imageSize.height * state.scale)
+        
+        // Calculate the maximum allowable offset in each direction.
+        // If the scaled image is smaller than the view, the offset should be zero.
+        let maxOffsetX = max(0, (scaledImageSize.width - viewSize.width) / 2)
+        let maxOffsetY = max(0, (scaledImageSize.height - viewSize.height) / 2)
+        
+        state.offset.width = max(-maxOffsetX, min(maxOffsetX, state.offset.width))
+        state.offset.height = max(-maxOffsetY, min(maxOffsetY, state.offset.height))
     }
 }
 

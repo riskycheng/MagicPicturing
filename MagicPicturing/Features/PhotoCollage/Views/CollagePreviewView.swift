@@ -4,7 +4,6 @@ struct CollagePreviewView: View {
     @ObservedObject var viewModel: CollageViewModel
     
     var body: some View {
-        let _ = print("LOG: CollagePreviewView rendering...")
         GeometryReader { geometry in
             ZStack {
                 // Background to dismiss selection
@@ -25,69 +24,11 @@ struct CollagePreviewView: View {
                             isSelected: viewModel.selectedImageIndex == index
                         )
                         .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
-                        .offset(x: geometry.size.width * (frame.minX - 0.5 * (1 - frame.width)), y: geometry.size.height * (frame.minY - 0.5 * (1 - frame.height)))
+                        .position(x: geometry.size.width * (frame.minX + frame.width / 2), y: geometry.size.height * (frame.minY + frame.height / 2))
                         .onTapGesture {
                             viewModel.selectedImageIndex = index
                         }
                     }
-                    
-                    // Add Divider Handle for adjustable layouts
-                    if let layout = viewModel.selectedLayout,
-                       viewModel.selectedImageIndex != nil, // Only show when an image is selected
-                       layout.name.contains("Adjustable") {
-                        
-                        // Logic for 2-image layouts
-                        if layout.name == "2-H-Adjustable" {
-                            let frame = layout.frames[0]
-                            DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .position(x: frame.maxX * geometry.size.width, y: geometry.size.height / 2)
-                        } else if layout.name == "2-V-Adjustable" {
-                            let frame = layout.frames[0]
-                            DividerView(layout: layout, parameterName: "v_split", axis: .horizontal, viewSize: geometry.size)
-                                .position(x: geometry.size.width / 2, y: frame.maxY * geometry.size.height)
-                        }
-                        
-                        // Previous logic for 5-image layout can be adapted similarly...
-                        else if let selectedIndex = viewModel.selectedImageIndex, layout.name == "5-L-Big-Grid-Adjustable" {
-                            let frames = layout.frames
-                            
-                            // Vertical Divider Handle
-                            let vDividerX = (frames[0].maxX - 0.5) * geometry.size.width
-                            let vDivider = DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .position(x: vDividerX, y: geometry.size.height / 2)
-
-                            if selectedIndex == 0 || selectedIndex > 0 { // Show for left frame or any right frame
-                               vDivider
-                            }
-                            
-                            // Horizontal Divider Handles
-                            if selectedIndex > 0 && selectedIndex < 5 {
-                                // Divider above selected cell
-                                if selectedIndex > 1 {
-                                    let frame = frames[selectedIndex - 1]
-                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex-1)", axis: .horizontal, viewSize: geometry.size)
-                                        .position(x: (frame.midX) * geometry.size.width, y: frame.maxY * geometry.size.height)
-                                }
-                                // Divider below selected cell
-                                if selectedIndex < 4 {
-                                    let frame = frames[selectedIndex]
-                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex)", axis: .horizontal, viewSize: geometry.size)
-                                        .position(x: (frame.midX) * geometry.size.width, y: frame.maxY * geometry.size.height)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .onAppear {
-                // Ensure there's a selected layout to observe
-                if viewModel.selectedLayout == nil {
-                    viewModel.selectedLayout = viewModel.availableLayouts.first
-                }
-            }
-            .onChange(of: viewModel.selectedImageIndex) { _, newValue in
-                if newValue != nil && viewModel.selectedLayout?.name.contains("Adjustable") ?? false {
-                    Haptics.impact(style: .medium)
                 }
             }
         }

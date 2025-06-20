@@ -35,7 +35,7 @@ struct CollageWorkspaceView: View {
             // Bottom controls - Stays fixed at the bottom
             Group {
                 if viewModel.selectedImageIndex == nil {
-                    LayoutSelectorView(
+                    BottomControlsView(
                         layouts: viewModel.availableLayouts,
                         selectedLayout: $viewModel.selectedLayout
                     )
@@ -45,7 +45,7 @@ struct CollageWorkspaceView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            // .animation(.easeInOut, value: viewModel.selectedImageIndex) // DEBUG: Temporarily disable to fix animation conflict
+            .animation(.easeInOut, value: viewModel.selectedImageIndex)
         }
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
@@ -108,37 +108,107 @@ struct CollageWorkspaceView: View {
     }
 }
 
-// MARK: - Layout Selector
-private struct LayoutSelectorView: View {
+// MARK: - Bottom Controls
+
+private enum ControlTab: String, CaseIterable {
+    case layout = "布局"
+    case border = "边框"
+    case blur = "模糊"
+    case add = "添加"
+    
+    var icon: String {
+        switch self {
+        case .layout: return "square.grid.2x2"
+        case .border: return "squareshape.controlhandles.on.squareshape.controlhandles"
+        case .blur: return "drop.fill"
+        case .add: return "plus"
+        }
+    }
+}
+
+private struct BottomControlsView: View {
+    @State private var selectedTab: ControlTab = .layout
+    
     let layouts: [CollageLayout]
     @Binding var selectedLayout: CollageLayout?
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("布局")
-                .font(.headline)
-                .padding(.horizontal)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    ForEach(layouts, id: \.id) { layout in
-                        layout.preview
-                            .frame(width: 60, height: 60)
-                            .background(Color.gray.opacity(0.3))
-                            .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(selectedLayout?.id == layout.id ? Color.blue : Color.clear, lineWidth: 3)
-                            )
-                            .onTapGesture {
-                                selectedLayout = layout
-                            }
+        VStack(spacing: 0) {
+            // Content for the selected tab
+            Group {
+                switch selectedTab {
+                case .layout:
+                    LayoutSelectorScrollView(layouts: layouts, selectedLayout: $selectedLayout)
+                case .border, .blur, .add:
+                    // Placeholder for other controls
+                    Text("\(selectedTab.rawValue) 功能待开发")
+                        .foregroundColor(.gray)
+                        .frame(height: 80, alignment: .center)
+                }
+            }
+            .background(Color.black.opacity(0.8))
+
+
+            // Tab bar
+            HStack {
+                ForEach(ControlTab.allCases, id: \.self) { tab in
+                    Button(action: { selectedTab = tab }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 20))
+                            Text(tab.rawValue)
+                                .font(.caption)
+                        }
+                        .foregroundColor(selectedTab == tab ? .blue : .gray)
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal)
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 20)
+            .background(Color(UIColor.systemGray6).opacity(0.2))
+        }
+    }
+}
+
+private struct LayoutSelectorScrollView: View {
+    let layouts: [CollageLayout]
+    @Binding var selectedLayout: CollageLayout?
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 20) {
+                ForEach(layouts) { layout in
+                    LayoutPreviewCell(
+                        layout: layout,
+                        isSelected: selectedLayout?.id == layout.id
+                    )
+                    .onTapGesture {
+                        withAnimation {
+                            selectedLayout = layout
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+        .frame(height: 80)
+    }
+}
+
+private struct LayoutPreviewCell: View {
+    let layout: CollageLayout
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            ForEach(layout.frames, id: \.self) { frame in
+                Rectangle()
+                    .stroke(isSelected ? Color.blue : Color.gray, lineWidth: 1.5)
+                    .frame(width: frame.width * 44, height: frame.height * 44)
+                    .offset(x: frame.midX * 44 - 22, y: frame.midY * 44 - 22)
             }
         }
-        .padding(.vertical)
-        .background(Color.black.opacity(0.5))
+        .frame(width: 50, height: 50)
     }
 } 
