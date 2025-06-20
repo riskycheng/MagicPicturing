@@ -17,16 +17,26 @@ struct CollageWorkspaceView: View {
             // Header - Stays fixed at the top
             headerView
 
-            // Spacer to push the preview into the middle, allowing it to resize freely
-            Spacer()
-
-            if !viewModel.images.isEmpty, let layout = viewModel.selectedLayout {
-                CollagePreviewView(viewModel: viewModel)
-                    // The aspect ratio is now driven by the layout itself
-                    .aspectRatio(layout.aspectRatio, contentMode: .fit)
-                    .padding(.horizontal)
-            } else {
-                ProgressView()
+            // The main content area that now handles background taps for deselection
+            ZStack {
+                // This tappable background fills the entire central area
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.selectedImageIndex = nil
+                    }
+                
+                // The actual collage content, centered
+                VStack {
+                    if !viewModel.images.isEmpty, let layout = viewModel.selectedLayout {
+                        CollagePreviewView(viewModel: viewModel)
+                            // The aspect ratio is now driven by the layout itself
+                            .aspectRatio(layout.aspectRatio, contentMode: .fit)
+                            .padding(.horizontal)
+                    } else {
+                        ProgressView()
+                    }
+                }
             }
             
             // Spacer to push the layout selector to the bottom

@@ -26,7 +26,11 @@ struct CollagePreviewView: View {
                         .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
                         .position(x: geometry.size.width * (frame.minX + frame.width / 2), y: geometry.size.height * (frame.minY + frame.height / 2))
                         .onTapGesture {
-                            viewModel.selectedImageIndex = index
+                            if viewModel.selectedImageIndex == index {
+                                viewModel.selectedImageIndex = nil
+                            } else {
+                                viewModel.selectedImageIndex = index
+                            }
                         }
                     }
                 }
