@@ -73,23 +73,35 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
 
         var finalValue = value
         
-        // Custom logic for the adjustable layout to prevent dividers from crossing
-        if self.name == "5-L-Big-Grid-Adjustable" && name.starts(with: "v_split") {
-            let v1 = parameters["v_split1"]!.value
-            let v2 = parameters["v_split2"]!.value
-            let v3 = parameters["v_split3"]!.value
-            
-            let minSpacing: CGFloat = 0.05 // 5% minimum height for a cell
+        let minSpacing: CGFloat = 0.05 // 5% minimum cell size
 
-            if name == "v_split1" {
-                // Dragging the first divider. It can't go past the second divider.
-                finalValue = min(finalValue, v2 - minSpacing)
-            } else if name == "v_split2" {
-                // Dragging the second divider. It must stay between the first and third.
-                finalValue = min(max(finalValue, v1 + minSpacing), v3 - minSpacing)
-            } else if name == "v_split3" {
-                // Dragging the third divider. It can't go before the second.
-                finalValue = max(finalValue, v2 + minSpacing)
+        // Generic logic for vertical multi-split
+        if name.starts(with: "v_split") {
+            if let numberString = name.components(separatedBy: "v_split").last, let number = Int(numberString) {
+                // Check against previous divider
+                if let prevParam = parameters["v_split\(number - 1)"] {
+                    finalValue = max(finalValue, prevParam.value + minSpacing)
+                }
+                
+                // Check against next divider
+                if let nextParam = parameters["v_split\(number + 1)"] {
+                    finalValue = min(finalValue, nextParam.value - minSpacing)
+                }
+            }
+        }
+        
+        // Generic logic for horizontal multi-split
+        if name.starts(with: "h_split") {
+            if let numberString = name.components(separatedBy: "h_split").last, let number = Int(numberString) {
+                // Check against previous divider
+                if let prevParam = parameters["h_split\(number - 1)"] {
+                    finalValue = max(finalValue, prevParam.value + minSpacing)
+                }
+                
+                // Check against next divider
+                if let nextParam = parameters["h_split\(number + 1)"] {
+                    finalValue = min(finalValue, nextParam.value - minSpacing)
+                }
             }
         }
         
@@ -98,7 +110,6 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
         
         if self.parameters[name]?.value != clampedValue {
             self.parameters[name]?.value = clampedValue
-            print("LOG: Layout Parameter Updated: \(name) = \(clampedValue)")
         }
     }
     

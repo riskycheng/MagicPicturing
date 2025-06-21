@@ -30,40 +30,46 @@ struct CollagePreviewView: View {
                         }
                     }
                     
-                    // Add Divider Handle for adjustable layouts
-                    if let layout = viewModel.selectedLayout,
-                       viewModel.selectedImageIndex != nil, // Only show when an image is selected
-                       !layout.parameters.isEmpty {
+                    // MARK: - Dynamic Divider Handles
+                    if let layout = viewModel.selectedLayout, viewModel.selectedImageIndex != nil {
                         
-                        // This logic can be expanded for other adjustable layouts
-                        if layout.name == "2-H-Adjustable" {
-                            let frame = layout.frames[0]
-                            DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .position(x: frame.maxX * geometry.size.width, y: geometry.size.height / 2)
-                        } else if layout.name == "2-V-Adjustable" {
-                            let frame = layout.frames[0]
-                            DividerView(layout: layout, parameterName: "v_split", axis: .horizontal, viewSize: geometry.size)
-                                .position(x: geometry.size.width / 2, y: frame.maxY * geometry.size.height)
-                        } else if layout.name == "5-L-Big-Grid", let selectedIndex = viewModel.selectedImageIndex {
-                            let frames = layout.frames
+                        // Special case for complex layouts first
+                        if layout.name == "5-L-Big-Grid" {
+                            let h_split = layout.parameters["h_split1"]!.value
+                            let v1 = layout.parameters["v_split1"]!.value
+                            let v2 = layout.parameters["v_split2"]!.value
+                            let v3 = layout.parameters["v_split3"]!.value
                             
-                            // Vertical Divider Handle (between left and right columns)
-                            DividerView(layout: layout, parameterName: "h_split", axis: .vertical, viewSize: geometry.size)
-                                .position(x: frames[0].maxX * geometry.size.width, y: geometry.size.height / 2)
+                            // Vertical Divider
+                            DividerView(layout: layout, parameterName: "h_split1", axis: .vertical, viewSize: geometry.size)
+                                .position(x: h_split * geometry.size.width, y: geometry.size.height / 2)
 
-                            // Horizontal Divider Handles (for the right column)
-                            if selectedIndex > 0 { // Any image on the right is selected
-                                // Divider above the selected cell
-                                if selectedIndex > 1 {
-                                    let prevFrame = frames[selectedIndex - 1]
-                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex - 1)", axis: .horizontal, viewSize: geometry.size)
-                                        .position(x: prevFrame.midX * geometry.size.width, y: prevFrame.maxY * geometry.size.height)
+                            // Horizontal Dividers (positioned relative to the right column)
+                            let rightColumnX = h_split * geometry.size.width
+                            let rightColumnWidth = (1 - h_split) * geometry.size.width
+                            
+                            DividerView(layout: layout, parameterName: "v_split1", axis: .horizontal, viewSize: geometry.size)
+                                .position(x: rightColumnX + rightColumnWidth / 2, y: v1 * geometry.size.height)
+                            DividerView(layout: layout, parameterName: "v_split2", axis: .horizontal, viewSize: geometry.size)
+                                .position(x: rightColumnX + rightColumnWidth / 2, y: v2 * geometry.size.height)
+                            DividerView(layout: layout, parameterName: "v_split3", axis: .horizontal, viewSize: geometry.size)
+                                .position(x: rightColumnX + rightColumnWidth / 2, y: v3 * geometry.size.height)
+                        } else {
+                            // Generic logic for simple grids and strips
+                            let hSplitParams = layout.parameters.filter { $0.key.starts(with: "h_split") }
+                            let vSplitParams = layout.parameters.filter { $0.key.starts(with: "v_split") }
+
+                            ForEach(Array(hSplitParams.keys.sorted()), id: \.self) { key in
+                                if let param = hSplitParams[key] {
+                                    DividerView(layout: layout, parameterName: key, axis: .vertical, viewSize: geometry.size)
+                                        .position(x: param.value * geometry.size.width, y: geometry.size.height / 2)
                                 }
-                                // Divider below the selected cell
-                                if selectedIndex < 4 {
-                                    let currentFrame = frames[selectedIndex]
-                                    DividerView(layout: layout, parameterName: "v_split\(selectedIndex)", axis: .horizontal, viewSize: geometry.size)
-                                        .position(x: currentFrame.midX * geometry.size.width, y: currentFrame.maxY * geometry.size.height)
+                            }
+                            
+                            ForEach(Array(vSplitParams.keys.sorted()), id: \.self) { key in
+                                if let param = vSplitParams[key] {
+                                    DividerView(layout: layout, parameterName: key, axis: .horizontal, viewSize: geometry.size)
+                                        .position(x: geometry.size.width / 2, y: param.value * geometry.size.height)
                                 }
                             }
                         }
@@ -147,4 +153,17 @@ struct DividerView: View {
                     }
             )
     }
+}
+
+private func v_split_fract(_ index: Int, frac: CGFloat, from: CGFloat = 0, in rect: CGRect) -> CGRect {
+    let y = rect.minY + from * rect.height
+    let h = frac * rect.height
+    return CGRect(x: rect.minX, y: y, width: rect.width, height: h)
+}
+
+// Horizontal fractional split
+private func h_split_fract(_ index: Int, frac: CGFloat, from: CGFloat = 0, in rect: CGRect) -> CGRect {
+    let x = rect.minX + from * rect.width
+    let w = frac * rect.width
+    return CGRect(x: x, y: rect.minY, width: w, height: rect.height)
 } 
