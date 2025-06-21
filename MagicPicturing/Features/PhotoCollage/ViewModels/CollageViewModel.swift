@@ -13,6 +13,11 @@ class CollageViewModel: ObservableObject {
     }
     @Published var selectedImageIndex: Int?
 
+    // MARK: - Collage Style Properties
+    @Published var borderWidth: CGFloat = 4
+    @Published var cornerRadius: CGFloat = 0
+    @Published var shadowRadius: CGFloat = 0
+
     private var assets: [PHAsset]
     private let photoLibraryService = PhotoLibraryService()
     private var layoutCancellable: AnyCancellable?

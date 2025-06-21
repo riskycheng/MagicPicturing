@@ -16,15 +16,25 @@ struct CollagePreviewView: View {
                 if let layout = viewModel.selectedLayout {
                     ForEach(0..<min(viewModel.images.count, layout.frames.count), id: \.self) { index in
                         let frame = layout.frames[index]
-                        
-                        // Use a container to position and size the cell
+                        let spacing = viewModel.borderWidth / 2
+
+                        let absoluteFrame = CGRect(
+                            x: frame.minX * geometry.size.width,
+                            y: frame.minY * geometry.size.height,
+                            width: frame.width * geometry.size.width,
+                            height: frame.height * geometry.size.height
+                        )
+                        let insetFrame = absoluteFrame.insetBy(dx: spacing, dy: spacing)
+
                         CollageCellView(
                             image: viewModel.images[index],
                             state: $viewModel.imageStates[index],
                             isSelected: viewModel.selectedImageIndex == index
                         )
-                        .frame(width: geometry.size.width * frame.width, height: geometry.size.height * frame.height)
-                        .position(x: geometry.size.width * (frame.minX + frame.width / 2), y: geometry.size.height * (frame.minY + frame.height / 2))
+                        .frame(width: insetFrame.width, height: insetFrame.height)
+                        .cornerRadius(viewModel.cornerRadius)
+                        .shadow(color: .black.opacity(viewModel.shadowRadius > 0 ? 0.4 : 0), radius: viewModel.shadowRadius, x: 0, y: viewModel.shadowRadius / 2)
+                        .position(x: insetFrame.midX, y: insetFrame.midY)
                         .onTapGesture {
                             viewModel.selectedImageIndex = index
                         }

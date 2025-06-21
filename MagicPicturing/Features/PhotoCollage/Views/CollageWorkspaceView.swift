@@ -46,6 +46,7 @@ struct CollageWorkspaceView: View {
             Group {
                 if viewModel.selectedImageIndex == nil {
                     BottomControlsView(
+                        viewModel: viewModel,
                         layouts: viewModel.availableLayouts,
                         selectedLayout: $viewModel.selectedLayout
                     )
@@ -138,6 +139,7 @@ private enum ControlTab: String, CaseIterable {
 
 private struct BottomControlsView: View {
     @State private var selectedTab: ControlTab = .layout
+    @ObservedObject var viewModel: CollageViewModel
     
     let layouts: [CollageLayout]
     @Binding var selectedLayout: CollageLayout?
@@ -149,7 +151,13 @@ private struct BottomControlsView: View {
                 switch selectedTab {
                 case .layout:
                     LayoutSelectorScrollView(layouts: layouts, selectedLayout: $selectedLayout)
-                case .border, .blur, .add:
+                case .border:
+                    BorderControlsView(
+                        borderWidth: $viewModel.borderWidth,
+                        cornerRadius: $viewModel.cornerRadius,
+                        shadowRadius: $viewModel.shadowRadius
+                    )
+                case .blur, .add:
                     // Placeholder for other controls
                     Text("\(selectedTab.rawValue) 功能待开发")
                         .foregroundColor(.gray)
@@ -178,6 +186,33 @@ private struct BottomControlsView: View {
             .padding(.bottom, 20)
             .background(Color(UIColor.systemGray6).opacity(0.2))
         }
+    }
+}
+
+private struct BorderControlsView: View {
+    @Binding var borderWidth: CGFloat
+    @Binding var cornerRadius: CGFloat
+    @Binding var shadowRadius: CGFloat
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("间距").frame(width: 40)
+                Slider(value: $borderWidth, in: 0...40)
+            }
+            HStack {
+                Text("圆角").frame(width: 40)
+                Slider(value: $cornerRadius, in: 0...50)
+            }
+            HStack {
+                Text("阴影").frame(width: 40)
+                Slider(value: $shadowRadius, in: 0...15)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 5)
+        .frame(height: 110)
+        .foregroundColor(.white)
     }
 }
 
