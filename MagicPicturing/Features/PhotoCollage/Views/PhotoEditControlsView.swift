@@ -4,62 +4,55 @@ struct PhotoEditControlsView: View {
     @ObservedObject var viewModel: CollageViewModel
     
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
-                    // Example Button: Rotate
-                    Button(action: {
+                HStack(spacing: 24) {
+                    controlButton(icon: "rotate.right.fill", text: "旋转") {
                         viewModel.rotateSelectedImage()
-                    }) {
-                        VStack {
-                            Image(systemName: "rotate.right.fill")
-                                .font(.title2)
-                            Text("旋转")
-                                .font(.caption)
-                        }
                     }
                     
-                    // Example Button: Flip Horizontal
-                    Button(action: {
+                    controlButton(icon: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill", text: "水平翻转") {
                         viewModel.flipSelectedImageHorizontally()
-                    }) {
-                        VStack {
-                            Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
-                                .font(.title2)
-                            Text("水平翻转")
-                                .font(.caption)
-                        }
                     }
                     
-                    // Example Button: Flip Vertical
-                    Button(action: {
+                    controlButton(icon: "arrow.up.and.down.righttriangle.up.righttriangle.down.fill", text: "垂直翻转") {
                         viewModel.flipSelectedImageVertically()
-                    }) {
-                        VStack {
-                            Image(systemName: "arrow.up.and.down.righttriangle.up.righttriangle.down.fill")
-                                .font(.title2)
-                            Text("垂直翻转")
-                                .font(.caption)
-                        }
                     }
                 }
-                .padding(.leading)
+                .padding(.horizontal, 20)
             }
             
-            Divider().background(Color.gray)
+            Rectangle()
+                .fill(Color.gray.opacity(0.5))
+                .frame(width: 1)
+                .padding(.vertical, 10)
 
             Button(action: {
                 viewModel.selectedImageIndex = nil
             }) {
-                Text("完成")
+                Text("返回")
                     .font(.headline)
-                    .padding(.horizontal)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
             }
         }
-        .padding(.vertical)
-        .foregroundColor(.white)
-        .background(Color(UIColor.systemGray5).opacity(0.8))
-        .cornerRadius(15)
+        .frame(height: 65)
+        .background(Color(UIColor.systemGray5).opacity(0.85))
+        .cornerRadius(20)
         .padding(.horizontal)
+        .padding(.bottom, 5)
+    }
+
+    @ViewBuilder
+    private func controlButton(icon: String, text: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                Text(text)
+                    .font(.caption)
+            }
+            .foregroundColor(.white)
+        }
     }
 } 
