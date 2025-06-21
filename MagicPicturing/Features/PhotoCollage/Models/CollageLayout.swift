@@ -1,10 +1,43 @@
 import SwiftUI
 
+/// A helper class to throttle the execution of a block of code.
+/// This is used to limit the rate of UI updates during rapid events like dragging.
+private class Throttler {
+    private var workItem: DispatchWorkItem = DispatchWorkItem(block: {})
+    private var previousRun: Date = .distantPast
+    private let queue: DispatchQueue
+    private let minimumDelay: TimeInterval
+
+    init(minimumDelay: TimeInterval, queue: DispatchQueue = .main) {
+        self.minimumDelay = minimumDelay
+        self.queue = queue
+    }
+
+    func throttle(_ block: @escaping () -> Void) {
+        // Cancel any existing work item
+        workItem.cancel()
+
+        // Create a new work item
+        workItem = DispatchWorkItem { [weak self] in
+            self?.previousRun = Date()
+            block()
+        }
+
+        // Delay execution
+        let delay = previousRun.timeIntervalSinceNow > minimumDelay ? 0 : minimumDelay
+        queue.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+}
+
 /// Defines the structure for a single collage layout.
 class CollageLayout: Identifiable, ObservableObject, Equatable {
     let id = UUID()
     let name: String
     let aspectRatio: CGFloat
+    
+    // Throttler to limit UI updates during fast dragging.
+    // 30fps is a good target for smooth animations.
+    private lazy var throttler = Throttler(minimumDelay: 1/30)
     
     struct Parameter {
         var value: CGFloat
@@ -31,7 +64,10 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
     }
     
     func updateParameter(_ name: String, value: CGFloat) {
-        objectWillChange.send()
+        // Use the throttler to publish changes, preventing view updates from firing too rapidly.
+        throttler.throttle { [weak self] in
+            self?.objectWillChange.send()
+        }
         
         guard var param = self.parameters[name] else { return }
 

@@ -45,7 +45,7 @@ struct CollageLayoutProvider {
         case 5:
              return [
                 CollageLayout(
-                    name: "5-L-Big-Grid-Adjustable",
+                    name: "5-L-Big-Grid",
                     aspectRatio: 1,
                     parameters: [
                         "h_split": .init(value: 2/3, range: 0.2...0.8),
@@ -54,12 +54,12 @@ struct CollageLayoutProvider {
                         "v_split3": .init(value: 0.75, range: 0.1...0.9)
                     ],
                     frameGenerator: { params in
-                        let h_split = params["h_split"]!.value
+                        let h_split_val = params["h_split"]!.value
                         let v1 = params["v_split1"]!.value
                         let v2 = params["v_split2"]!.value
                         let v3 = params["v_split3"]!.value
                         
-                        let rightColumnRect = h_split_fract(1, frac: 1 - h_split, from: h_split)
+                        let rightColumnRect = h_split_fract(1, frac: 1 - h_split_val, from: h_split_val)
 
                         let rightFrames = [
                             v_split_fract(0, frac: v1, in: rightColumnRect),
@@ -68,12 +68,9 @@ struct CollageLayoutProvider {
                             v_split_fract(3, frac: 1.0 - v3, from: v3, in: rightColumnRect)
                         ]
                         
-                        return [h_split_fract(0, frac: h_split)] + rightFrames
+                        return [h_split_fract(0, frac: h_split_val)] + rightFrames
                     }
                 ),
-                CollageLayout(name: "5-L-Big-Grid", aspectRatio: 1, frameGenerator: { _ in
-                    [h_split_fract(0, frac: 2/3), grid(0, cols: 1, rows: 4, in: h_split_fract(1, frac: 1/3, from: 2/3)), grid(1, cols: 1, rows: 4, in: h_split_fract(1, frac: 1/3, from: 2/3)), grid(2, cols: 1, rows: 4, in: h_split_fract(1, frac: 1/3, from: 2/3)), grid(3, cols: 1, rows: 4, in: h_split_fract(1, frac: 1/3, from: 2/3))]
-                }),
                 CollageLayout(name: "5-T-Big-Grid", aspectRatio: 1, frameGenerator: { _ in
                     [v_split_fract(0, frac: 2/3), grid(0, cols: 4, rows: 1, in: v_split_fract(1, frac: 1/3, from: 2/3)), grid(1, cols: 4, rows: 1, in: v_split_fract(1, frac: 1/3, from: 2/3)), grid(2, cols: 4, rows: 1, in: v_split_fract(1, frac: 1/3, from: 2/3)), grid(3, cols: 4, rows: 1, in: v_split_fract(1, frac: 1/3, from: 2/3))]
                 }),
