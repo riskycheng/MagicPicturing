@@ -4,48 +4,61 @@ struct PhotoEditControlsView: View {
     @ObservedObject var viewModel: CollageViewModel
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
-                // Example Button: Rotate
-                Button(action: {
-                    viewModel.rotateSelectedImage()
-                }) {
-                    VStack {
-                        Image(systemName: "rotate.right.fill")
-                            .font(.title2)
-                        Text("旋转")
-                            .font(.caption)
+        HStack {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 20) {
+                    // Example Button: Rotate
+                    Button(action: {
+                        viewModel.rotateSelectedImage()
+                    }) {
+                        VStack {
+                            Image(systemName: "rotate.right.fill")
+                                .font(.title2)
+                            Text("旋转")
+                                .font(.caption)
+                        }
+                    }
+                    
+                    // Example Button: Flip Horizontal
+                    Button(action: {
+                        viewModel.flipSelectedImageHorizontally()
+                    }) {
+                        VStack {
+                            Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
+                                .font(.title2)
+                            Text("水平翻转")
+                                .font(.caption)
+                        }
+                    }
+                    
+                    // Example Button: Flip Vertical
+                    Button(action: {
+                        viewModel.flipSelectedImageVertically()
+                    }) {
+                        VStack {
+                            Image(systemName: "arrow.up.and.down.righttriangle.up.righttriangle.down.fill")
+                                .font(.title2)
+                            Text("垂直翻转")
+                                .font(.caption)
+                        }
                     }
                 }
-                
-                // Example Button: Flip Horizontal
-                Button(action: {
-                    viewModel.flipSelectedImageHorizontally()
-                }) {
-                    VStack {
-                        Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
-                            .font(.title2)
-                        Text("水平翻转")
-                            .font(.caption)
-                    }
-                }
-                
-                // Example Button: Flip Vertical
-                Button(action: {
-                    viewModel.flipSelectedImageVertically()
-                }) {
-                    VStack {
-                        Image(systemName: "arrow.up.and.down.righttriangle.up.righttriangle.down.fill")
-                            .font(.title2)
-                        Text("垂直翻转")
-                            .font(.caption)
-                    }
-                }
+                .padding(.leading)
             }
-            .padding()
-            .foregroundColor(.white)
+            
+            Divider().background(Color.gray)
+
+            Button(action: {
+                viewModel.selectedImageIndex = nil
+            }) {
+                Text("完成")
+                    .font(.headline)
+                    .padding(.horizontal)
+            }
         }
-        .background(Color.black.opacity(0.75))
+        .padding(.vertical)
+        .foregroundColor(.white)
+        .background(Color(UIColor.systemGray5).opacity(0.8))
         .cornerRadius(15)
         .padding(.horizontal)
     }
