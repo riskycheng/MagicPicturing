@@ -2,17 +2,27 @@ import SwiftUI
 import Photos
 import Combine
 
-struct CanvasImageState: Identifiable {
+class CanvasImageState: Identifiable, ObservableObject {
     let id: String // asset.localIdentifier
-    var image: UIImage
-    var position: CGPoint
-    var scale: CGFloat // a new property to control the scale of the image within the frame
-    var rotation: Angle
-    var size: CGSize // this will now represent the size of the crop frame
-    var imageOffset: CGPoint = .zero // new property to control the offset of the image within the frame
-    var isSelected: Bool
-    var isFlippedHorizontally: Bool = false
-    var isFlippedVertically: Bool = false
+    @Published var image: UIImage
+    @Published var position: CGPoint
+    @Published var scale: CGFloat
+    @Published var rotation: Angle
+    @Published var size: CGSize
+    @Published var imageOffset: CGPoint = .zero
+    @Published var isSelected: Bool
+    @Published var isFlippedHorizontally: Bool = false
+    @Published var isFlippedVertically: Bool = false
+    
+    init(id: String, image: UIImage, position: CGPoint, scale: CGFloat, rotation: Angle, size: CGSize, isSelected: Bool) {
+        self.id = id
+        self.image = image
+        self.position = position
+        self.scale = scale
+        self.rotation = rotation
+        self.size = size
+        self.isSelected = isSelected
+    }
 }
 
 class CanvasViewModel: ObservableObject {
@@ -85,9 +95,7 @@ class CanvasViewModel: ObservableObject {
             scale: 1.0,
             rotation: .zero,
             size: CGSize(width: 120, height: 120),
-            isSelected: false,
-            isFlippedHorizontally: false,
-            isFlippedVertically: false
+            isSelected: false
         )
         canvasImages.append(state)
         // 从底部移除
@@ -109,15 +117,6 @@ class CanvasViewModel: ObservableObject {
         }
     }
 
-    // 更新图片状态
-    func updateImage(_ updated: CanvasImageState) {
-        if let idx = canvasImages.firstIndex(where: { $0.id == updated.id }) {
-            canvasImages[idx] = updated
-        }
-        // 从底部移除
-        bottomImages.removeAll { $0.id == updated.id }
-    }
-
     // 拖入画布（指定位置）
     func addImage(at point: CGPoint, image: UIImageWithID, canvasSize: CGSize) {
         // 限制图片中心点不能超出画布
@@ -129,6 +128,7 @@ class CanvasViewModel: ObservableObject {
         let initialWidth: CGFloat = 150
         let initialSize = CGSize(width: initialWidth, height: initialWidth / aspectRatio)
 
+        // Create the state with the initial low-res thumbnail
         let state = CanvasImageState(
             id: image.id,
             image: image.image,
@@ -136,12 +136,31 @@ class CanvasViewModel: ObservableObject {
             scale: 1.0,
             rotation: .zero,
             size: initialSize,
-            isSelected: false,
-            isFlippedHorizontally: false,
-            isFlippedVertically: false
+            isSelected: false
         )
         canvasImages.append(state)
-        // 从底部移除
+        
+        // Remove from bottom bar
         bottomImages.removeAll { $0.id == image.id }
+
+        // Asynchronously fetch the full-resolution image and update the state
+        guard let originalAsset = assets.first(where: { $0.localIdentifier == image.id }) else { return }
+        
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        
+        PHImageManager.default().requestImage(for: originalAsset, targetSize: PHImageManagerMaximumSize, contentMode: .aspectFill, options: options) { fullResImage, _ in
+            DispatchQueue.main.async {
+                if let fullResImage = fullResImage {
+                    // Find the state object and update its image.
+                    // Because CanvasImageState is a class and its 'image' property is @Published,
+                    // the corresponding CanvasImageView will update automatically.
+                    if let existingState = self.canvasImages.first(where: { $0.id == image.id }) {
+                        existingState.image = fullResImage
+                    }
+                }
+            }
+        }
     }
 } 

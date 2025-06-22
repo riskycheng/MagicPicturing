@@ -31,7 +31,7 @@ struct BottomImagePickerView: View {
                                         }
                                 )
                                 .simultaneousGesture(
-                                    DragGesture(minimumDistance: 0, coordinateSpace: .named("workspace"))
+                                    DragGesture(minimumDistance: 0, coordinateSpace: .global)
                                         .onChanged { value in
                                             let frame = geo.frame(in: .global)
                                             if dragStarted[img.id] != true {
@@ -57,6 +57,6 @@ struct BottomImagePickerView: View {
             }
             .padding()
         }
-        .background(Color.black.opacity(0.1))
+        .background(.regularMaterial)
     }
 } 

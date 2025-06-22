@@ -20,7 +20,7 @@ struct CollageModeSelectionView: View {
                     ModeButton(title: "模板拼图", description: "选择一个预设模板开始", icon: "rectangle.grid.2x2.fill")
                 }
                 
-                NavigationLink(destination: CanvasView(initialAssets: assets)) {
+                NavigationLink(destination: FreeCollageWorkspaceView(initialAssets: assets)) {
                     ModeButton(title: "自由拼图", description: "在画布上自由缩放和旋转", icon: "wand.and.stars")
                 }
             }

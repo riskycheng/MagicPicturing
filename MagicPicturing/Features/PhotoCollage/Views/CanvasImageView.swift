@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct CanvasImageView: View {
-    let state: CanvasImageState
+    @ObservedObject var state: CanvasImageState
     let isSelected: Bool
-    let onUpdate: (CanvasImageState) -> Void
     let onSelect: (String) -> Void
     let onRemove: (String) -> Void
     let allImages: [CanvasImageState]
@@ -35,7 +34,6 @@ struct CanvasImageView: View {
                 }
                 guard let startOffset = startImageOffset else { return }
 
-                var updatedState = state
                 let newOffsetX = startOffset.x + value.translation.width
                 let newOffsetY = startOffset.y + value.translation.height
                 
@@ -48,18 +46,16 @@ struct CanvasImageView: View {
                 let yLimit = (scaledImageSize.height - state.size.height) / 2
 
                 if xLimit > 0 {
-                    updatedState.imageOffset.x = max(-xLimit, min(xLimit, newOffsetX))
+                    state.imageOffset.x = max(-xLimit, min(xLimit, newOffsetX))
                 } else {
-                    updatedState.imageOffset.x = 0
+                    state.imageOffset.x = 0
                 }
 
                 if yLimit > 0 {
-                    updatedState.imageOffset.y = max(-yLimit, min(yLimit, newOffsetY))
+                    state.imageOffset.y = max(-yLimit, min(yLimit, newOffsetY))
                 } else {
-                    updatedState.imageOffset.y = 0
+                    state.imageOffset.y = 0
                 }
-                
-                onUpdate(updatedState)
             }
             .onEnded { value in
                 startImageOffset = nil
@@ -72,9 +68,7 @@ struct CanvasImageView: View {
                     startScale = state.scale
                 }
                 guard let startingScale = startScale else { return }
-                var updatedState = state
-                updatedState.scale = startingScale * value
-                onUpdate(updatedState)
+                state.scale = startingScale * value
             }
             .onEnded { value in
                 startScale = nil
@@ -163,7 +157,6 @@ struct CanvasImageView: View {
                                 }
                                 guard draggingHandle == edge else { return }
 
-                                var updatedState = state
                                 let translation = value.translation
                                 
                                 let scaledImageSize = CGSize(
@@ -174,42 +167,41 @@ struct CanvasImageView: View {
                                 switch edge {
                                 case .top:
                                     let delta = translation.height
-                                    let newHeight = updatedState.size.height - delta
-                                    let maxCropHeight = scaledImageSize.height - 2 * updatedState.imageOffset.y
+                                    let newHeight = state.size.height - delta
+                                    let maxCropHeight = scaledImageSize.height - 2 * state.imageOffset.y
                                     if newHeight > 0, newHeight <= maxCropHeight {
-                                        updatedState.size.height = newHeight
-                                        updatedState.position.y += delta / 2
-                                        updatedState.imageOffset.y -= delta / 2
+                                        state.size.height = newHeight
+                                        state.position.y += delta / 2
+                                        state.imageOffset.y -= delta / 2
                                     }
                                 case .bottom:
                                     let delta = translation.height
-                                    let newHeight = updatedState.size.height + delta
-                                    let maxCropHeight = scaledImageSize.height + 2 * updatedState.imageOffset.y
+                                    let newHeight = state.size.height + delta
+                                    let maxCropHeight = scaledImageSize.height + 2 * state.imageOffset.y
                                     if newHeight > 0, newHeight <= maxCropHeight {
-                                        updatedState.size.height = newHeight
-                                        updatedState.position.y += delta / 2
-                                        updatedState.imageOffset.y -= delta / 2
+                                        state.size.height = newHeight
+                                        state.position.y += delta / 2
+                                        state.imageOffset.y -= delta / 2
                                     }
                                 case .leading:
                                     let delta = translation.width
-                                    let newWidth = updatedState.size.width - delta
-                                    let maxCropWidth = scaledImageSize.width - 2 * updatedState.imageOffset.x
+                                    let newWidth = state.size.width - delta
+                                    let maxCropWidth = scaledImageSize.width - 2 * state.imageOffset.x
                                     if newWidth > 0, newWidth <= maxCropWidth {
-                                        updatedState.size.width = newWidth
-                                        updatedState.position.x += delta / 2
-                                        updatedState.imageOffset.x -= delta / 2
+                                        state.size.width = newWidth
+                                        state.position.x += delta / 2
+                                        state.imageOffset.x -= delta / 2
                                     }
                                 case .trailing:
                                     let delta = translation.width
-                                    let newWidth = updatedState.size.width + delta
-                                    let maxCropWidth = scaledImageSize.width + 2 * updatedState.imageOffset.x
+                                    let newWidth = state.size.width + delta
+                                    let maxCropWidth = scaledImageSize.width + 2 * state.imageOffset.x
                                     if newWidth > 0, newWidth <= maxCropWidth {
-                                        updatedState.size.width = newWidth
-                                        updatedState.position.x += delta / 2
-                                        updatedState.imageOffset.x -= delta / 2
+                                        state.size.width = newWidth
+                                        state.position.x += delta / 2
+                                        state.imageOffset.x -= delta / 2
                                     }
                                 }
-                                onUpdate(updatedState)
                             }
                             .onEnded { _ in
                                 draggingHandle = nil
@@ -241,44 +233,42 @@ struct CanvasImageView: View {
                     
                     guard let previousLocation = previousMoveLocation else { return }
 
-                    let delta = CGPoint(
-                        x: value.location.x - previousLocation.x,
-                        y: value.location.y - previousLocation.y
-                    )
-
-                    var newPos = CGPoint(
-                        x: state.position.x + delta.x,
-                        y: state.position.y + delta.y
-                    )
-
-                    self.previousMoveLocation = value.location
+                    let deltaX = value.location.x - previousLocation.x
+                    let deltaY = value.location.y - previousLocation.y
                     
-                    var snapped = false
-                    for other in allImages where other.id != state.id {
-                        if abs(newPos.x - other.position.x) < snapThreshold {
-                            newPos.x = other.position.x
-                            showGuideLine = true
-                            guideLinePos = CGPoint(x: newPos.x, y: (newPos.y + other.position.y) / 2)
-                            guideLineAxis = .vertical
-                            snapped = true
-                            UISelectionFeedbackGenerator().selectionChanged()
+                    state.position.x += deltaX
+                    state.position.y += deltaY
+                    
+                    previousMoveLocation = value.location
+                    
+                    var snappedToX = false
+                    var snappedToY = false
+                    
+                    showGuideLine = false // Reset before checking
+                    
+                    for otherImage in allImages where otherImage.id != state.id {
+                        if !snappedToX {
+                            let xDistance = abs(state.position.x - otherImage.position.x)
+                            if xDistance < snapThreshold {
+                                state.position.x = otherImage.position.x
+                                showGuideLine = true
+                                guideLinePos = otherImage.position
+                                guideLineAxis = .vertical
+                                snappedToX = true
+                            }
                         }
-                        if abs(newPos.y - other.position.y) < snapThreshold {
-                            newPos.y = other.position.y
-                            showGuideLine = true
-                            guideLinePos = CGPoint(x: (newPos.x + other.position.x) / 2, y: newPos.y)
-                            guideLineAxis = .horizontal
-                            snapped = true
-                            UISelectionFeedbackGenerator().selectionChanged()
+                        
+                        if !snappedToY {
+                            let yDistance = abs(state.position.y - otherImage.position.y)
+                            if yDistance < snapThreshold {
+                                state.position.y = otherImage.position.y
+                                showGuideLine = true
+                                guideLinePos = otherImage.position
+                                guideLineAxis = .horizontal
+                                snappedToY = true
+                            }
                         }
                     }
-                    if !snapped {
-                        showGuideLine = false
-                    }
-                    
-                    var updatedState = state
-                    updatedState.position = newPos
-                    onUpdate(updatedState)
                 }
                 .onEnded { _ in
                     draggingMoveHandle = false
