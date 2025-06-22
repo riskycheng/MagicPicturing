@@ -53,8 +53,9 @@ struct CollageWorkspaceView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.selectedImageIndex)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: activeSheet?.id)
         }
-        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+        .background(Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
+        .environment(\.colorScheme, .light)
         .foregroundColor(Color(UIColor.label))
         .alert("已保存至相册", isPresented: $showSaveSuccessAlert) {
             Button("好", role: .cancel) { }
@@ -115,7 +116,7 @@ struct CollageWorkspaceView: View {
         
         let collageToRender = CollagePreviewView(viewModel: viewModel)
             .frame(width: renderWidth, height: renderHeight)
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color(UIColor.systemBackground))
 
         guard let renderedImage = collageToRender.snapshot() else {
             print("Error: Could not render the collage view to an image.")
