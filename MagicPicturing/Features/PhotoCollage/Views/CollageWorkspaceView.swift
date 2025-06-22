@@ -211,7 +211,7 @@ private struct SubControlPanel: View {
             // Grabber handle to indicate draggable area
             Capsule()
                 .fill(Color.gray.opacity(0.4))
-                .frame(width: 40, height: 5)
+                .frame(width: 50, height: 5)
                 .padding(.top, 8)
                 .padding(.bottom, 12)
             
@@ -272,6 +272,84 @@ private struct SubControlPanel: View {
 
 // MARK: - Specific Control Panels
 
+private struct BorderControlsView: View {
+    @Binding var borderWidth: CGFloat
+    @Binding var cornerRadius: CGFloat
+    @Binding var shadowRadius: CGFloat
+
+    var body: some View {
+        VStack(spacing: 16) {
+            FancySlider(label: "间距", value: $borderWidth, range: 0...40, icon: "arrow.left.and.right")
+            FancySlider(label: "圆角", value: $cornerRadius, range: 0...50, icon: "app.badge")
+            FancySlider(label: "阴影", value: $shadowRadius, range: 0...15, icon: "shadow")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+}
+
+private struct FancySlider: View {
+    let label: String
+    @Binding var value: CGFloat
+    let range: ClosedRange<CGFloat>
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .frame(width: 30)
+                .foregroundColor(.accentColor)
+            
+            Text(label)
+                .font(.system(size: 15))
+                .frame(width: 40, alignment: .leading)
+
+            // Custom Slider implementation
+            GeometryReader { geometry in
+                let valueRatio = (self.value - self.range.lowerBound) / (self.range.upperBound - self.range.lowerBound)
+                let clampedRatio = max(0, min(1, CGFloat(valueRatio)))
+                let thumbPositionX = geometry.size.width * clampedRatio
+
+                ZStack(alignment: .leading) {
+                    // Track
+                    Capsule()
+                        .fill(Color(UIColor.tertiarySystemFill))
+                        .frame(height: 4)
+                    
+                    // Filled part of the track
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: thumbPositionX, height: 4)
+
+                    // Thumb
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 22, height: 22)
+                        .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                        .position(x: thumbPositionX, y: geometry.size.height / 2)
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { gestureValue in
+                                    let newRatio = gestureValue.location.x / geometry.size.width
+                                    let clampedNewRatio = max(0, min(1, newRatio))
+                                    let newValue = (clampedNewRatio * (self.range.upperBound - self.range.lowerBound)) + self.range.lowerBound
+                                    self.value = newValue
+                                }
+                        )
+                }
+                .frame(maxHeight: .infinity) // Center ZStack vertically
+            }
+            .frame(height: 22) // Give GeometryReader a defined height
+
+            Text(String(format: "%.0f", value))
+                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .frame(width: 35, alignment: .trailing)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
 private struct BlurControlView: View {
     @Binding var backgroundBlur: CGFloat
 
@@ -280,31 +358,6 @@ private struct BlurControlView: View {
             HStack {
                 Text("模糊").frame(width: 50)
                 Slider(value: $backgroundBlur, in: 0...30)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 15)
-    }
-}
-
-private struct BorderControlsView: View {
-    @Binding var borderWidth: CGFloat
-    @Binding var cornerRadius: CGFloat
-    @Binding var shadowRadius: CGFloat
-
-    var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Text("间距").frame(width: 50)
-                Slider(value: $borderWidth, in: 0...40)
-            }
-            HStack {
-                Text("圆角").frame(width: 50)
-                Slider(value: $cornerRadius, in: 0...50)
-            }
-            HStack {
-                Text("阴影").frame(width: 50)
-                Slider(value: $shadowRadius, in: 0...15)
             }
         }
         .padding(.horizontal, 20)
