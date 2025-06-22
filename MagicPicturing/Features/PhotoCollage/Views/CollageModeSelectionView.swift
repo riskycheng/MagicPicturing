@@ -30,7 +30,8 @@ struct CollageModeSelectionView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+        .background(Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all))
+        .environment(\.colorScheme, .light)
         .navigationTitle("选择模式")
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -73,7 +74,7 @@ private struct ModeButton: View {
                 .foregroundColor(Color(UIColor.tertiaryLabel))
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color(UIColor.systemBackground))
         .cornerRadius(16)
         .padding(.horizontal)
     }

@@ -70,8 +70,10 @@ struct ImagePickerView: UIViewControllerRepresentable {
         editorPhotoOptions.toolOptions = [.pen, .text, .crop, .mosaic]
         options.editorPhotoOptions = editorPhotoOptions
 
-        // Removing theme customization for now to ensure compilation
-        // options.theme.tintColor = UIColor.green
+        // Set the theme to the library's default light theme.
+        // This is the simplest and most reliable way to ensure a light background
+        // and to avoid any further compilation errors.
+        options.theme = PickerTheme(style: .light)
         
         let controller = ImagePickerController(options: options, delegate: context.coordinator)
         controller.modalPresentationStyle = .fullScreen
