@@ -7,19 +7,21 @@ struct CollageWorkspaceView: View {
     @StateObject private var viewModel: CollageViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showSaveSuccessAlert = false
+    @State private var showImagePicker = false
+
+    // State for the new control panel design. Using a tuple with a UUID to ensure a new ID every time.
+    @State private var activeSheet: (tab: ControlTab, id: UUID)? = nil
 
     init(assets: [PHAsset]) {
-        _viewModel = StateObject(wrappedValue: CollageViewModel(assets: assets))
+        _viewModel = StateObject(wrappedValue: CollageViewModel(initialAssets: assets))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header - Stays fixed at the top
             headerView
 
-            // The main content area that now handles background taps for deselection
             ZStack {
-                // This tappable background fills the entire central area
+                // Background tap area for deselection
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -28,41 +30,45 @@ struct CollageWorkspaceView: View {
                 
                 // The actual collage content, centered
                 VStack {
-                    if !viewModel.images.isEmpty, let layout = viewModel.selectedLayout {
+                    if !viewModel.imageStates.isEmpty, let layout = viewModel.selectedLayout {
                         CollagePreviewView(viewModel: viewModel)
-                            // The aspect ratio is now driven by the layout itself
                             .aspectRatio(layout.aspectRatio, contentMode: .fit)
                             .padding(.horizontal)
                     } else {
+                        // Show a progress indicator while images are loading
                         ProgressView()
                     }
                 }
             }
-            
-            // Spacer to push the layout selector to the bottom
-            Spacer()
+            .frame(maxHeight: .infinity)
 
-            // Bottom controls - Stays fixed at the bottom
+            // Redesigned Bottom Controls
             Group {
                 if viewModel.selectedImageIndex == nil {
-                    BottomControlsView(
-                        viewModel: viewModel,
-                        layouts: viewModel.availableLayouts,
-                        selectedLayout: $viewModel.selectedLayout
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    BottomControlSystem(viewModel: viewModel, activeSheet: $activeSheet, showImagePicker: $showImagePicker)
                 } else {
                     PhotoEditControlsView(viewModel: viewModel)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .animation(.easeInOut, value: viewModel.selectedImageIndex)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.selectedImageIndex)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: activeSheet?.id)
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
         .navigationBarHidden(true)
-        .foregroundColor(.white)
+        .foregroundColor(Color(UIColor.label))
         .alert("已保存至相册", isPresented: $showSaveSuccessAlert) {
             Button("好", role: .cancel) { }
+        }
+        .sheet(isPresented: $showImagePicker) {
+            // The image picker sheet
+            ImagePickerView(
+                onCancel: { showImagePicker = false },
+                onNext: { selectedAssets, _ in
+                    viewModel.add(assets: selectedAssets)
+                    showImagePicker = false
+                },
+                selectionLimit: 9 - viewModel.assets.count // Allow adding up to 9 images total
+            )
         }
     }
 
@@ -96,20 +102,29 @@ struct CollageWorkspaceView: View {
     }
     
     private func saveCollage() {
-        guard !viewModel.images.isEmpty, let layout = viewModel.selectedLayout else {
+        guard !viewModel.imageStates.isEmpty, let layout = viewModel.selectedLayout else {
             return
         }
 
         let renderWidth: CGFloat = 1080
         let renderHeight = renderWidth / layout.aspectRatio
         
+        // Temporarily deselect to hide handles before rendering
+        let originalSelection = viewModel.selectedImageIndex
+        viewModel.selectedImageIndex = nil
+        
         let collageToRender = CollagePreviewView(viewModel: viewModel)
             .frame(width: renderWidth, height: renderHeight)
+            .background(Color(UIColor.systemGroupedBackground))
 
         guard let renderedImage = collageToRender.snapshot() else {
             print("Error: Could not render the collage view to an image.")
+            viewModel.selectedImageIndex = originalSelection // Restore selection
             return
         }
+        
+        // Restore selection immediately after snapshot
+        viewModel.selectedImageIndex = originalSelection
 
         viewModel.saveImage(renderedImage) { success in
             if success {
@@ -119,13 +134,15 @@ struct CollageWorkspaceView: View {
     }
 }
 
-// MARK: - Bottom Controls
+// MARK: - Redesigned Bottom Control System
 
-private enum ControlTab: String, CaseIterable {
+private enum ControlTab: String, CaseIterable, Identifiable {
     case layout = "布局"
     case border = "边框"
     case blur = "模糊"
     case add = "添加"
+    
+    var id: String { self.rawValue }
     
     var icon: String {
         switch self {
@@ -137,55 +154,136 @@ private enum ControlTab: String, CaseIterable {
     }
 }
 
-private struct BottomControlsView: View {
-    @State private var selectedTab: ControlTab = .layout
+private struct BottomControlSystem: View {
     @ObservedObject var viewModel: CollageViewModel
-    
-    let layouts: [CollageLayout]
-    @Binding var selectedLayout: CollageLayout?
+    @Binding var activeSheet: (tab: ControlTab, id: UUID)?
+    @Binding var showImagePicker: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Content for the selected tab
-            Group {
-                switch selectedTab {
-                case .layout:
-                    LayoutSelectorScrollView(layouts: layouts, selectedLayout: $selectedLayout)
-                case .border:
-                    BorderControlsView(
-                        borderWidth: $viewModel.borderWidth,
-                        cornerRadius: $viewModel.cornerRadius,
-                        shadowRadius: $viewModel.shadowRadius
-                    )
-                case .blur, .add:
-                    // Placeholder for other controls
-                    Text("\(selectedTab.rawValue) 功能待开发")
-                        .foregroundColor(.gray)
-                        .frame(height: 80, alignment: .center)
-                }
+            // The slide-up panel for controls
+            if let sheetInfo = activeSheet {
+                SubControlPanel(tab: sheetInfo.tab, viewModel: viewModel, activeSheet: $activeSheet)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .id(sheetInfo.id) // Force recreation of the view and its state when the ID changes.
             }
-            .background(Color.black.opacity(0.8))
-
-
-            // Tab bar
+            
+            // Main Tab Bar
             HStack {
-                ForEach(ControlTab.allCases, id: \.self) { tab in
-                    Button(action: { selectedTab = tab }) {
+                ForEach(ControlTab.allCases) { tab in
+                    Button(action: {
+                        if tab == .add {
+                            activeSheet = nil
+                            showImagePicker = true
+                        } else {
+                            // The icon's only job is to SHOW the panel by giving it a new unique ID.
+                            activeSheet = (tab, UUID())
+                        }
+                    }) {
                         VStack(spacing: 4) {
                             Image(systemName: tab.icon)
-                                .font(.system(size: 20))
+                                .font(.system(size: 22))
                             Text(tab.rawValue)
                                 .font(.caption)
                         }
-                        .foregroundColor(selectedTab == tab ? .blue : .gray)
+                        .foregroundColor(activeSheet?.tab == tab ? .accentColor : Color(UIColor.secondaryLabel))
                         .frame(maxWidth: .infinity)
                     }
                 }
             }
             .padding(.top, 10)
-            .padding(.bottom, 20)
-            .background(Color(UIColor.systemGray6).opacity(0.2))
+            .padding(.bottom, 25)
+            .background(Material.bar)
         }
+    }
+}
+
+private struct SubControlPanel: View {
+    let tab: ControlTab
+    @ObservedObject var viewModel: CollageViewModel
+    @Binding var activeSheet: (tab: ControlTab, id: UUID)?
+    
+    // State for the drag-to-dismiss gesture
+    @State private var dragOffset: CGFloat = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Grabber handle to indicate draggable area
+            Capsule()
+                .fill(Color.gray.opacity(0.4))
+                .frame(width: 40, height: 5)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+            
+            // Panel Content
+            switch tab {
+            case .layout:
+                LayoutSelectorScrollView(
+                    layouts: viewModel.availableLayouts,
+                    selectedLayout: $viewModel.selectedLayout
+                )
+            case .border:
+                BorderControlsView(
+                    borderWidth: $viewModel.borderWidth,
+                    cornerRadius: $viewModel.cornerRadius,
+                    shadowRadius: $viewModel.shadowRadius
+                )
+            case .blur:
+                BlurControlView(backgroundBlur: $viewModel.backgroundBlur)
+            case .add:
+                EmptyView() // 'Add' is handled directly by the tab bar now
+            }
+        }
+        .padding(.vertical)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .shadow(color: .black.opacity(0.1), radius: 5, y: -2)
+        )
+        .padding(.horizontal)
+        .padding(.bottom, 10)
+        .offset(y: dragOffset) // Apply vertical offset from drag
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    // Allow dragging down, but not up past the original point.
+                    self.dragOffset = max(0, gesture.translation.height)
+                }
+                .onEnded { gesture in
+                    // If dragged more than a threshold, dismiss the panel
+                    if gesture.translation.height > 60 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            self.activeSheet = nil
+                        }
+                    } else {
+                        // Otherwise, snap back to its original position
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            self.dragOffset = 0
+                        }
+                    }
+                }
+        )
+        .onAppear {
+            // This is a failsafe, but the .id() modifier is the primary fix.
+            self.dragOffset = 0
+        }
+    }
+}
+
+// MARK: - Specific Control Panels
+
+private struct BlurControlView: View {
+    @Binding var backgroundBlur: CGFloat
+
+    var body: some View {
+        VStack(spacing: 15) {
+            HStack {
+                Text("模糊").frame(width: 50)
+                Slider(value: $backgroundBlur, in: 0...30)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 15)
     }
 }
 
@@ -195,24 +293,22 @@ private struct BorderControlsView: View {
     @Binding var shadowRadius: CGFloat
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 15) {
             HStack {
-                Text("间距").frame(width: 40)
+                Text("间距").frame(width: 50)
                 Slider(value: $borderWidth, in: 0...40)
             }
             HStack {
-                Text("圆角").frame(width: 40)
+                Text("圆角").frame(width: 50)
                 Slider(value: $cornerRadius, in: 0...50)
             }
             HStack {
-                Text("阴影").frame(width: 40)
+                Text("阴影").frame(width: 50)
                 Slider(value: $shadowRadius, in: 0...15)
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 5)
-        .frame(height: 110)
-        .foregroundColor(.white)
+        .padding(.bottom, 15)
     }
 }
 
@@ -229,15 +325,16 @@ private struct LayoutSelectorScrollView: View {
                         isSelected: selectedLayout?.id == layout.id
                     )
                     .onTapGesture {
-                        withAnimation {
+                        withAnimation(.spring()) {
                             selectedLayout = layout
                         }
                     }
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 10)
         }
-        .frame(height: 80)
+        .frame(height: 60)
     }
 }
 
@@ -249,11 +346,16 @@ private struct LayoutPreviewCell: View {
         ZStack {
             ForEach(layout.frames, id: \.self) { frame in
                 Rectangle()
-                    .stroke(isSelected ? Color.blue : Color.gray, lineWidth: 1.5)
+                    .strokeBorder(isSelected ? Color.accentColor : Color.gray, lineWidth: 1.5)
                     .frame(width: frame.width * 44, height: frame.height * 44)
                     .offset(x: frame.midX * 44 - 22, y: frame.midY * 44 - 22)
             }
         }
         .frame(width: 50, height: 50)
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+        )
     }
 } 

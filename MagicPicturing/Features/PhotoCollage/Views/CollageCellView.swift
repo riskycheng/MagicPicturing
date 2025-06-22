@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct CollageCellView: View {
-    let image: UIImage
-    @Binding var state: CollageImageState
+    @ObservedObject var state: CollageImageState
     let isSelected: Bool
     
     // States for live gesture tracking
@@ -40,7 +39,7 @@ struct CollageCellView: View {
             let combinedGesture = dragGesture.simultaneously(with: magnificationGesture)
 
             ZStack {
-                Image(uiImage: image)
+                Image(uiImage: state.image)
                     .resizable()
                     .scaledToFill()
                     .frame(width: geometry.size.width, height: geometry.size.height)
@@ -54,14 +53,14 @@ struct CollageCellView: View {
             .contentShape(Rectangle())
             .overlay(
                 // Selection highlight
-                isSelected ? Rectangle().stroke(Color.green, lineWidth: 4) : nil
+                isSelected ? Rectangle().stroke(Color.accentColor, lineWidth: 3) : nil
             )
             .gesture(isSelected ? combinedGesture : nil)
         }
     }
 
     private func clampOffset(geometry: GeometryProxy) {
-        let imageSize = image.size
+        let imageSize = state.image.size
         let viewSize = geometry.size
         
         let scaledImageSize = CGSize(width: imageSize.width * state.scale, height: imageSize.height * state.scale)
@@ -109,8 +108,8 @@ struct CropHandlesView: View {
 
     private func handle(for edge: Edge) -> some View {
         Capsule()
-            .fill(Color.pink)
-            .overlay(Capsule().stroke(Color.yellow, lineWidth: 4))
+            .fill(Color.white.opacity(0.8))
+            .overlay(Capsule().stroke(Color.accentColor, lineWidth: 2))
             .frame(
                 width: edge.isHorizontal ? handleLength : handleThickness,
                 height: edge.isHorizontal ? handleThickness : handleLength

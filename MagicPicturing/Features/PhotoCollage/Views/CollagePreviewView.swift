@@ -6,6 +6,16 @@ struct CollagePreviewView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // MARK: - Blurred Background
+                if let firstImage = viewModel.imageStates.first?.image, viewModel.backgroundBlur > 0 {
+                    Image(uiImage: firstImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .blur(radius: viewModel.backgroundBlur)
+                        .clipped()
+                }
+
                 // Background to dismiss selection
                 Color.clear
                     .contentShape(Rectangle())
@@ -14,29 +24,30 @@ struct CollagePreviewView: View {
                     }
 
                 if let layout = viewModel.selectedLayout {
-                    ForEach(0..<min(viewModel.images.count, layout.frames.count), id: \.self) { index in
-                        let frame = layout.frames[index]
-                        let spacing = viewModel.borderWidth / 2
+                    ForEach(Array(viewModel.imageStates.enumerated()), id: \.element.id) { index, state in
+                        if index < layout.frames.count {
+                            let frame = layout.frames[index]
+                            let spacing = viewModel.borderWidth / 2
 
-                        let absoluteFrame = CGRect(
-                            x: frame.minX * geometry.size.width,
-                            y: frame.minY * geometry.size.height,
-                            width: frame.width * geometry.size.width,
-                            height: frame.height * geometry.size.height
-                        )
-                        let insetFrame = absoluteFrame.insetBy(dx: spacing, dy: spacing)
+                            let absoluteFrame = CGRect(
+                                x: frame.minX * geometry.size.width,
+                                y: frame.minY * geometry.size.height,
+                                width: frame.width * geometry.size.width,
+                                height: frame.height * geometry.size.height
+                            )
+                            let insetFrame = absoluteFrame.insetBy(dx: spacing, dy: spacing)
 
-                        CollageCellView(
-                            image: viewModel.images[index],
-                            state: $viewModel.imageStates[index],
-                            isSelected: viewModel.selectedImageIndex == index
-                        )
-                        .frame(width: insetFrame.width, height: insetFrame.height)
-                        .cornerRadius(viewModel.cornerRadius)
-                        .shadow(color: .black.opacity(viewModel.shadowRadius > 0 ? 0.4 : 0), radius: viewModel.shadowRadius, x: 0, y: viewModel.shadowRadius / 2)
-                        .position(x: insetFrame.midX, y: insetFrame.midY)
-                        .onTapGesture {
-                            viewModel.selectedImageIndex = index
+                            CollageCellView(
+                                state: state,
+                                isSelected: viewModel.selectedImageIndex == index
+                            )
+                            .frame(width: insetFrame.width, height: insetFrame.height)
+                            .cornerRadius(viewModel.cornerRadius)
+                            .shadow(color: .black.opacity(viewModel.shadowRadius > 0 ? 0.4 : 0), radius: viewModel.shadowRadius, x: 0, y: viewModel.shadowRadius / 2)
+                            .position(x: insetFrame.midX, y: insetFrame.midY)
+                            .onTapGesture {
+                                viewModel.selectedImageIndex = index
+                            }
                         }
                     }
                     
@@ -120,7 +131,7 @@ struct DividerView: View {
         let handleHeight: CGFloat = axis == .horizontal ? 14 : 60
         
         return Rectangle()
-            .fill(Color.blue.opacity(0.8))
+            .fill(Color.accentColor.opacity(0.8))
             .frame(width: handleWidth, height: handleHeight)
             .cornerRadius(7)
             .overlay(

@@ -7,12 +7,10 @@ import Photos
 // A simple ViewModel to manage the state and navigation logic, mirroring the ThreeDGrid pattern.
 class CollageEntryViewModel: ObservableObject {
     @Published var selectedAssets: [PHAsset] = []
-    @Published var selectedImages: [UIImage] = []
     @Published var isNavigatingToWorkspace = false
     
-    func processSelectedPhotos(assets: [PHAsset], images: [UIImage]) {
+    func processSelectedPhotos(assets: [PHAsset]) {
         self.selectedAssets = assets
-        self.selectedImages = images
         
         // Use a slight delay to allow the dismiss animation of the picker to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -33,14 +31,14 @@ struct CollageEntryView: View {
             ZStack {
                 // A hidden NavigationLink to the workspace, controlled by the ViewModel.
                 NavigationLink(
-                    destination: CollageModeSelectionView(assets: viewModel.selectedAssets, images: viewModel.selectedImages),
+                    destination: CollageModeSelectionView(assets: viewModel.selectedAssets),
                     isActive: $viewModel.isNavigatingToWorkspace
                 ) {
                     EmptyView()
                 }
                 
                 // A placeholder background.
-                Color.black.edgesIgnoringSafeArea(.all)
+                Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all)
             }
             .navigationBarHidden(true)
             .onAppear {
@@ -56,8 +54,8 @@ struct CollageEntryView: View {
                 onCancel: {
                     self.presentationMode.wrappedValue.dismiss()
                 },
-                onNext: { assets, images in
-                    viewModel.processSelectedPhotos(assets: assets, images: images)
+                onNext: { assets, _ in
+                    viewModel.processSelectedPhotos(assets: assets)
                 },
                 selectionLimit: 9,
                 minSelection: 2

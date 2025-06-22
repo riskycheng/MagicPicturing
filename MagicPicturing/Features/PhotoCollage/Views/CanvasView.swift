@@ -1,8 +1,15 @@
 import SwiftUI
+import Photos
 
 struct CanvasView: View {
-    @ObservedObject var viewModel: CanvasViewModel
-    let canvasSize: CGSize
+    @StateObject private var viewModel: CanvasViewModel
+    
+    // Define a fixed canvas size for simplicity, or it could come from a higher-level view.
+    private let canvasSize = CGSize(width: UIScreen.main.bounds.width - 32, height: (UIScreen.main.bounds.width - 32) * 1.2)
+
+    init(initialAssets: [PHAsset]) {
+        _viewModel = StateObject(wrappedValue: CanvasViewModel(initialAssets: initialAssets))
+    }
 
     var body: some View {
         ZStack {
