@@ -58,6 +58,7 @@ struct FreeCollageWorkspaceView: View {
         }
         .padding()
         .foregroundColor(Color.primary)
+        .background(.regularMaterial)
     }
     
     private var bottomBar: some View {
@@ -83,6 +84,7 @@ struct FreeCollageWorkspaceView: View {
             }
         )
         .frame(height: 100)
+        .background(.regularMaterial)
     }
     
     @ViewBuilder

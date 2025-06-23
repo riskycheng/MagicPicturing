@@ -80,9 +80,7 @@ struct CollageWorkspaceView: View {
             }) {
                 Image(systemName: "chevron.left")
                     .font(.title2)
-                    .padding()
             }
-            .contentShape(Rectangle())
 
             Spacer()
 
@@ -96,10 +94,9 @@ struct CollageWorkspaceView: View {
                 saveCollage()
             }
             .font(.headline)
-            .padding()
         }
-        .padding(.horizontal, 4)
-        .frame(height: 44)
+        .padding()
+        .background(.regularMaterial)
     }
     
     private func saveCollage() {
@@ -192,9 +189,11 @@ private struct BottomControlSystem: View {
                     }
                 }
             }
-            .padding(.top, 10)
-            .padding(.bottom, 25)
-            .background(Material.bar)
+            .frame(height: 65)
+            .background(.regularMaterial)
+            .cornerRadius(20)
+            .padding(.horizontal)
+            .padding(.bottom, 5)
         }
     }
 }

@@ -23,7 +23,7 @@ struct PhotoEditControlsView: View {
             }
             
             Rectangle()
-                .fill(Color.gray.opacity(0.5))
+                .fill(.quaternary)
                 .frame(width: 1)
                 .padding(.vertical, 10)
 
@@ -32,12 +32,12 @@ struct PhotoEditControlsView: View {
             }) {
                 Text("返回")
                     .font(.headline)
-                    .foregroundColor(.white)
                     .padding(.horizontal, 20)
             }
+            .foregroundColor(Color(UIColor.secondaryLabel))
         }
         .frame(height: 65)
-        .background(Color(UIColor.systemGray5).opacity(0.85))
+        .background(.regularMaterial)
         .cornerRadius(20)
         .padding(.horizontal)
         .padding(.bottom, 5)
@@ -52,7 +52,7 @@ struct PhotoEditControlsView: View {
                 Text(text)
                     .font(.caption)
             }
-            .foregroundColor(.white)
         }
+        .foregroundColor(Color(UIColor.secondaryLabel))
     }
 } 
