@@ -1,5 +1,11 @@
 import SwiftUI
 
+struct CellState: Hashable {
+    let frame: CGRect
+    let rotation: Angle
+    let cornerRadius: CGFloat // Keep simple corner radius for now, will replace with arbitrary shapes.
+}
+
 /// A helper class to throttle the execution of a block of code.
 /// This is used to limit the rate of UI updates during rapid events like dragging.
 private class Throttler {
@@ -46,13 +52,13 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
     
     @Published var parameters: [String: Parameter]
     
-    private var frameGenerator: ([String: Parameter]) -> [CGRect]
+    private var frameGenerator: ([String: Parameter]) -> [CellState]
     
-    var frames: [CGRect] {
+    var cellStates: [CellState] {
         return frameGenerator(parameters)
     }
     
-    init(name: String, aspectRatio: CGFloat, parameters: [String: Parameter] = [:], frameGenerator: @escaping ([String: Parameter]) -> [CGRect]) {
+    init(name: String, aspectRatio: CGFloat, parameters: [String: Parameter] = [:], frameGenerator: @escaping ([String: Parameter]) -> [CellState]) {
         self.name = name
         self.aspectRatio = aspectRatio
         self.parameters = parameters
@@ -116,11 +122,12 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
     var preview: AnyView {
         AnyView(
             ZStack {
-                ForEach(frames, id: \.self) { frame in
-                    Rectangle()
+                ForEach(cellStates, id: \.self) { cell in
+                    Rectangle() // Preview still uses Rectangle for simplicity.
                         .stroke(Color.white, lineWidth: 1)
-                        .frame(width: frame.width * 50, height: frame.height * 50)
-                        .offset(x: frame.midX * 50 - 25, y: frame.midY * 50 - 25)
+                        .frame(width: cell.frame.width * 50, height: cell.frame.height * 50)
+                        .rotationEffect(cell.rotation)
+                        .offset(x: cell.frame.midX * 50 - 25, y: cell.frame.midY * 50 - 25)
                 }
             }
             .frame(width: 50, height: 50)

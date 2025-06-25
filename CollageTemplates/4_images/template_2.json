@@ -1,0 +1,32 @@
+{
+    "name": "Scattered Quad",
+    "imageCount": 4,
+    "aspectRatio": 1,
+    "parameters": {},
+    "frameDefinitions": [
+        {
+            "x": "0.05", "y": "0.05",
+            "width": "0.45", "height": "0.45",
+            "rotation": "-10",
+            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+        },
+        {
+            "x": "0.5", "y": "0.1",
+            "width": "0.45", "height": "0.45",
+            "rotation": "8",
+            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+        },
+        {
+            "x": "0.1", "y": "0.5",
+            "width": "0.45", "height": "0.45",
+            "rotation": "12",
+            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+        },
+        {
+            "x": "0.55", "y": "0.55",
+            "width": "0.4", "height": "0.4",
+            "rotation": "-5",
+            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+        }
+    ]
+} 

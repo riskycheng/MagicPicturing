@@ -4,37 +4,29 @@ import CoreGraphics
 
 class JSONCollageLayoutProvider {
     func loadTemplates(for imageCount: Int? = nil) -> [CollageLayout] {
-        // We look for JSON files in the main bundle directory, not a subdirectory.
-        // This change adapts to the project setting where individual JSON files are copied
-        // to the bundle root instead of the containing folder.
-        guard let urls = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: nil) else {
-            print("Could not find any JSON template files in the main bundle.")
+        guard let count = imageCount else {
+            // If no image count is provided, we don't know which folder to search.
             return []
         }
         
-        // We only want to load layouts that are specifically for collages.
-        // This is a simple way to filter them, assuming they are named appropriately.
-        let collageTemplateURLs = urls.filter { $0.lastPathComponent.contains("image") }
+        // Construct the subdirectory path based on the image count.
+        let subdirectory = "CollageTemplates/\(count)_images"
+        
+        guard let urls = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: subdirectory) else {
+            print("Could not find any JSON template files in directory: \(subdirectory)")
+            return []
+        }
 
-        let templates: [CollageLayoutTemplate] = collageTemplateURLs.compactMap { url in
+        return urls.compactMap { url in
             do {
                 let data = try Data(contentsOf: url)
-                return try JSONDecoder().decode(CollageLayoutTemplate.self, from: data)
+                let template = try JSONDecoder().decode(CollageLayoutTemplate.self, from: data)
+                return templateToLayout(template)
             } catch {
                 print("Error loading or decoding template from \(url): \(error)")
                 return nil
             }
         }
-        
-        let filteredTemplates: [CollageLayoutTemplate]
-        if let count = imageCount {
-            filteredTemplates = templates.filter { $0.imageCount == count }
-        } else {
-            // If no image count is specified, return all templates.
-            filteredTemplates = templates
-        }
-
-        return filteredTemplates.map { templateToLayout($0) }
     }
     
     private func templateToLayout(_ template: CollageLayoutTemplate) -> CollageLayout {
@@ -43,13 +35,27 @@ class JSONCollageLayoutProvider {
             return CollageLayout.Parameter(value: param.initial, range: ClosedRange(uncheckedBounds: (lower: range.lowerBound, upper: range.upperBound)))
         }
         
-        let frameGenerator: ([String: CollageLayout.Parameter]) -> [CGRect] = { params in
+        let frameGenerator: ([String: CollageLayout.Parameter]) -> [CellState] = { params in
             return template.frameDefinitions.map { frameDef in
                 let x = self.evaluate(frameDef.x, with: params)
                 let y = self.evaluate(frameDef.y, with: params)
                 let width = self.evaluate(frameDef.width, with: params)
                 let height = self.evaluate(frameDef.height, with: params)
-                return CGRect(x: x, y: y, width: width, height: height)
+                let rect = CGRect(x: x, y: y, width: width, height: height)
+
+                let rotationDegrees = self.evaluate(frameDef.rotation ?? "0", with: params)
+                let rotation = Angle(degrees: Double(rotationDegrees))
+
+                // For now, we only handle a simple corner radius from a rectangle shape.
+                // A more robust shape factory will be added later.
+                var cornerRadius: CGFloat = 0
+                if let shape = frameDef.shape, shape.type == "rectangle" {
+                    if let cornerRadiusStr = shape.parameters?["cornerRadius"] {
+                        cornerRadius = self.evaluate(cornerRadiusStr, with: params)
+                    }
+                }
+
+                return CellState(frame: rect, rotation: rotation, cornerRadius: cornerRadius)
             }
         }
         

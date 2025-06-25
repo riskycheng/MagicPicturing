@@ -19,5 +19,14 @@ struct CollageLayoutTemplate: Decodable, Identifiable {
         let y: String
         let width: String
         let height: String
+        let rotation: String?
+        let shape: ShapeDefinition?
+    }
+    
+    struct ShapeDefinition: Decodable {
+        // e.g., "rectangle", "circle", "ellipse", "capsule", "diamond"
+        let type: String
+        // e.g., for a rounded rectangle, we might have { "cornerRadius": "0.1" }
+        let parameters: [String: String]?
     }
 } 

@@ -25,25 +25,27 @@ struct CollagePreviewView: View {
 
                 if let layout = viewModel.selectedLayout {
                     ForEach(Array(viewModel.imageStates.enumerated()), id: \.element.id) { index, state in
-                        if index < layout.frames.count {
-                            let frame = layout.frames[index]
+                        if index < layout.cellStates.count {
+                            let cellState = layout.cellStates[index]
                             let spacing = viewModel.borderWidth / 2
 
                             let absoluteFrame = CGRect(
-                                x: frame.minX * geometry.size.width,
-                                y: frame.minY * geometry.size.height,
-                                width: frame.width * geometry.size.width,
-                                height: frame.height * geometry.size.height
+                                x: cellState.frame.minX * geometry.size.width,
+                                y: cellState.frame.minY * geometry.size.height,
+                                width: cellState.frame.width * geometry.size.width,
+                                height: cellState.frame.height * geometry.size.height
                             )
                             let insetFrame = absoluteFrame.insetBy(dx: spacing, dy: spacing)
 
                             CollageCellView(
                                 state: state,
-                                isSelected: viewModel.selectedImageIndex == index
+                                isSelected: viewModel.selectedImageIndex == index,
+                                layoutCornerRadius: cellState.cornerRadius * min(insetFrame.width, insetFrame.height),
+                                layoutRotation: cellState.rotation
                             )
                             .frame(width: insetFrame.width, height: insetFrame.height)
-                            .cornerRadius(viewModel.cornerRadius)
                             .shadow(color: .black.opacity(viewModel.shadowRadius > 0 ? 0.4 : 0), radius: viewModel.shadowRadius, x: 0, y: viewModel.shadowRadius / 2)
+                            .rotationEffect(cellState.rotation)
                             .position(x: insetFrame.midX, y: insetFrame.midY)
                             .onTapGesture {
                                 viewModel.selectedImageIndex = index

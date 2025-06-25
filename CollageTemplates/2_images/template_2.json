@@ -1,0 +1,34 @@
+{
+    "name": "Tilted Duo",
+    "imageCount": 2,
+    "aspectRatio": 1,
+    "parameters": {},
+    "frameDefinitions": [
+        {
+            "x": "0.1",
+            "y": "0.1",
+            "width": "0.6",
+            "height": "0.6",
+            "rotation": "-15",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.1"
+                }
+            }
+        },
+        {
+            "x": "0.3",
+            "y": "0.3",
+            "width": "0.6",
+            "height": "0.6",
+            "rotation": "15",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.1"
+                }
+            }
+        }
+    ]
+} 

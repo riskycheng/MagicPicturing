@@ -37,7 +37,7 @@ struct MoreTemplatesView: View {
                             VStack {
                                 layout.preview
                                     .frame(width: 80, height: 80)
-                                Text("\(layout.frames.count) Photos")
+                                Text("\(layout.cellStates.count) Photos")
                                     .font(.caption)
                                     .foregroundColor(.primary)
                             }

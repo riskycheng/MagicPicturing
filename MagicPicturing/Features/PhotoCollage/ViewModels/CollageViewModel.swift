@@ -97,7 +97,7 @@ class CollageViewModel: ObservableObject {
     private func loadLayouts() {
         let currentImageCount = self.imageStates.count
         
-        let isCurrentLayoutStillValid = selectedLayout?.frames.count == currentImageCount
+        let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
         
         self.availableLayouts = CollageLayoutProvider.getLayouts(for: currentImageCount)
         
@@ -164,5 +164,27 @@ class CollageViewModel: ObservableObject {
         let options = PHImageRequestOptions()
         options.isSynchronous = false
         // ... existing code ...
+    }
+
+    private func updateLayouts() {
+        let currentImageCount = self.imageStates.count
+        
+        let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
+        
+        self.availableLayouts = CollageLayoutProvider.getLayouts(for: currentImageCount)
+        
+        // If current layout is no longer valid, or if no layout is selected,
+        // pick the first available one.
+        if !isCurrentLayoutStillValid {
+            self.selectedLayout = availableLayouts.first
+        }
+    }
+
+    func removeImage(at index: Int) {
+        self.imageStates.remove(at: index)
+        self.assets.remove(at: index)
+        
+        // After removing an image, the available layouts might change.
+        updateLayouts()
     }
 } 

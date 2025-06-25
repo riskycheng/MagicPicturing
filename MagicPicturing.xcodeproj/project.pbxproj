@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CF7D73832E02D785009D6100 /* AnyImageKit in Frameworks */ = {isa = PBXBuildFile; productRef = CF7D73822E02D785009D6100 /* AnyImageKit */; };
+		CFC1E6A02E0C5E8900E0A6E8 /* CollageTemplates in Resources */ = {isa = PBXBuildFile; fileRef = CF2767982E0C3F9E00E0DFEC /* CollageTemplates */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,11 +35,27 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CF2767982E0C3F9E00E0DFEC /* CollageTemplates */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = CollageTemplates;
+			sourceTree = "<group>";
+		};
+		CF27679A2E0C418400E0DFEC /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				CF2767982E0C3F9E00E0DFEC /* CollageTemplates */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		CFAC6EBE2DD3923A00614020 = {
 			isa = PBXGroup;
 			children = (
 				CFAC6EC92DD3923A00614020 /* MagicPicturing */,
 				CFAC6EC82DD3923A00614020 /* Products */,
+				CF27679A2E0C418400E0DFEC /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -118,6 +135,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFC1E6A02E0C5E8900E0A6E8 /* CollageTemplates in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

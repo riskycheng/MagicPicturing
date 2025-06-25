@@ -3,6 +3,8 @@ import SwiftUI
 struct CollageCellView: View {
     @ObservedObject var state: CollageImageState
     let isSelected: Bool
+    let layoutCornerRadius: CGFloat
+    let layoutRotation: Angle
     
     // States for live gesture tracking
     @State private var currentOffset: CGSize = .zero
@@ -49,6 +51,7 @@ struct CollageCellView: View {
                     .rotationEffect(state.rotation)
                     .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
             }
+            .cornerRadius(layoutCornerRadius)
             .clipped()
             .contentShape(Rectangle())
             .overlay(

@@ -2,6 +2,8 @@
 // 请将此文件内容替换到原文件中
 
 import SwiftUI
+import Combine
+import Photos
 
 #if canImport(UIKit)
 import UIKit

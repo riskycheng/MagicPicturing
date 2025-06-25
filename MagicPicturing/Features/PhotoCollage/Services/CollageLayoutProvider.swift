@@ -70,7 +70,7 @@ private func adjustableLayout(name: String, aspectRatio: CGFloat, hSplits: [CGFl
         parameters["v_split\(i + 1)"] = .init(value: v, range: 0.1...0.9)
     }
 
-    let frameGenerator: ([String: CollageLayout.Parameter]) -> [CGRect] = { params in
+    let frameGenerator: ([String: CollageLayout.Parameter]) -> [CellState] = { params in
         let hValues = hSplits.isEmpty ? [] : (1...hSplits.count).map { params["h_split\($0)"]!.value }
         let vValues = vSplits.isEmpty ? [] : (1...vSplits.count).map { params["v_split\($0)"]!.value }
         
@@ -107,10 +107,11 @@ private func adjustableLayout(name: String, aspectRatio: CGFloat, hSplits: [CGFl
                  v_split_fract(2, frac: v3 - v2, from: v2, in: rightColumnRect),
                  v_split_fract(3, frac: 1.0 - v3, from: v3, in: rightColumnRect)
              ]
-             return [leftFrame] + rightFrames
+             let finalFrames = [leftFrame] + rightFrames
+             return finalFrames.map { CellState(frame: $0, rotation: .zero, cornerRadius: 0) }
         }
 
-        return frames
+        return frames.map { CellState(frame: $0, rotation: .zero, cornerRadius: 0) }
     }
     
     return CollageLayout(name: name, aspectRatio: aspectRatio, parameters: parameters, frameGenerator: frameGenerator)
