@@ -1,34 +1,27 @@
 {
-    "name": "Tilted Duo",
+    "name": "overlap_2",
     "imageCount": 2,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.1",
-            "y": "0.1",
-            "width": "0.6",
-            "height": "0.6",
-            "rotation": "-15",
+            "x": "0.000",
+            "y": "0.055",
+            "width": "0.690",
+            "height": "0.679",
+            "rotation": "23.1",
             "shape": {
-                "type": "rectangle",
-                "parameters": {
-                    "cornerRadius": "0.1"
-                }
+                "type": "circle"
             }
         },
         {
-            "x": "0.3",
-            "y": "0.3",
-            "width": "0.6",
-            "height": "0.6",
-            "rotation": "15",
+            "x": "0.194",
+            "y": "0.224",
+            "width": "0.615",
+            "height": "0.654",
+            "rotation": "-22.4",
             "shape": {
-                "type": "rectangle",
-                "parameters": {
-                    "cornerRadius": "0.1"
-                }
+                "type": "circle"
             }
         }
     ]
-} 
+}

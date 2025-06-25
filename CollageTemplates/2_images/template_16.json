@@ -1,0 +1,27 @@
+{
+    "name": "overlap_16",
+    "imageCount": 2,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.473",
+            "y": "0.362",
+            "width": "0.433",
+            "height": "0.442",
+            "rotation": "-6.1",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.232",
+            "y": "0.172",
+            "width": "0.674",
+            "height": "0.628",
+            "rotation": "17.4",
+            "shape": {
+                "type": "circle"
+            }
+        }
+    ]
+}

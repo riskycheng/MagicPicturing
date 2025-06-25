@@ -1,26 +1,70 @@
 {
-    "name": "6 Images - Template 3",
+    "name": "grid_3",
     "imageCount": 6,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.5,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.016",
+            "y": "0.517",
+            "width": "0.302",
+            "height": "0.466",
+            "rotation": "-4.6",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.687",
+            "y": "0.534",
+            "width": "0.292",
+            "height": "0.432",
+            "rotation": "2.3",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.382,0.000; 1.000,0.000; 0.618,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.340",
+            "y": "0.030",
+            "width": "0.320",
+            "height": "0.441",
+            "rotation": "3.0",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.685",
+            "y": "0.014",
+            "width": "0.297",
+            "height": "0.472",
+            "rotation": "-0.2",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.334",
+            "y": "0.518",
+            "width": "0.332",
+            "height": "0.464",
+            "rotation": "-0.5",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.014",
+            "y": "0.009",
+            "width": "0.305",
+            "height": "0.482",
+            "rotation": "-4.4",
+            "shape": {
+                "type": "circle"
+            }
         }
     ]
 }

@@ -1,17 +1,37 @@
 {
-    "name": "3 Images - Template 6",
+    "name": "grid_6",
     "imageCount": 3,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 0.33,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.017",
+            "y": "0.690",
+            "width": "0.965",
+            "height": "0.287",
+            "rotation": "0.8",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.033",
+            "y": "0.350",
+            "width": "0.934",
+            "height": "0.301",
+            "rotation": "-3.6",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.042",
+            "y": "0.013",
+            "width": "0.917",
+            "height": "0.307",
+            "rotation": "-3.5",
+            "shape": {
+                "type": "ellipse"
+            }
         }
     ]
 }

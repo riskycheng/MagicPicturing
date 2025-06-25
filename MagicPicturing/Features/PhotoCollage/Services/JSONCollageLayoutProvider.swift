@@ -46,16 +46,7 @@ class JSONCollageLayoutProvider {
                 let rotationDegrees = self.evaluate(frameDef.rotation ?? "0", with: params)
                 let rotation = Angle(degrees: Double(rotationDegrees))
 
-                // For now, we only handle a simple corner radius from a rectangle shape.
-                // A more robust shape factory will be added later.
-                var cornerRadius: CGFloat = 0
-                if let shape = frameDef.shape, shape.type == "rectangle" {
-                    if let cornerRadiusStr = shape.parameters?["cornerRadius"] {
-                        cornerRadius = self.evaluate(cornerRadiusStr, with: params)
-                    }
-                }
-
-                return CellState(frame: rect, rotation: rotation, cornerRadius: cornerRadius)
+                return CellState(frame: rect, rotation: rotation, shapeDefinition: frameDef.shape)
             }
         }
         

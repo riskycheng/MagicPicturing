@@ -1,25 +1,33 @@
 {
-    "name": "Two Images Side-by-Side",
+    "name": "overlap_1",
     "imageCount": 2,
-    "aspectRatio": 1.5,
-    "parameters": {
-        "v_split1": {
-            "initial": 0.5,
-            "range": [0.1, 0.9]
-        }
-    },
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0",
-            "y": "0",
-            "width": "params.v_split1",
-            "height": "1"
+            "x": "0.336",
+            "y": "0.187",
+            "width": "0.567",
+            "height": "0.525",
+            "rotation": "-16.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "params.v_split1",
-            "y": "0",
-            "width": "1 - params.v_split1",
-            "height": "1"
+            "x": "0.178",
+            "y": "0.222",
+            "width": "0.521",
+            "height": "0.495",
+            "rotation": "12.4",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         }
     ]
-} 
+}

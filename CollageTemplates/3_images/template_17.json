@@ -1,0 +1,46 @@
+{
+    "name": "grid_17",
+    "imageCount": 3,
+    "aspectRatio": 0.33,
+    "frameDefinitions": [
+        {
+            "x": "0.059",
+            "y": "0.672",
+            "width": "0.883",
+            "height": "0.323",
+            "rotation": "2.4",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.170,0.000; 1.000,0.000; 0.830,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.054",
+            "y": "0.014",
+            "width": "0.892",
+            "height": "0.306",
+            "rotation": "-0.5",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.170,0.000; 1.000,0.000; 0.830,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.021",
+            "y": "0.333",
+            "width": "0.958",
+            "height": "0.333",
+            "rotation": "3.5",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.170,0.000; 1.000,0.000; 0.830,1.000; 0.000,1.000]"
+                }
+            }
+        }
+    ]
+}

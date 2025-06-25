@@ -1,17 +1,46 @@
 {
-    "name": "3 Images - Template 11",
+    "name": "h_strips_11",
     "imageCount": 3,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.33,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.000",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.06"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.333",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.06"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.667",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.06"
+                }
+            }
         }
     ]
 }

@@ -71,50 +71,62 @@ private func adjustableLayout(name: String, aspectRatio: CGFloat, hSplits: [CGFl
     }
 
     let frameGenerator: ([String: CollageLayout.Parameter]) -> [CellState] = { params in
-        let hValues = hSplits.isEmpty ? [] : (1...hSplits.count).map { params["h_split\($0)"]!.value }
-        let vValues = vSplits.isEmpty ? [] : (1...vSplits.count).map { params["v_split\($0)"]!.value }
-        
-        let hSegments = ([0] + hValues + [1]).windows(ofCount: 2).map { $0.last! - $0.first! }
-        let vSegments = ([0] + vValues + [1]).windows(ofCount: 2).map { $0.last! - $0.first! }
-        
-        var frames: [CGRect] = []
-        var y: CGFloat = 0
-        for vSegment in vSegments {
-            var x: CGFloat = 0
-            for hSegment in hSegments {
-                frames.append(CGRect(x: x, y: y, width: hSegment, height: vSegment))
-                x += hSegment
-            }
-            y += vSegment
-        }
-        
-        // This generic generator creates a simple grid.
-        // More complex logic is needed for non-grid layouts like "5-L-Big-Grid".
-        // For now, we are simplifying to ensure all layouts are adjustable.
-        // The specific logic for "5-L-Big-Grid" can be re-added if necessary.
-        if name == "5-L-Big-Grid" {
-             let h_split_val = params["h_split1"]!.value
-             let v1 = params["v_split1"]!.value
-             let v2 = params["v_split2"]!.value
-             let v3 = params["v_split3"]!.value
-            
-             let leftFrame = CGRect(x: 0, y: 0, width: h_split_val, height: 1)
-             let rightColumnRect = CGRect(x: h_split_val, y: 0, width: 1 - h_split_val, height: 1)
-
-             let rightFrames = [
-                 v_split_fract(0, frac: v1, in: rightColumnRect),
-                 v_split_fract(1, frac: v2 - v1, from: v1, in: rightColumnRect),
-                 v_split_fract(2, frac: v3 - v2, from: v2, in: rightColumnRect),
-                 v_split_fract(3, frac: 1.0 - v3, from: v3, in: rightColumnRect)
-             ]
-             let finalFrames = [leftFrame] + rightFrames
-             return finalFrames.map { CellState(frame: $0, rotation: .zero, cornerRadius: 0) }
-        }
-
-        return frames.map { CellState(frame: $0, rotation: .zero, cornerRadius: 0) }
+        return generateCellStates(
+            name: name,
+            params: params,
+            hSplits: hSplits,
+            vSplits: vSplits
+        )
     }
     
-    return CollageLayout(name: name, aspectRatio: aspectRatio, parameters: parameters, frameGenerator: frameGenerator)
+    return CollageLayout(
+        name: name,
+        aspectRatio: aspectRatio,
+        parameters: parameters,
+        frameGenerator: frameGenerator
+    )
+}
+
+private func generateCellStates(name: String, params: [String: CollageLayout.Parameter], hSplits: [CGFloat], vSplits: [CGFloat]) -> [CellState] {
+    // Special case for complex layouts
+    if name == "5-L-Big-Grid" {
+         let h_split_val = params["h_split1"]!.value
+         let v1 = params["v_split1"]!.value
+         let v2 = params["v_split2"]!.value
+         let v3 = params["v_split3"]!.value
+        
+         let leftFrame = CGRect(x: 0, y: 0, width: h_split_val, height: 1)
+         let rightColumnRect = CGRect(x: h_split_val, y: 0, width: 1 - h_split_val, height: 1)
+
+         let rightFrames = [
+             v_split_fract(0, frac: v1, in: rightColumnRect),
+             v_split_fract(1, frac: v2 - v1, from: v1, in: rightColumnRect),
+             v_split_fract(2, frac: v3 - v2, from: v2, in: rightColumnRect),
+             v_split_fract(3, frac: 1.0 - v3, from: v3, in: rightColumnRect)
+         ]
+         let finalFrames = [leftFrame] + rightFrames
+         return finalFrames.map { CellState(frame: $0, rotation: .zero, shapeDefinition: nil) }
+    }
+
+    // Generic grid generator
+    let hValues = hSplits.isEmpty ? [] : (1...hSplits.count).map { params["h_split\($0)"]!.value }
+    let vValues = vSplits.isEmpty ? [] : (1...vSplits.count).map { params["v_split\($0)"]!.value }
+    
+    let hSegments = ([0] + hValues + [1]).windows(ofCount: 2).map { $0.last! - $0.first! }
+    let vSegments = ([0] + vValues + [1]).windows(ofCount: 2).map { $0.last! - $0.first! }
+    
+    var frames: [CGRect] = []
+    var y: CGFloat = 0
+    for vSegment in vSegments {
+        var x: CGFloat = 0
+        for hSegment in hSegments {
+            frames.append(CGRect(x: x, y: y, width: hSegment, height: vSegment))
+            x += hSegment
+        }
+        y += vSegment
+    }
+    
+    return frames.map { CellState(frame: $0, rotation: .zero, shapeDefinition: nil) }
 }
 
 // MARK: - CGRect Helpers (can be moved to a separate file)

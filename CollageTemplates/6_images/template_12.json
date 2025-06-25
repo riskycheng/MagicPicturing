@@ -1,0 +1,79 @@
+{
+    "name": "grid_12",
+    "imageCount": 6,
+    "aspectRatio": 0.17,
+    "frameDefinitions": [
+        {
+            "x": "0.013",
+            "y": "0.843",
+            "width": "0.974",
+            "height": "0.148",
+            "rotation": "4.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.264,0.000; 0.736,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.035",
+            "y": "0.676",
+            "width": "0.930",
+            "height": "0.148",
+            "rotation": "4.7",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.231,0.000; 0.769,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.001",
+            "y": "0.335",
+            "width": "0.998",
+            "height": "0.164",
+            "rotation": "-4.7",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.322,0.000; 1.000,0.000; 0.678,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.011",
+            "y": "0.179",
+            "width": "0.978",
+            "height": "0.142",
+            "rotation": "3.2",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.006",
+            "y": "0.001",
+            "width": "0.987",
+            "height": "0.165",
+            "rotation": "1.0",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.035",
+            "y": "0.509",
+            "width": "0.930",
+            "height": "0.149",
+            "rotation": "4.3",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.16"
+                }
+            }
+        }
+    ]
+}

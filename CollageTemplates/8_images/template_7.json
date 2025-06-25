@@ -1,32 +1,111 @@
 {
-    "name": "8 Images - Template 7",
+    "name": "overlap_7",
     "imageCount": 8,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.237",
+            "y": "0.061",
+            "width": "0.605",
+            "height": "0.686",
+            "rotation": "-19.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.166",
+            "y": "0.115",
+            "width": "0.569",
+            "height": "0.478",
+            "rotation": "-23.4",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.044",
+            "y": "0.000",
+            "width": "0.639",
+            "height": "0.762",
+            "rotation": "1.6",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.000",
+            "width": "0.696",
+            "height": "0.723",
+            "rotation": "12.7",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.007",
+            "y": "0.008",
+            "width": "0.621",
+            "height": "0.518",
+            "rotation": "-11.8",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.171",
+            "y": "0.034",
+            "width": "0.482",
+            "height": "0.537",
+            "rotation": "-9.5",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.264",
+            "y": "0.177",
+            "width": "0.500",
+            "height": "0.450",
+            "rotation": "-23.4",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.096",
+            "width": "0.684",
+            "height": "0.592",
+            "rotation": "3.3",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         }
     ]
 }

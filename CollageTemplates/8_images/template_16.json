@@ -1,0 +1,99 @@
+{
+    "name": "central_item_16",
+    "imageCount": 8,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.197",
+            "y": "0.187",
+            "width": "0.607",
+            "height": "0.627",
+            "rotation": "-2.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.149,0.000; 1.000,0.000; 0.851,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.749",
+            "y": "0.354",
+            "width": "0.251",
+            "height": "0.293",
+            "rotation": "16.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.566",
+            "y": "0.662",
+            "width": "0.290",
+            "height": "0.203",
+            "rotation": "-6.2",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.139,0.000; 1.000,0.000; 0.861,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.289",
+            "y": "0.726",
+            "width": "0.231",
+            "height": "0.274",
+            "rotation": "-4.9",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.040",
+            "y": "0.581",
+            "width": "0.250",
+            "height": "0.161",
+            "rotation": "6.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.28"
+                }
+            }
+        },
+        {
+            "x": "0.090",
+            "y": "0.280",
+            "width": "0.274",
+            "height": "0.177",
+            "rotation": "9.5",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.383,0.000; 1.000,0.000; 0.617,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.313",
+            "y": "0.054",
+            "width": "0.214",
+            "height": "0.187",
+            "rotation": "-18.3",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.646",
+            "y": "0.070",
+            "width": "0.234",
+            "height": "0.203",
+            "rotation": "-0.1",
+            "shape": {
+                "type": "ellipse"
+            }
+        }
+    ]
+}

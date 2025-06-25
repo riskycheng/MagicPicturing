@@ -1,32 +1,102 @@
 {
-    "name": "8 Images - Template 2",
+    "name": "h_strips_2",
     "imageCount": 8,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.33,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.000",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.299,0.000; 0.701,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.125",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.250",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.375",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.181,0.000; 0.819,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.500",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.625",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.296,0.000; 1.000,0.000; 0.704,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.750",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.238,0.000; 1.000,0.000; 0.762,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.875",
+            "width": "1.000",
+            "height": "0.125",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.213,0.000; 1.000,0.000; 0.787,1.000; 0.000,1.000]"
+                }
+            }
         }
     ]
 }

@@ -1,35 +1,124 @@
 {
-    "name": "9 Images - Template 9",
+    "name": "overlap_9",
     "imageCount": 9,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.383",
+            "y": "0.506",
+            "width": "0.411",
+            "height": "0.354",
+            "rotation": "24.8",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.137",
+            "y": "0.280",
+            "width": "0.698",
+            "height": "0.720",
+            "rotation": "23.3",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.257",
+            "y": "0.333",
+            "width": "0.591",
+            "height": "0.635",
+            "rotation": "-18.1",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.186",
+            "y": "0.324",
+            "width": "0.590",
+            "height": "0.578",
+            "rotation": "-8.3",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.190",
+            "y": "0.323",
+            "width": "0.582",
+            "height": "0.536",
+            "rotation": "-19.3",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.347",
+            "y": "0.148",
+            "width": "0.506",
+            "height": "0.607",
+            "rotation": "-17.5",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.293",
+            "y": "0.375",
+            "width": "0.517",
+            "height": "0.536",
+            "rotation": "-5.6",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.253",
+            "y": "0.504",
+            "width": "0.453",
+            "height": "0.453",
+            "rotation": "6.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.238",
+            "y": "0.331",
+            "width": "0.406",
+            "height": "0.444",
+            "rotation": "-15.5",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
         }
     ]
 }

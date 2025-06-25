@@ -1,0 +1,86 @@
+{
+    "name": "central_item_17",
+    "imageCount": 7,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.240",
+            "y": "0.191",
+            "width": "0.520",
+            "height": "0.617",
+            "rotation": "-2.7",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.113,0.000; 0.887,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.719",
+            "y": "0.409",
+            "width": "0.228",
+            "height": "0.182",
+            "rotation": "9.6",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.109,0.000; 0.891,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.525",
+            "y": "0.634",
+            "width": "0.274",
+            "height": "0.291",
+            "rotation": "-4.1",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.238",
+            "y": "0.707",
+            "width": "0.191",
+            "height": "0.161",
+            "rotation": "-4.4",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.071",
+            "y": "0.397",
+            "width": "0.195",
+            "height": "0.205",
+            "rotation": "10.6",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.219",
+            "y": "0.048",
+            "width": "0.172",
+            "height": "0.228",
+            "rotation": "-18.1",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.148,0.000; 1.000,0.000; 0.852,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.641",
+            "y": "0.022",
+            "width": "0.156",
+            "height": "0.200",
+            "rotation": "-10.0",
+            "shape": {
+                "type": "circle"
+            }
+        }
+    ]
+}

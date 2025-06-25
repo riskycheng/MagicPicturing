@@ -1,32 +1,46 @@
 {
-    "name": "Angled Trio",
+    "name": "grid_2",
     "imageCount": 3,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 3.0,
     "frameDefinitions": [
         {
-            "x": "0.05",
-            "y": "0.2",
-            "width": "0.6",
-            "height": "0.4",
-            "rotation": "10",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.676",
+            "y": "0.032",
+            "width": "0.314",
+            "height": "0.936",
+            "rotation": "1.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.137,0.000; 1.000,0.000; 0.863,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.35",
-            "y": "0.1",
-            "width": "0.6",
-            "height": "0.4",
-            "rotation": "-8",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.011",
+            "y": "0.028",
+            "width": "0.311",
+            "height": "0.944",
+            "rotation": "2.6",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.137,0.000; 1.000,0.000; 0.863,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.2",
-            "y": "0.5",
-            "width": "0.7",
-            "height": "0.4",
-            "rotation": "5",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.351",
+            "y": "0.005",
+            "width": "0.299",
+            "height": "0.989",
+            "rotation": "-3.1",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.137,0.000; 1.000,0.000; 0.863,1.000; 0.000,1.000]"
+                }
+            }
         }
     ]
-} 
+}

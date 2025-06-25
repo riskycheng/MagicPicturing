@@ -1,0 +1,37 @@
+{
+    "name": "grid_19",
+    "imageCount": 3,
+    "aspectRatio": 0.33,
+    "frameDefinitions": [
+        {
+            "x": "0.012",
+            "y": "0.018",
+            "width": "0.975",
+            "height": "0.297",
+            "rotation": "4.7",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.046",
+            "y": "0.353",
+            "width": "0.908",
+            "height": "0.294",
+            "rotation": "3.7",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.064",
+            "y": "0.689",
+            "width": "0.871",
+            "height": "0.289",
+            "rotation": "-1.9",
+            "shape": {
+                "type": "ellipse"
+            }
+        }
+    ]
+}

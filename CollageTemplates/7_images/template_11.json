@@ -1,0 +1,77 @@
+{
+    "name": "h_strips_11",
+    "imageCount": 7,
+    "aspectRatio": 1.33,
+    "frameDefinitions": [
+        {
+            "x": "0.000",
+            "y": "0.000",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.143",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.286",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.429",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.571",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.714",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.857",
+            "width": "1.000",
+            "height": "0.143",
+            "rotation": "0.0",
+            "shape": {
+                "type": "circle"
+            }
+        }
+    ]
+}

@@ -1,0 +1,95 @@
+{
+    "name": "central_item_14",
+    "imageCount": 7,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.228",
+            "y": "0.176",
+            "width": "0.544",
+            "height": "0.648",
+            "rotation": "0.8",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.218,0.000; 1.000,0.000; 0.782,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.762",
+            "y": "0.412",
+            "width": "0.224",
+            "height": "0.177",
+            "rotation": "14.3",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.157,0.000; 1.000,0.000; 0.843,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.590",
+            "y": "0.692",
+            "width": "0.175",
+            "height": "0.231",
+            "rotation": "7.8",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.23"
+                }
+            }
+        },
+        {
+            "x": "0.195",
+            "y": "0.789",
+            "width": "0.171",
+            "height": "0.182",
+            "rotation": "-19.7",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.180,0.000; 0.820,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.055",
+            "y": "0.424",
+            "width": "0.282",
+            "height": "0.152",
+            "rotation": "-19.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.257,0.000; 0.743,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.151",
+            "y": "0.043",
+            "width": "0.284",
+            "height": "0.196",
+            "rotation": "-6.1",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.578",
+            "y": "0.063",
+            "width": "0.230",
+            "height": "0.207",
+            "rotation": "15.5",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.177,0.000; 1.000,0.000; 0.823,1.000; 0.000,1.000]"
+                }
+            }
+        }
+    ]
+}

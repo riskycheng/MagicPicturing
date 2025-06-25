@@ -1,17 +1,37 @@
 {
-    "name": "3 Images - Template 3",
+    "name": "v_strips_3",
     "imageCount": 3,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 0.75,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.333",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.667",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "ellipse"
+            }
         }
     ]
 }

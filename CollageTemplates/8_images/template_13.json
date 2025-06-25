@@ -1,0 +1,99 @@
+{
+    "name": "central_item_13",
+    "imageCount": 8,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.190",
+            "y": "0.246",
+            "width": "0.620",
+            "height": "0.507",
+            "rotation": "-2.3",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.792",
+            "y": "0.366",
+            "width": "0.161",
+            "height": "0.267",
+            "rotation": "0.8",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.243,0.000; 0.757,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.616",
+            "y": "0.643",
+            "width": "0.155",
+            "height": "0.200",
+            "rotation": "-1.5",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.314",
+            "y": "0.725",
+            "width": "0.223",
+            "height": "0.203",
+            "rotation": "-0.2",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.101",
+            "y": "0.572",
+            "width": "0.183",
+            "height": "0.153",
+            "rotation": "-3.0",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.235",
+            "width": "0.270",
+            "height": "0.177",
+            "rotation": "-2.6",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.317,0.000; 1.000,0.000; 0.683,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.301",
+            "y": "0.053",
+            "width": "0.241",
+            "height": "0.206",
+            "rotation": "-1.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.272,0.000; 0.728,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.609",
+            "y": "0.130",
+            "width": "0.180",
+            "height": "0.240",
+            "rotation": "2.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.340,0.000; 1.000,0.000; 0.660,1.000; 0.000,1.000]"
+                }
+            }
+        }
+    ]
+}

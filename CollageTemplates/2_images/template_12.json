@@ -1,0 +1,33 @@
+{
+    "name": "grid_12",
+    "imageCount": 2,
+    "aspectRatio": 2.0,
+    "frameDefinitions": [
+        {
+            "x": "0.001",
+            "y": "0.055",
+            "width": "0.498",
+            "height": "0.889",
+            "rotation": "-2.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.20"
+                }
+            }
+        },
+        {
+            "x": "0.514",
+            "y": "0.036",
+            "width": "0.473",
+            "height": "0.928",
+            "rotation": "2.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.281,0.000; 1.000,0.000; 0.719,1.000; 0.000,1.000]"
+                }
+            }
+        }
+    ]
+}

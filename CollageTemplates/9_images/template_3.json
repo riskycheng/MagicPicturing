@@ -1,35 +1,118 @@
 {
-    "name": "9 Images - Template 3",
+    "name": "central_item_3",
     "imageCount": 9,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.218",
+            "y": "0.243",
+            "width": "0.563",
+            "height": "0.514",
+            "rotation": "-4.5",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.00"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.789",
+            "y": "0.375",
+            "width": "0.160",
+            "height": "0.250",
+            "rotation": "-17.8",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.374,0.000; 1.000,0.000; 0.626,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.598",
+            "y": "0.611",
+            "width": "0.275",
+            "height": "0.249",
+            "rotation": "-10.6",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.26"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.369",
+            "y": "0.771",
+            "width": "0.263",
+            "height": "0.229",
+            "rotation": "15.6",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.063",
+            "y": "0.708",
+            "width": "0.264",
+            "height": "0.195",
+            "rotation": "17.2",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.157,0.000; 0.843,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.000",
+            "y": "0.410",
+            "width": "0.213",
+            "height": "0.181",
+            "rotation": "-15.6",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.127,0.000; 0.873,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.096",
+            "y": "0.104",
+            "width": "0.237",
+            "height": "0.221",
+            "rotation": "7.7",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.375",
+            "y": "0.031",
+            "width": "0.250",
+            "height": "0.294",
+            "rotation": "-5.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.275,0.000; 1.000,0.000; 0.725,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.681",
+            "y": "0.146",
+            "width": "0.188",
+            "height": "0.157",
+            "rotation": "2.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.249,0.000; 1.000,0.000; 0.751,1.000; 0.000,1.000]"
+                }
+            }
         }
     ]
 }

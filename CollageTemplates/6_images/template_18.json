@@ -1,0 +1,67 @@
+{
+    "name": "grid_18",
+    "imageCount": 6,
+    "aspectRatio": 0.17,
+    "frameDefinitions": [
+        {
+            "x": "0.043",
+            "y": "0.338",
+            "width": "0.914",
+            "height": "0.158",
+            "rotation": "-2.0",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.017",
+            "y": "0.834",
+            "width": "0.966",
+            "height": "0.165",
+            "rotation": "-3.9",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.004",
+            "y": "0.502",
+            "width": "0.992",
+            "height": "0.163",
+            "rotation": "3.6",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.001",
+            "y": "0.678",
+            "width": "0.999",
+            "height": "0.143",
+            "rotation": "-4.4",
+            "shape": {
+                "type": "circle"
+            }
+        },
+        {
+            "x": "0.052",
+            "y": "0.171",
+            "width": "0.897",
+            "height": "0.157",
+            "rotation": "2.3",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.038",
+            "y": "0.012",
+            "width": "0.924",
+            "height": "0.143",
+            "rotation": "0.3",
+            "shape": {
+                "type": "circle"
+            }
+        }
+    ]
+}

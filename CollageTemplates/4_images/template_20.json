@@ -1,0 +1,59 @@
+{
+    "name": "overlap_20",
+    "imageCount": 4,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.243",
+            "y": "0.083",
+            "width": "0.549",
+            "height": "0.562",
+            "rotation": "-24.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.023",
+            "width": "0.690",
+            "height": "0.750",
+            "rotation": "-3.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        },
+        {
+            "x": "0.203",
+            "y": "0.000",
+            "width": "0.665",
+            "height": "0.717",
+            "rotation": "14.6",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        },
+        {
+            "x": "0.084",
+            "y": "0.134",
+            "width": "0.431",
+            "height": "0.479",
+            "rotation": "-12.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        }
+    ]
+}

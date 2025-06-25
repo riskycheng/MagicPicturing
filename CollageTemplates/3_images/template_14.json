@@ -1,0 +1,46 @@
+{
+    "name": "h_strips_14",
+    "imageCount": 3,
+    "aspectRatio": 1.33,
+    "frameDefinitions": [
+        {
+            "x": "0.000",
+            "y": "0.000",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.283,0.000; 0.717,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.333",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.03"
+                }
+            }
+        },
+        {
+            "x": "0.000",
+            "y": "0.667",
+            "width": "1.000",
+            "height": "0.333",
+            "rotation": "0.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.225,0.000; 0.775,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        }
+    ]
+}

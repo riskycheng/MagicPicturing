@@ -1,0 +1,85 @@
+{
+    "name": "grid_20",
+    "imageCount": 6,
+    "aspectRatio": 6.0,
+    "frameDefinitions": [
+        {
+            "x": "0.676",
+            "y": "0.069",
+            "width": "0.148",
+            "height": "0.862",
+            "rotation": "-3.4",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        },
+        {
+            "x": "0.345",
+            "y": "0.040",
+            "width": "0.144",
+            "height": "0.919",
+            "rotation": "-4.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        },
+        {
+            "x": "0.011",
+            "y": "0.017",
+            "width": "0.144",
+            "height": "0.965",
+            "rotation": "-5.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        },
+        {
+            "x": "0.839",
+            "y": "0.046",
+            "width": "0.155",
+            "height": "0.907",
+            "rotation": "4.2",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        },
+        {
+            "x": "0.173",
+            "y": "0.017",
+            "width": "0.153",
+            "height": "0.966",
+            "rotation": "-4.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        },
+        {
+            "x": "0.510",
+            "y": "0.037",
+            "width": "0.146",
+            "height": "0.926",
+            "rotation": "-4.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.27"
+                }
+            }
+        }
+    ]
+}

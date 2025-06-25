@@ -1,0 +1,118 @@
+{
+    "name": "grid_20",
+    "imageCount": 9,
+    "aspectRatio": 0.11,
+    "frameDefinitions": [
+        {
+            "x": "0.053",
+            "y": "0.450",
+            "width": "0.895",
+            "height": "0.099",
+            "rotation": "3.6",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.275,0.000; 1.000,0.000; 0.725,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.027",
+            "y": "0.111",
+            "width": "0.947",
+            "height": "0.111",
+            "rotation": "0.7",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.20"
+                }
+            }
+        },
+        {
+            "x": "0.003",
+            "y": "0.895",
+            "width": "0.994",
+            "height": "0.100",
+            "rotation": "2.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.271,0.000; 0.729,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.065",
+            "y": "0.673",
+            "width": "0.871",
+            "height": "0.098",
+            "rotation": "2.2",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.15"
+                }
+            }
+        },
+        {
+            "x": "0.028",
+            "y": "0.563",
+            "width": "0.944",
+            "height": "0.096",
+            "rotation": "-4.0",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.236,0.000; 0.764,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.065",
+            "y": "0.780",
+            "width": "0.870",
+            "height": "0.107",
+            "rotation": "-2.4",
+            "shape": {
+                "type": "ellipse"
+            }
+        },
+        {
+            "x": "0.043",
+            "y": "0.230",
+            "width": "0.915",
+            "height": "0.095",
+            "rotation": "-3.9",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.139,0.000; 1.000,0.000; 0.861,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.023",
+            "y": "0.005",
+            "width": "0.954",
+            "height": "0.100",
+            "rotation": "-0.3",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.271,0.000; 0.729,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
+        },
+        {
+            "x": "0.064",
+            "y": "0.339",
+            "width": "0.872",
+            "height": "0.099",
+            "rotation": "-1.0",
+            "shape": {
+                "type": "circle"
+            }
+        }
+    ]
+}

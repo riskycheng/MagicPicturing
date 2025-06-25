@@ -3,7 +3,32 @@ import SwiftUI
 struct CellState: Hashable {
     let frame: CGRect
     let rotation: Angle
-    let cornerRadius: CGFloat // Keep simple corner radius for now, will replace with arbitrary shapes.
+    let shapeDefinition: CollageLayoutTemplate.ShapeDefinition?
+    
+    // Make ShapeDefinition hashable so CellState can be hashable
+    static func == (lhs: CellState, rhs: CellState) -> Bool {
+        lhs.frame == rhs.frame && lhs.rotation == rhs.rotation && lhs.shapeDefinition?.type == rhs.shapeDefinition?.type
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(frame)
+        hasher.combine(rotation)
+        hasher.combine(shapeDefinition?.type)
+        // Note: This is a simplified hash. If shapes have parameters, we might need a better hash.
+    }
+}
+
+extension CollageLayoutTemplate.ShapeDefinition: Hashable {
+    static func == (lhs: CollageLayoutTemplate.ShapeDefinition, rhs: CollageLayoutTemplate.ShapeDefinition) -> Bool {
+        lhs.type == rhs.type && lhs.parameters == rhs.parameters
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(type)
+        if let params = parameters {
+            hasher.combine(params)
+        }
+    }
 }
 
 /// A helper class to throttle the execution of a block of code.
@@ -123,7 +148,7 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
         AnyView(
             ZStack {
                 ForEach(cellStates, id: \.self) { cell in
-                    Rectangle() // Preview still uses Rectangle for simplicity.
+                    ShapeFactory.createShape(from: cell.shapeDefinition)
                         .stroke(Color.white, lineWidth: 1)
                         .frame(width: cell.frame.width * 50, height: cell.frame.height * 50)
                         .rotationEffect(cell.rotation)

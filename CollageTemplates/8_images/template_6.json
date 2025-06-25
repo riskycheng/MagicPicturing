@@ -1,32 +1,87 @@
 {
-    "name": "8 Images - Template 6",
+    "name": "overlap_6",
     "imageCount": 8,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.046",
+            "y": "0.088",
+            "width": "0.451",
+            "height": "0.515",
+            "rotation": "-8.8",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.251",
+            "y": "0.332",
+            "width": "0.429",
+            "height": "0.371",
+            "rotation": "-17.4",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.154",
+            "y": "0.122",
+            "width": "0.575",
+            "height": "0.615",
+            "rotation": "-21.3",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.146",
+            "y": "0.163",
+            "width": "0.479",
+            "height": "0.476",
+            "rotation": "8.4",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.246",
+            "y": "0.203",
+            "width": "0.505",
+            "height": "0.424",
+            "rotation": "10.7",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.028",
+            "y": "0.058",
+            "width": "0.473",
+            "height": "0.553",
+            "rotation": "19.3",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.161",
+            "y": "0.003",
+            "width": "0.609",
+            "height": "0.548",
+            "rotation": "22.4",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.8", "rotation": "0", "shape": null
+            "x": "0.061",
+            "y": "0.061",
+            "width": "0.616",
+            "height": "0.583",
+            "rotation": "16.6",
+            "shape": {
+                "type": "circle"
+            }
         }
     ]
 }

@@ -40,7 +40,7 @@ struct CollagePreviewView: View {
                             CollageCellView(
                                 state: state,
                                 isSelected: viewModel.selectedImageIndex == index,
-                                layoutCornerRadius: cellState.cornerRadius * min(insetFrame.width, insetFrame.height),
+                                shapeDefinition: cellState.shapeDefinition,
                                 layoutRotation: cellState.rotation
                             )
                             .frame(width: insetFrame.width, height: insetFrame.height)

@@ -1,32 +1,47 @@
 {
-    "name": "Scattered Quad",
+    "name": "overlap_2",
     "imageCount": 4,
-    "aspectRatio": 1,
-    "parameters": {},
+    "aspectRatio": 1.0,
     "frameDefinitions": [
         {
-            "x": "0.05", "y": "0.05",
-            "width": "0.45", "height": "0.45",
-            "rotation": "-10",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.040",
+            "y": "0.065",
+            "width": "0.627",
+            "height": "0.742",
+            "rotation": "7.1",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.5", "y": "0.1",
-            "width": "0.45", "height": "0.45",
-            "rotation": "8",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.389",
+            "y": "0.106",
+            "width": "0.458",
+            "height": "0.538",
+            "rotation": "-6.9",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.1", "y": "0.5",
-            "width": "0.45", "height": "0.45",
-            "rotation": "12",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.128",
+            "y": "0.161",
+            "width": "0.645",
+            "height": "0.640",
+            "rotation": "-0.2",
+            "shape": {
+                "type": "circle"
+            }
         },
         {
-            "x": "0.55", "y": "0.55",
-            "width": "0.4", "height": "0.4",
-            "rotation": "-5",
-            "shape": { "type": "rectangle", "parameters": { "cornerRadius": "0.1" }}
+            "x": "0.129",
+            "y": "0.179",
+            "width": "0.500",
+            "height": "0.576",
+            "rotation": "-19.1",
+            "shape": {
+                "type": "circle"
+            }
         }
     ]
-} 
+}

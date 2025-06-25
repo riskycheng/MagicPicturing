@@ -1,41 +1,56 @@
 {
-    "name": "Four Images Grid",
+    "name": "grid_1",
     "imageCount": 4,
     "aspectRatio": 1.0,
-    "parameters": {
-        "v_split1": {
-            "initial": 0.5,
-            "range": [0.1, 0.9]
-        },
-        "h_split1": {
-            "initial": 0.5,
-            "range": [0.1, 0.9]
-        }
-    },
     "frameDefinitions": [
         {
-            "x": "0",
-            "y": "0",
-            "width": "params.v_split1",
-            "height": "params.h_split1"
+            "x": "0.536",
+            "y": "0.529",
+            "width": "0.428",
+            "height": "0.442",
+            "rotation": "4.4",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.227,0.000; 1.000,0.000; 0.773,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "params.v_split1",
-            "y": "0",
-            "width": "1 - params.v_split1",
-            "height": "params.h_split1"
+            "x": "0.019",
+            "y": "0.503",
+            "width": "0.462",
+            "height": "0.493",
+            "rotation": "3.3",
+            "shape": {
+                "type": "polygon",
+                "parameters": {
+                    "points": "[0.201,0.000; 0.799,0.000; 1.000,1.000; 0.000,1.000]"
+                }
+            }
         },
         {
-            "x": "0",
-            "y": "params.h_split1",
-            "width": "params.v_split1",
-            "height": "1 - params.h_split1"
+            "x": "0.032",
+            "y": "0.023",
+            "width": "0.435",
+            "height": "0.454",
+            "rotation": "1.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.13"
+                }
+            }
         },
         {
-            "x": "params.v_split1",
-            "y": "params.h_split1",
-            "width": "1 - params.v_split1",
-            "height": "1 - params.h_split1"
+            "x": "0.517",
+            "y": "0.030",
+            "width": "0.466",
+            "height": "0.440",
+            "rotation": "-1.6",
+            "shape": {
+                "type": "ellipse"
+            }
         }
     ]
-} 
+}

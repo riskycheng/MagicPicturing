@@ -1,35 +1,40 @@
 {
-    "name": "Three Images Vertical",
+    "name": "v_strips_1",
     "imageCount": 3,
     "aspectRatio": 0.75,
-    "parameters": {
-        "h_split1": {
-            "initial": 0.33,
-            "range": [0.1, 0.9]
-        },
-        "h_split2": {
-            "initial": 0.66,
-            "range": [0.1, 0.9]
-        }
-    },
     "frameDefinitions": [
         {
-            "x": "0",
-            "y": "0",
-            "width": "1",
-            "height": "params.h_split1"
+            "x": "0.000",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.22"
+                }
+            }
         },
         {
-            "x": "0",
-            "y": "params.h_split1",
-            "width": "1",
-            "height": "params.h_split2 - params.h_split1"
+            "x": "0.333",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "ellipse"
+            }
         },
         {
-            "x": "0",
-            "y": "params.h_split2",
-            "width": "1",
-            "height": "1 - params.h_split2"
+            "x": "0.667",
+            "y": "0.000",
+            "width": "0.333",
+            "height": "1.000",
+            "rotation": "0.0",
+            "shape": {
+                "type": "ellipse"
+            }
         }
     ]
-} 
+}

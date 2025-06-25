@@ -85,7 +85,7 @@ struct SubControlPanel: View {
         }
         .padding(.vertical)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(Color(UIColor.secondarySystemGroupedBackground))
                 .shadow(color: .black.opacity(0.1), radius: 5, y: -2)
         )
@@ -170,38 +170,7 @@ struct FancySlider: View {
                 .font(.system(size: 15))
                 .frame(width: 40, alignment: .leading)
 
-            GeometryReader { geometry in
-                let valueRatio = (self.value - self.range.lowerBound) / (self.range.upperBound - self.range.lowerBound)
-                let clampedRatio = max(0, min(1, CGFloat(valueRatio)))
-                let thumbPositionX = geometry.size.width * clampedRatio
-
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color(UIColor.tertiarySystemFill))
-                        .frame(height: 4)
-                    
-                    Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: thumbPositionX, height: 4)
-
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 22, height: 22)
-                        .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-                        .position(x: thumbPositionX, y: geometry.size.height / 2)
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { gestureValue in
-                                    let newRatio = gestureValue.location.x / geometry.size.width
-                                    let clampedNewRatio = max(0, min(1, newRatio))
-                                    let newValue = (clampedNewRatio * (self.range.upperBound - self.range.lowerBound)) + self.range.lowerBound
-                                    self.value = newValue
-                                }
-                        )
-                }
-                .frame(maxHeight: .infinity)
-            }
-            .frame(height: 22)
+            Slider(value: $value, in: range)
 
             Text(String(format: "%.0f", value))
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))

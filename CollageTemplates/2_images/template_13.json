@@ -1,0 +1,33 @@
+{
+    "name": "overlap_13",
+    "imageCount": 2,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        {
+            "x": "0.268",
+            "y": "0.432",
+            "width": "0.465",
+            "height": "0.466",
+            "rotation": "16.9",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        },
+        {
+            "x": "0.077",
+            "y": "0.413",
+            "width": "0.463",
+            "height": "0.458",
+            "rotation": "-12.2",
+            "shape": {
+                "type": "rectangle",
+                "parameters": {
+                    "cornerRadius": "0.10"
+                }
+            }
+        }
+    ]
+}
