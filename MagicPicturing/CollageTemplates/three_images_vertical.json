@@ -1,0 +1,35 @@
+{
+    "name": "Three Images Vertical",
+    "imageCount": 3,
+    "aspectRatio": 0.75,
+    "parameters": {
+        "h_split1": {
+            "initial": 0.33,
+            "range": [0.1, 0.9]
+        },
+        "h_split2": {
+            "initial": 0.66,
+            "range": [0.1, 0.9]
+        }
+    },
+    "frameDefinitions": [
+        {
+            "x": "0",
+            "y": "0",
+            "width": "1",
+            "height": "params.h_split1"
+        },
+        {
+            "x": "0",
+            "y": "params.h_split1",
+            "width": "1",
+            "height": "params.h_split2 - params.h_split1"
+        },
+        {
+            "x": "0",
+            "y": "params.h_split2",
+            "width": "1",
+            "height": "1 - params.h_split2"
+        }
+    ]
+} 

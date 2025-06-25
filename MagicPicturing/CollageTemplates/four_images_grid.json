@@ -1,0 +1,41 @@
+{
+    "name": "Four Images Grid",
+    "imageCount": 4,
+    "aspectRatio": 1.0,
+    "parameters": {
+        "v_split1": {
+            "initial": 0.5,
+            "range": [0.1, 0.9]
+        },
+        "h_split1": {
+            "initial": 0.5,
+            "range": [0.1, 0.9]
+        }
+    },
+    "frameDefinitions": [
+        {
+            "x": "0",
+            "y": "0",
+            "width": "params.v_split1",
+            "height": "params.h_split1"
+        },
+        {
+            "x": "params.v_split1",
+            "y": "0",
+            "width": "1 - params.v_split1",
+            "height": "params.h_split1"
+        },
+        {
+            "x": "0",
+            "y": "params.h_split1",
+            "width": "params.v_split1",
+            "height": "1 - params.h_split1"
+        },
+        {
+            "x": "params.v_split1",
+            "y": "params.h_split1",
+            "width": "1 - params.v_split1",
+            "height": "1 - params.h_split1"
+        }
+    ]
+} 

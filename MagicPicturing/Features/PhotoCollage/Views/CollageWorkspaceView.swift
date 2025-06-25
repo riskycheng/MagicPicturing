@@ -8,6 +8,7 @@ struct CollageWorkspaceView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showSaveSuccessAlert = false
     @State private var showImagePicker = false
+    @State private var showMoreTemplates = false
 
     // State for the new control panel design. Using a tuple with a UUID to ensure a new ID every time.
     @State private var activeSheet: (tab: ControlTab, id: UUID)? = nil
@@ -45,7 +46,7 @@ struct CollageWorkspaceView: View {
             // Redesigned Bottom Controls
             Group {
                 if viewModel.selectedImageIndex == nil {
-                    BottomControlSystem(viewModel: viewModel, activeSheet: $activeSheet, showImagePicker: $showImagePicker)
+                    BottomControlSystem(viewModel: viewModel, activeSheet: $activeSheet, showImagePicker: $showImagePicker, showMoreTemplates: $showMoreTemplates)
                 } else {
                     PhotoEditControlsView(viewModel: viewModel)
                 }
@@ -69,6 +70,15 @@ struct CollageWorkspaceView: View {
                     showImagePicker = false
                 },
                 selectionLimit: 9 - viewModel.assets.count // Allow adding up to 9 images total
+            )
+        }
+        .sheet(isPresented: $showMoreTemplates) {
+            MoreTemplatesView(
+                isPresented: $showMoreTemplates,
+                imageCount: viewModel.assets.count,
+                onLayoutSelected: { newLayout in
+                    viewModel.selectedLayout = newLayout
+                }
             )
         }
     }
@@ -156,12 +166,13 @@ private struct BottomControlSystem: View {
     @ObservedObject var viewModel: CollageViewModel
     @Binding var activeSheet: (tab: ControlTab, id: UUID)?
     @Binding var showImagePicker: Bool
+    @Binding var showMoreTemplates: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             // The slide-up panel for controls
             if let sheetInfo = activeSheet {
-                SubControlPanel(tab: sheetInfo.tab, viewModel: viewModel, activeSheet: $activeSheet)
+                SubControlPanel(tab: sheetInfo.tab, viewModel: viewModel, activeSheet: $activeSheet, showMoreTemplates: $showMoreTemplates)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .id(sheetInfo.id) // Force recreation of the view and its state when the ID changes.
             }
@@ -202,6 +213,7 @@ private struct SubControlPanel: View {
     let tab: ControlTab
     @ObservedObject var viewModel: CollageViewModel
     @Binding var activeSheet: (tab: ControlTab, id: UUID)?
+    @Binding var showMoreTemplates: Bool
     
     // State for the drag-to-dismiss gesture
     @State private var dragOffset: CGFloat = 0
@@ -220,7 +232,8 @@ private struct SubControlPanel: View {
             case .layout:
                 LayoutSelectorScrollView(
                     layouts: viewModel.availableLayouts,
-                    selectedLayout: $viewModel.selectedLayout
+                    selectedLayout: $viewModel.selectedLayout,
+                    showMoreTemplates: $showMoreTemplates
                 )
             case .border:
                 BorderControlsView(
@@ -368,6 +381,7 @@ private struct BlurControlView: View {
 private struct LayoutSelectorScrollView: View {
     let layouts: [CollageLayout]
     @Binding var selectedLayout: CollageLayout?
+    @Binding var showMoreTemplates: Bool
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -383,11 +397,26 @@ private struct LayoutSelectorScrollView: View {
                         }
                     }
                 }
+                
+                // Button to show more templates
+                Button(action: {
+                    showMoreTemplates = true
+                }) {
+                    VStack {
+                        Image(systemName: "ellipsis")
+                            .font(.title)
+                            .frame(width: 50, height: 50)
+                        Text("更多")
+                            .font(.caption)
+                    }
+                    .frame(width: 60)
+                    .foregroundColor(.accentColor)
+                }
             }
             .padding(.horizontal)
             .padding(.bottom, 10)
         }
-        .frame(height: 60)
+        .frame(height: 80) // Increased height to accommodate text
     }
 }
 
