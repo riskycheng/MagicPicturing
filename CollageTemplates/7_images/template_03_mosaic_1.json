@@ -1,0 +1,14 @@
+{
+    "name": "7_mosaic_1",
+    "imageCount": 7,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "1.0", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.333", "width": "0.4", "height": "0.667", "shape": { "type": "rectangle" } },
+        { "x": "0.4", "y": "0.333", "width": "0.3", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.7", "y": "0.333", "width": "0.3", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.4", "y": "0.666", "width": "0.2", "height": "0.334", "shape": { "type": "rectangle" } },
+        { "x": "0.6", "y": "0.666", "width": "0.2", "height": "0.334", "shape": { "type": "rectangle" } },
+        { "x": "0.8", "y": "0.666", "width": "0.2", "height": "0.334", "shape": { "type": "rectangle" } }
+    ]
+} 
