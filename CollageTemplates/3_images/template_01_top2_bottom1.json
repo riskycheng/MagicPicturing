@@ -1,0 +1,10 @@
+{
+    "name": "3_top2_bottom1",
+    "imageCount": 3,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.5", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0", "width": "0.5", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.5", "width": "1.0", "height": "0.5", "shape": { "type": "rectangle" } }
+    ]
+} 

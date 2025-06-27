@@ -1,0 +1,10 @@
+{
+    "name": "3_v_insets",
+    "imageCount": 3,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0.1", "y": "0.1", "width": "0.23", "height": "0.8", "shape": { "type": "rectangle" } },
+        { "x": "0.38", "y": "0.1", "width": "0.24", "height": "0.8", "shape": { "type": "rectangle" } },
+        { "x": "0.67", "y": "0.1", "width": "0.23", "height": "0.8", "shape": { "type": "rectangle" } }
+    ]
+} 

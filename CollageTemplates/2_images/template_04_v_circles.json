@@ -1,0 +1,9 @@
+{
+    "name": "2_vertical_circles",
+    "imageCount": 2,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0.1", "y": "0.3", "width": "0.35", "height": "0.4", "shape": { "type": "ellipse" } },
+        { "x": "0.55", "y": "0.3", "width": "0.35", "height": "0.4", "shape": { "type": "ellipse" } }
+    ]
+} 

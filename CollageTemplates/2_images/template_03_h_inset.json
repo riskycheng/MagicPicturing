@@ -1,0 +1,9 @@
+{
+    "name": "2_horizontal_inset",
+    "imageCount": 2,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0.1", "y": "0.1", "width": "0.8", "height": "0.35", "shape": { "type": "rectangle" } },
+        { "x": "0.1", "y": "0.55", "width": "0.8", "height": "0.35", "shape": { "type": "rectangle" } }
+    ]
+} 

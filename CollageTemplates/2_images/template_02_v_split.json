@@ -1,0 +1,9 @@
+{
+    "name": "2_vertical_split",
+    "imageCount": 2,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.5", "height": "1.0", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0", "width": "0.5", "height": "1.0", "shape": { "type": "rectangle" } }
+    ]
+} 

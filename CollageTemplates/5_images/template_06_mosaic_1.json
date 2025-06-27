@@ -1,0 +1,12 @@
+{
+    "name": "5_mosaic_1",
+    "imageCount": 5,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.5", "height": "0.6", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.6", "width": "0.5", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0", "width": "0.5", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.3", "width": "0.5", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.7", "width": "0.5", "height": "0.3", "shape": { "type": "rectangle" } }
+    ]
+} 
