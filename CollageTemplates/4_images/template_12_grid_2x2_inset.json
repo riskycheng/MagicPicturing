@@ -1,0 +1,11 @@
+{
+    "name": "grid_2x2_inset",
+    "imageCount": 4,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0.05", "y": "0.05", "width": "0.4", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.55", "y": "0.05", "width": "0.4", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.05", "y": "0.55", "width": "0.4", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.55", "y": "0.55", "width": "0.4", "height": "0.4", "shape": { "type": "rectangle" } }
+    ]
+} 

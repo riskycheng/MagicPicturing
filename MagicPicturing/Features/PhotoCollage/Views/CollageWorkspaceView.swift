@@ -8,7 +8,6 @@ struct CollageWorkspaceView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showSaveSuccessAlert = false
     @State private var showImagePicker = false
-    @State private var showMoreTemplates = false
 
     @State private var activeSheet: (tab: ControlTab, id: UUID)? = nil
 
@@ -39,15 +38,6 @@ struct CollageWorkspaceView: View {
                 selectionLimit: 9 - viewModel.assets.count
             )
         }
-        .sheet(isPresented: $showMoreTemplates) {
-            MoreTemplatesView(
-                isPresented: $showMoreTemplates,
-                imageCount: viewModel.assets.count,
-                onLayoutSelected: { newLayout in
-                    viewModel.selectedLayout = newLayout
-                }
-            )
-        }
     }
 
     private var collagePreviewArea: some View {
@@ -74,7 +64,7 @@ struct CollageWorkspaceView: View {
     private var bottomControls: some View {
         Group {
             if viewModel.selectedImageIndex == nil {
-                BottomControlSystem(viewModel: viewModel, activeSheet: $activeSheet, showImagePicker: $showImagePicker, showMoreTemplates: $showMoreTemplates)
+                BottomControlSystem(viewModel: viewModel, activeSheet: $activeSheet, showImagePicker: $showImagePicker)
             } else {
                 PhotoEditControlsView(viewModel: viewModel)
             }

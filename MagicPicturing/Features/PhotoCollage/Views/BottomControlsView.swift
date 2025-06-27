@@ -22,12 +22,11 @@ struct BottomControlSystem: View {
     @ObservedObject var viewModel: CollageViewModel
     @Binding var activeSheet: (tab: ControlTab, id: UUID)?
     @Binding var showImagePicker: Bool
-    @Binding var showMoreTemplates: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             if let sheetInfo = activeSheet {
-                SubControlPanel(tab: sheetInfo.tab, viewModel: viewModel, activeSheet: $activeSheet, showMoreTemplates: $showMoreTemplates)
+                SubControlPanel(tab: sheetInfo.tab, viewModel: viewModel, activeSheet: $activeSheet)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .id(sheetInfo.id)
             }
@@ -69,7 +68,6 @@ struct SubControlPanel: View {
     let tab: ControlTab
     @ObservedObject var viewModel: CollageViewModel
     @Binding var activeSheet: (tab: ControlTab, id: UUID)?
-    @Binding var showMoreTemplates: Bool
     
     @State private var dragOffset: CGFloat = 0
 
@@ -120,8 +118,7 @@ struct SubControlPanel: View {
         case .layout:
             LayoutSelectorScrollView(
                 layouts: viewModel.availableLayouts,
-                selectedLayout: $viewModel.selectedLayout,
-                showMoreTemplates: $showMoreTemplates
+                selectedLayout: $viewModel.selectedLayout
             )
         case .border:
             BorderControlsView(
@@ -198,39 +195,25 @@ struct BlurControlView: View {
 struct LayoutSelectorScrollView: View {
     let layouts: [CollageLayout]
     @Binding var selectedLayout: CollageLayout?
-    @Binding var showMoreTemplates: Bool
-
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
+            HStack(spacing: 15) {
                 ForEach(layouts) { layout in
-                    LayoutPreviewCell(
-                        layout: layout,
-                        isSelected: selectedLayout?.id == layout.id
-                    )
-                    .onTapGesture {
-                        withAnimation(.spring()) {
-                            selectedLayout = layout
+                    Button(action: {
+                        self.selectedLayout = layout
+                    }) {
+                        VStack {
+                            layout.preview
+                                .frame(width: 60, height: 60)
+                                .padding(2)
+                                .background(self.selectedLayout?.name == layout.name ? Color.accentColor.opacity(0.85) : Color.clear)
+                                .cornerRadius(10)
                         }
                     }
                 }
-                
-                Button(action: {
-                    showMoreTemplates = true
-                }) {
-                    VStack {
-                        Image(systemName: "ellipsis")
-                            .font(.title)
-                            .frame(width: 50, height: 50)
-                        Text("更多")
-                            .font(.caption)
-                    }
-                    .frame(width: 60)
-                    .foregroundColor(.accentColor)
-                }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 20)
         }
         .frame(height: 80)
     }

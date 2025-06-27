@@ -146,18 +146,47 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
     
     var preview: AnyView {
         AnyView(
-            ZStack {
-                ForEach(cellStates, id: \.self) { cell in
-                    ShapeFactory.createShape(from: cell.shapeDefinition)
-                        .stroke(Color.white, lineWidth: 1)
-                        .frame(width: cell.frame.width * 50, height: cell.frame.height * 50)
-                        .rotationEffect(cell.rotation)
-                        .offset(x: cell.frame.midX * 50 - 25, y: cell.frame.midY * 50 - 25)
+            GeometryReader { geometry in
+                let size = geometry.size
+                let strokeStyle = StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+
+                ZStack {
+                    // Draw all the paths for the cells
+                    Path { path in
+                        for cell in self.cellStates {
+                            let rect = CGRect(
+                                x: cell.frame.origin.x * size.width,
+                                y: cell.frame.origin.y * size.height,
+                                width: cell.frame.width * size.width,
+                                height: cell.frame.height * size.height
+                            )
+                            
+                            let shapePath = ShapeFactory.createShape(from: cell.shapeDefinition)
+                                .path(in: rect)
+                            
+                            let transform: CGAffineTransform
+                            if cell.rotation.radians != 0 {
+                                let toOrigin = CGAffineTransform(translationX: -rect.midX, y: -rect.midY)
+                                let rotation = CGAffineTransform(rotationAngle: cell.rotation.radians)
+                                let fromOrigin = CGAffineTransform(translationX: rect.midX, y: rect.midY)
+                                transform = toOrigin.concatenating(rotation).concatenating(fromOrigin)
+                            } else {
+                                transform = .identity
+                            }
+
+                            path.addPath(shapePath, transform: transform)
+                        }
+                    }
+                    .stroke(Color.white, style: strokeStyle)
+
+                    // Add a bounding box to ensure the view has a defined frame
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white, style: strokeStyle)
                 }
             }
-            .frame(width: 50, height: 50)
-            .background(Color.gray.opacity(0.3))
-            .cornerRadius(8)
+            .background(Color.black.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .aspectRatio(1, contentMode: .fit)
         )
     }
 }

@@ -99,10 +99,10 @@ class CollageViewModel: ObservableObject {
         
         let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
         
-        self.availableLayouts = CollageLayoutProvider.getLayouts(for: currentImageCount)
+        self.availableLayouts = JSONCollageLayoutProvider().loadTemplates(for: currentImageCount)
         
-        if isCurrentLayoutStillValid, let currentLayoutId = selectedLayout?.id {
-            self.selectedLayout = availableLayouts.first { $0.id == currentLayoutId } ?? availableLayouts.first
+        if isCurrentLayoutStillValid, let currentLayoutName = selectedLayout?.name {
+            self.selectedLayout = availableLayouts.first { $0.name == currentLayoutName } ?? availableLayouts.first
         } else {
             self.selectedLayout = availableLayouts.first
         }
@@ -171,7 +171,7 @@ class CollageViewModel: ObservableObject {
         
         let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
         
-        self.availableLayouts = CollageLayoutProvider.getLayouts(for: currentImageCount)
+        self.availableLayouts = JSONCollageLayoutProvider().loadTemplates(for: currentImageCount)
         
         // If current layout is no longer valid, or if no layout is selected,
         // pick the first available one.

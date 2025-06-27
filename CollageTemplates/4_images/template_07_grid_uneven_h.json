@@ -1,0 +1,11 @@
+{
+    "name": "grid_uneven_h",
+    "imageCount": 4,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.5", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0", "width": "0.5", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.4", "width": "0.5", "height": "0.6", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.4", "width": "0.5", "height": "0.6", "shape": { "type": "rectangle" } }
+    ]
+} 
