@@ -1,0 +1,16 @@
+{
+    "name": "9_top1_bottom8_grid",
+    "imageCount": 9,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "1.0", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.5", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.25", "y": "0.5", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.5", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.75", "y": "0.5", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.75", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.25", "y": "0.75", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.75", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } },
+        { "x": "0.75", "y": "0.75", "width": "0.25", "height": "0.25", "shape": { "type": "rectangle" } }
+    ]
+} 

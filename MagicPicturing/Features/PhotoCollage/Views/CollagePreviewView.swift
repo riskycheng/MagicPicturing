@@ -41,7 +41,8 @@ struct CollagePreviewView: View {
                                 state: state,
                                 isSelected: viewModel.selectedImageIndex == index,
                                 shapeDefinition: cellState.shapeDefinition,
-                                layoutRotation: cellState.rotation
+                                layoutRotation: cellState.rotation,
+                                cornerRadius: viewModel.cornerRadius
                             )
                             .frame(width: insetFrame.width, height: insetFrame.height)
                             .shadow(color: .black.opacity(viewModel.shadowRadius > 0 ? 0.4 : 0), radius: viewModel.shadowRadius, x: 0, y: viewModel.shadowRadius / 2)

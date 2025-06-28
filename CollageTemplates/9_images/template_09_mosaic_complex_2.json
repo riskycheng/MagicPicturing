@@ -1,0 +1,16 @@
+{
+    "name": "9_mosaic_complex_2",
+    "imageCount": 9,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.6", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0.6", "y": "0", "width": "0.4", "height": "0.4", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.4", "width": "0.2", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.2", "y": "0.4", "width": "0.6", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.8", "y": "0.4", "width": "0.2", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.7", "width": "0.2", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.2", "y": "0.7", "width": "0.2", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.4", "y": "0.7", "width": "0.4", "height": "0.3", "shape": { "type": "rectangle" } },
+        { "x": "0.8", "y": "0.7", "width": "0.2", "height": "0.3", "shape": { "type": "rectangle" } }
+    ]
+} 

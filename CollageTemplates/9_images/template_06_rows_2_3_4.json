@@ -1,0 +1,16 @@
+{
+    "name": "9_rows_2_3_4",
+    "imageCount": 9,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.6", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.6", "y": "0", "width": "0.4", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.333", "width": "0.333", "height": "0.334", "shape": { "type": "rectangle" } },
+        { "x": "0.333", "y": "0.333", "width": "0.334", "height": "0.334", "shape": { "type": "rectangle" } },
+        { "x": "0.667", "y": "0.333", "width": "0.333", "height": "0.334", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.667", "width": "0.25", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.25", "y": "0.667", "width": "0.25", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.667", "width": "0.25", "height": "0.333", "shape": { "type": "rectangle" } },
+        { "x": "0.75", "y": "0.667", "width": "0.25", "height": "0.333", "shape": { "type": "rectangle" } }
+    ]
+} 

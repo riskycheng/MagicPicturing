@@ -7,33 +7,24 @@ struct ShapeFactory {
         shape
     }
 
-    static func createShape(from definition: CollageLayoutTemplate.ShapeDefinition?) -> AnyShape {
+    static func createShape(from definition: CollageLayoutTemplate.ShapeDefinition?, cornerRadius: CGFloat = 0) -> AnyShape {
         guard let definition = definition else {
-            return AnyShape(Rectangle())
+            return AnyShape(RoundedRectangle(cornerRadius: cornerRadius))
         }
 
         switch definition.type {
         case "rectangle":
             if let cornerRadiusStr = definition.parameters?["cornerRadius"],
-               let cornerRadius = Double(cornerRadiusStr) {
-                 // Using a custom shape to handle corner radius on a specific type
-                 return AnyShape(RoundedRectangle(cornerRadius: cornerRadius))
+               let cornerRadiusVal = Double(cornerRadiusStr) {
+                return AnyShape(RoundedRectangle(cornerRadius: cornerRadiusVal))
             }
-            return AnyShape(Rectangle())
+            return AnyShape(RoundedRectangle(cornerRadius: cornerRadius))
         case "circle":
             return AnyShape(Circle())
         case "ellipse":
             return AnyShape(Ellipse())
-        case "capsule":
-            return AnyShape(Capsule())
-        case "polygon":
-            guard let pointsArray = definition.parameters?["points"],
-                  let points = parsePoints(from: pointsArray) else {
-                return AnyShape(Rectangle()) // Fallback to rectangle if points are invalid
-            }
-            return AnyShape(Polygon(points: points))
         default:
-            return AnyShape(Rectangle())
+            return AnyShape(RoundedRectangle(cornerRadius: cornerRadius))
         }
     }
     

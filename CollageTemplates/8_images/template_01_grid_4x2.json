@@ -1,0 +1,15 @@
+{
+    "name": "8_grid_4x2",
+    "imageCount": 8,
+    "aspectRatio": 1.0,
+    "frameDefinitions": [
+        { "x": "0", "y": "0", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.25", "y": "0", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.75", "y": "0", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0", "y": "0.5", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.25", "y": "0.5", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.5", "y": "0.5", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } },
+        { "x": "0.75", "y": "0.5", "width": "0.25", "height": "0.5", "shape": { "type": "rectangle" } }
+    ]
+} 

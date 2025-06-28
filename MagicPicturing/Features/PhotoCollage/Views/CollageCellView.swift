@@ -5,6 +5,7 @@ struct CollageCellView: View {
     let isSelected: Bool
     let shapeDefinition: CollageLayoutTemplate.ShapeDefinition?
     let layoutRotation: Angle
+    let cornerRadius: CGFloat
     
     // States for live gesture tracking
     @State private var currentOffset: CGSize = .zero
@@ -51,7 +52,7 @@ struct CollageCellView: View {
                     .rotationEffect(state.rotation)
                     .scaleEffect(x: state.isFlippedHorizontally ? -1 : 1, y: state.isFlippedVertically ? -1 : 1, anchor: .center)
             }
-            .clipShape(ShapeFactory.createShape(from: shapeDefinition))
+            .clipShape(ShapeFactory.createShape(from: shapeDefinition, cornerRadius: cornerRadius))
             .contentShape(Rectangle())
             .overlay(
                 // Selection highlight
