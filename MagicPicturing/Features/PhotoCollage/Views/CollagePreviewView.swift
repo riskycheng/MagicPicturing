@@ -6,14 +6,21 @@ struct CollagePreviewView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // MARK: - Blurred Background
-                if let firstImage = viewModel.imageStates.first?.image, viewModel.backgroundBlur > 0 {
-                    Image(uiImage: firstImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .blur(radius: viewModel.backgroundBlur)
-                        .clipped()
+                // MARK: - Background Layer
+                if let gradient = viewModel.backgroundGradient {
+                    LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom)
+                        .edgesIgnoringSafeArea(.all)
+                } else {
+                    viewModel.backgroundColor
+                        .edgesIgnoringSafeArea(.all)
+                }
+
+                // MARK: - Material/Blur Layer
+                if viewModel.backgroundMaterialOpacity > 0 {
+                    Rectangle()
+                        .fill(.regularMaterial)
+                        .opacity(viewModel.backgroundMaterialOpacity)
+                        .edgesIgnoringSafeArea(.all)
                 }
 
                 // Background to dismiss selection

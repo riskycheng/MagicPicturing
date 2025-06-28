@@ -16,14 +16,24 @@ class CollageViewModel: ObservableObject {
     }
     @Published var selectedImageIndex: Int?
 
-    // MARK: - Collage Style Properties
+    // Background & Border
+    @Published var backgroundColor: Color = Color(.systemBackground) {
+        didSet {
+            // Any change to solid color clears the gradient
+            if backgroundGradient != nil {
+                backgroundGradient = nil
+            }
+        }
+    }
+    @Published var backgroundGradient: Gradient?
+    @Published var backgroundMaterialOpacity: CGFloat = 0.0
     @Published var borderWidth: CGFloat = 4
     @Published var cornerRadius: CGFloat = 0
     @Published var shadowRadius: CGFloat = 0
-    @Published var backgroundBlur: CGFloat = 0
 
     private var cancellables = Set<AnyCancellable>()
     private var layoutCancellable: AnyCancellable?
+    private var isUpdatingLayout = false
     
     init(initialAssets: [PHAsset]) {
         self.assets = initialAssets
@@ -166,25 +176,38 @@ class CollageViewModel: ObservableObject {
         // ... existing code ...
     }
 
-    private func updateLayouts() {
-        let currentImageCount = self.imageStates.count
-        
-        let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
-        
-        self.availableLayouts = JSONCollageLayoutProvider().loadTemplates(for: currentImageCount)
-        
-        // If current layout is no longer valid, or if no layout is selected,
-        // pick the first available one.
-        if !isCurrentLayoutStillValid {
-            self.selectedLayout = availableLayouts.first
-        }
-    }
-
     func removeImage(at index: Int) {
         self.imageStates.remove(at: index)
         self.assets.remove(at: index)
         
         // After removing an image, the available layouts might change.
         updateLayouts()
+    }
+
+    func selectLayout(_ layout: CollageLayout) {
+        let newLayout = layout.copy()
+        self.selectedLayout = newLayout
+    }
+
+    func updateLayouts() {
+        let currentImageCount = self.imageStates.count
+        
+        let isCurrentLayoutStillValid = selectedLayout?.cellStates.count == currentImageCount
+        
+        self.availableLayouts = JSONCollageLayoutProvider().loadTemplates(for: currentImageCount)
+        
+        if !isCurrentLayoutStillValid {
+            self.selectedLayout = availableLayouts.first
+        }
+    }
+
+    func resetLayoutParameters() {
+        // ... (existing code)
+    }
+
+    func setRandomGradientBackground() {
+        let randomColor1 = Color.random()
+        let randomColor2 = Color.random()
+        self.backgroundGradient = Gradient(colors: [randomColor1, randomColor2])
     }
 } 

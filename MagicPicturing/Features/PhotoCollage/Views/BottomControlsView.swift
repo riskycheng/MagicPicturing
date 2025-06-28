@@ -3,7 +3,7 @@ import SwiftUI
 enum ControlTab: String, CaseIterable, Identifiable {
     case layout = "布局"
     case border = "边框"
-    case blur = "模糊"
+    case blur = "背景"
     case add = "添加"
     
     var id: String { self.rawValue }
@@ -12,7 +12,7 @@ enum ControlTab: String, CaseIterable, Identifiable {
         switch self {
         case .layout: return "square.grid.2x2"
         case .border: return "squareshape.controlhandles.on.squareshape.controlhandles"
-        case .blur: return "drop.fill"
+        case .blur: return "paintpalette"
         case .add: return "plus"
         }
     }
@@ -127,7 +127,7 @@ struct SubControlPanel: View {
                 shadowRadius: $viewModel.shadowRadius
             )
         case .blur:
-            BlurControlView(backgroundBlur: $viewModel.backgroundBlur)
+            BackgroundColorPicker(viewModel: viewModel)
         case .add:
             EmptyView()
         }
@@ -177,18 +177,77 @@ struct FancySlider: View {
     }
 }
 
-struct BlurControlView: View {
-    @Binding var backgroundBlur: CGFloat
+struct BackgroundColorPicker: View {
+    @ObservedObject var viewModel: CollageViewModel
+
+    let presetColors: [Color] = [
+        .black, .white, .gray, .red, .blue, .green, .yellow, .purple, .orange
+    ]
 
     var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Text("模糊").frame(width: 50)
-                Slider(value: $backgroundBlur, in: 0...30)
+        VStack(spacing: 20) {
+            HStack(spacing: 15) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 15) {
+                        // Gradient Button
+                        Button(action: {
+                            viewModel.setRandomGradientBackground()
+                        }) {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.purple, Color.blue, Color.pink]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    Image(systemName: "wand.and.rays")
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                        .shadow(radius: 2)
+                                )
+                        }
+                        
+                        // Preset Color Swatches
+                        ForEach(presetColors, id: \.self) { color in
+                            Button(action: {
+                                self.viewModel.backgroundColor = color
+                            }) {
+                                Circle()
+                                    .fill(color)
+                                    .frame(width: 28, height: 28)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(
+                                                viewModel.backgroundGradient == nil && viewModel.backgroundColor == color ? Color.accentColor : Color.clear,
+                                                lineWidth: 2.5
+                                            )
+                                    )
+                                    .shadow(color: .black.opacity(0.1), radius: 1)
+                            }
+                        }
+                    }
+                }
+                
+                // Custom Color Picker
+                ColorPicker(selection: $viewModel.backgroundColor, supportsOpacity: true) { }
+                    .labelsHidden()
+                    .frame(width: 32, height: 32)
             }
+            .padding(.horizontal)
+            .frame(height: 35)
+
+            // Opacity Slider
+            FancySlider(
+                label: "透明度",
+                value: $viewModel.backgroundMaterialOpacity,
+                range: 0...1,
+                icon: "sparkles"
+            )
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 15)
+        .padding(.vertical)
     }
 }
 
@@ -239,5 +298,51 @@ struct LayoutPreviewCell: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
         )
+    }
+}
+
+fileprivate struct ControlTabButton: View {
+    let tab: ControlTab
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 22))
+                Text(tab.rawValue)
+                    .font(.caption)
+            }
+            .foregroundColor(isSelected ? .accentColor : Color(UIColor.secondaryLabel))
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+struct ControlSlider: View {
+    let label: String
+    @Binding var value: CGFloat
+    let range: ClosedRange<CGFloat>
+    let iconName: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconName)
+                .font(.title3)
+                .frame(width: 30)
+                .foregroundColor(.accentColor)
+            
+            Text(label)
+                .font(.system(size: 15))
+                .frame(width: 40, alignment: .leading)
+
+            Slider(value: $value, in: range)
+
+            Text(String(format: "%.0f", value))
+                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .frame(width: 35, alignment: .trailing)
+                .foregroundColor(.secondary)
+        }
     }
 } 

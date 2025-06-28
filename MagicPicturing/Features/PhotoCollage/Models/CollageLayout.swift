@@ -95,52 +95,13 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
     }
     
     func updateParameter(_ name: String, value: CGFloat) {
-        // Use the throttler to publish changes, preventing view updates from firing too rapidly.
-        throttler.throttle { [weak self] in
-            self?.objectWillChange.send()
-        }
+        guard let param = parameters[name] else { return }
         
-        guard var param = self.parameters[name] else { return }
-
-        var finalValue = value
+        // Clamp the value to the defined range
+        let clampedValue = max(param.range.lowerBound, min(param.range.upperBound, value))
         
-        let minSpacing: CGFloat = 0.05 // 5% minimum cell size
-
-        // Generic logic for vertical multi-split
-        if name.starts(with: "v_split") {
-            if let numberString = name.components(separatedBy: "v_split").last, let number = Int(numberString) {
-                // Check against previous divider
-                if let prevParam = parameters["v_split\(number - 1)"] {
-                    finalValue = max(finalValue, prevParam.value + minSpacing)
-                }
-                
-                // Check against next divider
-                if let nextParam = parameters["v_split\(number + 1)"] {
-                    finalValue = min(finalValue, nextParam.value - minSpacing)
-                }
-            }
-        }
-        
-        // Generic logic for horizontal multi-split
-        if name.starts(with: "h_split") {
-            if let numberString = name.components(separatedBy: "h_split").last, let number = Int(numberString) {
-                // Check against previous divider
-                if let prevParam = parameters["h_split\(number - 1)"] {
-                    finalValue = max(finalValue, prevParam.value + minSpacing)
-                }
-                
-                // Check against next divider
-                if let nextParam = parameters["h_split\(number + 1)"] {
-                    finalValue = min(finalValue, nextParam.value - minSpacing)
-                }
-            }
-        }
-        
-        // Clamp to the parameter's originally defined range
-        let clampedValue = min(max(finalValue, param.range.lowerBound), param.range.upperBound)
-        
-        if self.parameters[name]?.value != clampedValue {
-            self.parameters[name]?.value = clampedValue
+        if parameters[name]?.value != clampedValue {
+            parameters[name]?.value = clampedValue
         }
     }
     
@@ -188,6 +149,16 @@ class CollageLayout: Identifiable, ObservableObject, Equatable {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .aspectRatio(1, contentMode: .fit)
         )
+    }
+    
+    func copy() -> CollageLayout {
+        let newLayout = CollageLayout(
+            name: self.name,
+            aspectRatio: self.aspectRatio,
+            parameters: self.parameters,
+            frameGenerator: self.frameGenerator
+        )
+        return newLayout
     }
 }
 
