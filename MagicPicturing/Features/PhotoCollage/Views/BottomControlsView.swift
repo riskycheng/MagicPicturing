@@ -165,13 +165,17 @@ struct FancySlider: View {
             
             Text(label)
                 .font(.system(size: 15))
-                .frame(width: 40, alignment: .leading)
+                .frame(width: 50, alignment: .leading)
 
             Slider(value: $value, in: range)
+            
+            let displayText = (label == "透明度") ?
+                String(format: "%.0f%%", value * 100) :
+                String(format: "%.0f", value)
 
-            Text(String(format: "%.0f", value))
+            Text(displayText)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .frame(width: 35, alignment: .trailing)
+                .frame(width: 45, alignment: .trailing)
                 .foregroundColor(.secondary)
         }
     }
@@ -193,21 +197,23 @@ struct BackgroundColorPicker: View {
                         Button(action: {
                             viewModel.setRandomGradientBackground()
                         }) {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.purple, Color.blue, Color.pink]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.purple, Color.blue, Color.pink]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                     )
-                                )
-                                .frame(width: 28, height: 28)
-                                .overlay(
-                                    Image(systemName: "wand.and.rays")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .shadow(radius: 2)
-                                )
+                                Image(systemName: "wand.and.rays")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .shadow(radius: 2)
+                                Circle()
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            }
+                            .frame(width: 32, height: 32)
                         }
                         
                         // Preset Color Swatches
@@ -215,29 +221,35 @@ struct BackgroundColorPicker: View {
                             Button(action: {
                                 self.viewModel.backgroundColor = color
                             }) {
-                                Circle()
-                                    .fill(color)
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(
-                                                viewModel.backgroundGradient == nil && viewModel.backgroundColor == color ? Color.accentColor : Color.clear,
-                                                lineWidth: 2.5
-                                            )
-                                    )
-                                    .shadow(color: .black.opacity(0.1), radius: 1)
+                                ZStack {
+                                    Circle().fill(color)
+                                    Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    Circle()
+                                        .stroke(
+                                            viewModel.backgroundGradient == nil && viewModel.backgroundColor == color ? Color.accentColor : Color.clear,
+                                            lineWidth: 2
+                                        )
+                                }
+                                .frame(width: 32, height: 32)
+                                .shadow(color: .black.opacity(0.1), radius: 1)
                             }
                         }
                     }
+                    .padding(.vertical, 4)
                 }
                 
                 // Custom Color Picker
-                ColorPicker(selection: $viewModel.backgroundColor, supportsOpacity: true) { }
-                    .labelsHidden()
-                    .frame(width: 32, height: 32)
+                ZStack {
+                    ColorPicker(selection: $viewModel.backgroundColor, supportsOpacity: true) { }
+                        .labelsHidden()
+                    Circle()
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                }
+                .frame(width: 32, height: 32)
+                .clipShape(Circle())
+
             }
             .padding(.horizontal)
-            .frame(height: 35)
 
             // Opacity Slider
             FancySlider(
