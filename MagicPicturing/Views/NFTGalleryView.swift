@@ -55,13 +55,16 @@ class CardStackViewModel: ObservableObject {
         self.cardItems = allCards
     }
     
-    func cardSwiped(item: CardStackItem) {
-        if let index = cardItems.firstIndex(where: { $0.id == item.id }) {
-            cardItems.remove(at: index)
-        }
+    func cycleTopCard() {
+        guard !cardItems.isEmpty else { return }
+        let topCard = cardItems.removeLast()
+        cardItems.insert(topCard, at: 0)
     }
     
     func cardTapped(item: CardStackItem) {
+        // Ensure only the top card can be tapped
+        guard item.id == cardItems.last?.id else { return }
+        
         switch item.navigationTarget {
         case .threeDGrid:
             showThreeDGridEntry = true
@@ -165,30 +168,38 @@ private struct HeaderView: View {
     }
 }
 
-// MARK: - Card Stack View (Now RingView)
+// MARK: - Ring View
 struct RingView: View {
     @ObservedObject var viewModel: CardStackViewModel
 
     // --- Ring Scrolling State ---
-    @State private var continuousScrollPosition: CGFloat = 0.0
+    @State private var continuousScrollPosition: CGFloat
     @State private var gestureStartScrollPosition: CGFloat = 0.0
     @State private var isDragging = false
 
     // --- Ring Geometry Constants ---
-    private let rotationRadius: CGFloat = 500
-    private let angularSpacing: Double = 0.40
-    private var pixelsPerIndex: CGFloat { rotationRadius * CGFloat(angularSpacing) * 0.5 }
+    private let rotationRadius: CGFloat = 350
+    private let angularSpacing: Double = 0.45
+    private var pixelsPerIndex: CGFloat { rotationRadius * CGFloat(angularSpacing) }
 
+    init(viewModel: CardStackViewModel) {
+        self.viewModel = viewModel
+        // Start with the last card item at the front
+        _continuousScrollPosition = State(initialValue: CGFloat(viewModel.cardItems.count - 1))
+    }
+    
     var body: some View {
         VStack {
             if viewModel.cardItems.isEmpty {
+                // Placeholder for empty state
                 VStack {
-                    Text("All cards viewed.").font(.headline).foregroundColor(.secondary)
-                    Button("Reset Cards", action: viewModel.resetCards).padding()
+                    Text("No cards available.").font(.headline).foregroundColor(.secondary)
+                    Button("Reset", action: viewModel.resetCards).padding()
                 }
             } else {
                 GeometryReader { geometry in
                     ZStack {
+                        // We render a few cards on each side for a seamless circular effect
                         ForEach(-3...3, id: \.self) { index in
                              if isCardVisible(index) {
                                 cardView(for: index)
@@ -196,6 +207,7 @@ struct RingView: View {
                         }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
+                    .offset(y: -50)
                     .contentShape(Rectangle())
                     .gesture(dragGesture)
                 }
@@ -203,7 +215,7 @@ struct RingView: View {
         }
     }
     
-    // --- Computed Properties from State ---
+    // --- State-driven Computed Properties ---
     private var snappedIndex: Int { Int(round(continuousScrollPosition)) }
     private var continuousAngleOffset: Double {
         let fractionalPart = continuousScrollPosition - CGFloat(snappedIndex)
@@ -211,68 +223,59 @@ struct RingView: View {
     }
 
     // --- Helper Functions ---
-    private func getRingIndex(for index: Int) -> Int {
+    private func getRingIndex(for offsetIndex: Int) -> Int {
         guard !viewModel.cardItems.isEmpty else { return 0 }
         let totalCount = viewModel.cardItems.count
-        let rawIndex = (snappedIndex + index) % totalCount
+        let rawIndex = (snappedIndex + offsetIndex) % totalCount
         return rawIndex < 0 ? rawIndex + totalCount : rawIndex
     }
     
-    private func isCardVisible(_ index: Int) -> Bool {
-        let ringIndex = getRingIndex(for: index)
+    private func isCardVisible(_ offsetIndex: Int) -> Bool {
+        let ringIndex = getRingIndex(for: offsetIndex)
         return viewModel.cardItems.indices.contains(ringIndex)
     }
 
-    private func calculateCardAngle(for index: Int) -> Double {
-        return Double(index) * angularSpacing + continuousAngleOffset
-    }
-
-    private func calculateScale(for angle: Double) -> CGFloat {
-        return 1.0 - abs(angle) * 0.4
+    // --- Geometry Calculation Functions ---
+    private func calculateCardAngle(for offsetIndex: Int) -> Double {
+        return Double(offsetIndex) * angularSpacing + continuousAngleOffset
     }
     
-    private func calculateYOffset(for angle: Double) -> CGFloat {
-        return (1 - cos(angle)) * -rotationRadius * 0.3
-    }
-    
-    private func calculateXOffset(for angle: Double) -> CGFloat {
-        return sin(angle) * rotationRadius * 0.5
-    }
-
-    private func calculateZIndex(for angle: Double) -> Double {
-        return cos(angle) * 10
-    }
-    
-    private func calculateOpacity(for angle: Double) -> Double {
-        return pow(cos(angle / 2.0), 4)
+    private func geometry(for angle: Double) -> (scale: CGFloat, xOffset: CGFloat, yOffset: CGFloat, zIndex: Double, opacity: Double) {
+        let scale = (cos(angle) * 0.35) + 0.65
+        let yOffset = (1 - cos(angle)) * -90
+        let xOffset = sin(angle) * rotationRadius * 0.7
+        let zIndex = cos(angle) * 10
+        let opacity = pow(cos(angle / 2.0), 3)
+        return (scale, xOffset, yOffset, zIndex, opacity)
     }
     
     // --- Card View Builder ---
     @ViewBuilder
-    private func cardView(for index: Int) -> some View {
-        let ringIndex = getRingIndex(for: index)
+    private func cardView(for offsetIndex: Int) -> some View {
+        let ringIndex = getRingIndex(for: offsetIndex)
         let item = viewModel.cardItems[ringIndex]
-        let angle = calculateCardAngle(for: index)
+        let angle = calculateCardAngle(for: offsetIndex)
+        let geo = geometry(for: angle)
         let isFocused = abs(angle) < (angularSpacing / 2.0)
 
-        SingleCardView(item: item)
-            .scaleEffect(calculateScale(for: angle))
-            .offset(x: calculateXOffset(for: angle), y: calculateYOffset(for: angle))
-            .zIndex(calculateZIndex(for: angle))
-            .opacity(calculateOpacity(for: angle))
+        SingleCardView(item: item, isFocused: isFocused)
+            .scaleEffect(geo.scale)
+            .offset(x: geo.xOffset, y: geo.yOffset)
+            .zIndex(geo.zIndex)
+            .opacity(geo.opacity)
             .onTapGesture {
                 if isFocused {
                     viewModel.cardTapped(item: item)
                 } else {
-                    let targetPosition = CGFloat(snappedIndex + index)
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    let targetPosition = CGFloat(snappedIndex + offsetIndex)
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                         continuousScrollPosition = targetPosition
                     }
                 }
             }
     }
     
-    // --- Drag Gesture Logic ---
+    // --- Drag Gesture & Physics ---
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
@@ -286,12 +289,16 @@ struct RingView: View {
             .onEnded { value in
                 isDragging = false
                 
-                let velocity = value.predictedEndTranslation.width / pixelsPerIndex
-                let projectedPosition = continuousScrollPosition - velocity * 0.1
-                let targetPosition = round(projectedPosition)
+                let velocity = -value.predictedEndTranslation.width / pixelsPerIndex
+                let projectedPosition = continuousScrollPosition + velocity * 0.2
+                var targetPosition = round(projectedPosition)
+
+                // Clamp to prevent over-scrolling in a non-looping list
+                let maxIndex = CGFloat(viewModel.cardItems.count - 1)
+                targetPosition = max(0, min(targetPosition, maxIndex))
 
                 let spring = Animation.interpolatingSpring(
-                    mass: 0.8, stiffness: 100.0, damping: 25.0, initialVelocity: -velocity
+                    mass: 0.5, stiffness: 100, damping: 20, initialVelocity: velocity
                 )
                 
                 withAnimation(spring) {
@@ -325,6 +332,7 @@ struct CardListView: View {
 // MARK: - Reusable Single Card View
 struct SingleCardView: View {
     let item: CardStackItem
+    var isFocused: Bool = false
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -360,7 +368,7 @@ struct SingleCardView: View {
             .foregroundColor(.white)
             .padding(25)
         }
-        .frame(width: 320, height: 420)
+        .frame(width: 320, height: isFocused ? 500 : 420)
         .shadow(color: .black.opacity(0.2), radius: 12, y: 8)
     }
 }
