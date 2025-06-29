@@ -101,7 +101,7 @@ struct NFTGalleryView: View {
                     .padding(.bottom, 20)
 
                     if displayMode == .stack {
-                        CardStackView(viewModel: viewModel)
+                        RingView(viewModel: viewModel)
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)),
                                 removal: .opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
@@ -165,88 +165,137 @@ private struct HeaderView: View {
     }
 }
 
-// MARK: - Card Stack View
-struct CardStackView: View {
+// MARK: - Card Stack View (Now RingView)
+struct RingView: View {
     @ObservedObject var viewModel: CardStackViewModel
-    
+
+    // --- Ring Scrolling State ---
+    @State private var continuousScrollPosition: CGFloat = 0.0
+    @State private var gestureStartScrollPosition: CGFloat = 0.0
+    @State private var isDragging = false
+
+    // --- Ring Geometry Constants ---
+    private let rotationRadius: CGFloat = 500
+    private let angularSpacing: Double = 0.40
+    private var pixelsPerIndex: CGFloat { rotationRadius * CGFloat(angularSpacing) * 0.5 }
+
     var body: some View {
         VStack {
-            Spacer()
             if viewModel.cardItems.isEmpty {
                 VStack {
-                    Text("All cards viewed")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    Button("Reset Cards", action: viewModel.resetCards)
-                        .padding()
+                    Text("All cards viewed.").font(.headline).foregroundColor(.secondary)
+                    Button("Reset Cards", action: viewModel.resetCards).padding()
                 }
             } else {
-                ZStack {
-                    ForEach(viewModel.cardItems) { item in
-                        CardViewContainer(
-                            item: item,
-                            viewModel: viewModel,
-                            isTopCard: viewModel.cardItems.last?.id == item.id
-                        )
+                GeometryReader { geometry in
+                    ZStack {
+                        ForEach(-3...3, id: \.self) { index in
+                             if isCardVisible(index) {
+                                cardView(for: index)
+                            }
+                        }
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .contentShape(Rectangle())
+                    .gesture(dragGesture)
+                }
+            }
+        }
+    }
+    
+    // --- Computed Properties from State ---
+    private var snappedIndex: Int { Int(round(continuousScrollPosition)) }
+    private var continuousAngleOffset: Double {
+        let fractionalPart = continuousScrollPosition - CGFloat(snappedIndex)
+        return -fractionalPart * angularSpacing
+    }
+
+    // --- Helper Functions ---
+    private func getRingIndex(for index: Int) -> Int {
+        guard !viewModel.cardItems.isEmpty else { return 0 }
+        let totalCount = viewModel.cardItems.count
+        let rawIndex = (snappedIndex + index) % totalCount
+        return rawIndex < 0 ? rawIndex + totalCount : rawIndex
+    }
+    
+    private func isCardVisible(_ index: Int) -> Bool {
+        let ringIndex = getRingIndex(for: index)
+        return viewModel.cardItems.indices.contains(ringIndex)
+    }
+
+    private func calculateCardAngle(for index: Int) -> Double {
+        return Double(index) * angularSpacing + continuousAngleOffset
+    }
+
+    private func calculateScale(for angle: Double) -> CGFloat {
+        return 1.0 - abs(angle) * 0.4
+    }
+    
+    private func calculateYOffset(for angle: Double) -> CGFloat {
+        return (1 - cos(angle)) * -rotationRadius * 0.3
+    }
+    
+    private func calculateXOffset(for angle: Double) -> CGFloat {
+        return sin(angle) * rotationRadius * 0.5
+    }
+
+    private func calculateZIndex(for angle: Double) -> Double {
+        return cos(angle) * 10
+    }
+    
+    private func calculateOpacity(for angle: Double) -> Double {
+        return pow(cos(angle / 2.0), 4)
+    }
+    
+    // --- Card View Builder ---
+    @ViewBuilder
+    private func cardView(for index: Int) -> some View {
+        let ringIndex = getRingIndex(for: index)
+        let item = viewModel.cardItems[ringIndex]
+        let angle = calculateCardAngle(for: index)
+        let isFocused = abs(angle) < (angularSpacing / 2.0)
+
+        SingleCardView(item: item)
+            .scaleEffect(calculateScale(for: angle))
+            .offset(x: calculateXOffset(for: angle), y: calculateYOffset(for: angle))
+            .zIndex(calculateZIndex(for: angle))
+            .opacity(calculateOpacity(for: angle))
+            .onTapGesture {
+                if isFocused {
+                    viewModel.cardTapped(item: item)
+                } else {
+                    let targetPosition = CGFloat(snappedIndex + index)
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        continuousScrollPosition = targetPosition
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Spacer()
-        }
-    }
-}
-
-struct CardViewContainer: View {
-    let item: CardStackItem
-    @ObservedObject var viewModel: CardStackViewModel
-    let isTopCard: Bool
-
-    @State private var offset: CGSize = .zero
-    
-    private func getCardIndex() -> Int? {
-        // Find the index from the back of the array
-        viewModel.cardItems.firstIndex(where: { $0.id == item.id })
-    }
-
-    var body: some View {
-        if let index = getCardIndex() {
-            // Stack position is calculated from the end of the array
-            let stackPosition = viewModel.cardItems.count - 1 - index
-            let scale = 1.0 - (CGFloat(stackPosition) * 0.05)
-            let verticalOffset = CGFloat(stackPosition) * -15.0
-
-            SingleCardView(item: item)
-                .scaleEffect(isTopCard ? 1.0 : scale)
-                .offset(y: verticalOffset)
-                .offset(x: isTopCard ? offset.width : 0, y: isTopCard ? offset.height : 0)
-                .rotationEffect(.degrees(isTopCard ? Double(offset.width / 40.0) : 0))
-                .gesture(isTopCard ? dragGesture : nil)
-                .onTapGesture { if isTopCard { viewModel.cardTapped(item: item) } }
-                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: offset)
-                .zIndex(Double(index))
-        }
     }
     
+    // --- Drag Gesture Logic ---
     private var dragGesture: some Gesture {
         DragGesture()
-            .onChanged { gesture in
-                offset = gesture.translation
+            .onChanged { value in
+                if !isDragging {
+                    isDragging = true
+                    gestureStartScrollPosition = continuousScrollPosition
+                }
+                let dragDistance = value.translation.width
+                continuousScrollPosition = gestureStartScrollPosition - (dragDistance / pixelsPerIndex)
             }
-            .onEnded { gesture in
-                let swipeThreshold: CGFloat = 120
-                if abs(gesture.predictedEndTranslation.width) > swipeThreshold {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                        let sign = gesture.predictedEndTranslation.width > 0 ? 1.0 : -1.0
-                        offset.width = sign * 1000
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        viewModel.cardSwiped(item: item)
-                    }
-                } else {
-                    withAnimation(.spring()) {
-                        offset = .zero
-                    }
+            .onEnded { value in
+                isDragging = false
+                
+                let velocity = value.predictedEndTranslation.width / pixelsPerIndex
+                let projectedPosition = continuousScrollPosition - velocity * 0.1
+                let targetPosition = round(projectedPosition)
+
+                let spring = Animation.interpolatingSpring(
+                    mass: 0.8, stiffness: 100.0, damping: 25.0, initialVelocity: -velocity
+                )
+                
+                withAnimation(spring) {
+                    continuousScrollPosition = targetPosition
                 }
             }
     }
