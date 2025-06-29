@@ -1,17 +1,15 @@
 import SwiftUI
 
 extension View {
-    func snapshot() -> UIImage? {
-        let controller = UIHostingController(rootView: self.edgesIgnoringSafeArea(.all))
-        let view = controller.view
+    // Captures the entire screen containing the view.
+    func snapshotScreen(in windowScene: UIWindowScene?) -> UIImage? {
+        guard let window = windowScene?.windows.first(where: { $0.isKeyWindow }) else {
+            return nil
+        }
 
-        let targetSize = controller.view.intrinsicContentSize
-        view?.bounds = CGRect(origin: .zero, size: targetSize)
-        view?.backgroundColor = .clear
-
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let renderer = UIGraphicsImageRenderer(size: window.bounds.size)
         return renderer.image { _ in
-            view?.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
     }
 } 

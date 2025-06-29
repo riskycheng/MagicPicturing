@@ -139,21 +139,43 @@ class CollageViewModel: ObservableObject {
         imageStates.swapAt(sourceIndex, destinationIndex)
     }
 
-    func exportCollage(completion: @escaping (Error?) -> Void) {
-        guard let layout = selectedLayout else {
-            completion(NSError(domain: "CollageApp", code: -1, userInfo: [NSLocalizedDescriptionKey: "No layout selected."]))
-            return
-        }
+    func exportCollage(in windowScene: UIWindowScene?, completion: @escaping (Error?) -> Void) {
+        print("[Export] Starting export process...")
 
-        let collageView = CollagePreviewView(viewModel: self)
-            .frame(width: 2048, height: 2048) // High resolution export
+        // Give SwiftUI a moment to ensure the view hierarchy is up to date.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("[Export] Attempting to get frame for 'collage_preview'")
+            guard let frame = ViewFinder.getFrame(for: "collage_preview") else {
+                completion(NSError(domain: "CollageApp", code: -5, userInfo: [NSLocalizedDescriptionKey: "未能获取拼贴画坐标，请稍后再试。"]))
+                return
+            }
 
-        guard let image = collageView.snapshot() else {
-            completion(NSError(domain: "CollageApp", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to render image."]))
-            return
+            print("[Export] Frame obtained: \(frame). Taking screenshot.")
+            let view = Color.clear // An empty view to call the snapshotter
+            guard let fullScreenImage = view.snapshotScreen(in: windowScene) else {
+                completion(NSError(domain: "CollageApp", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to take screenshot."]))
+                return
+            }
+
+            print("[Export] Screenshot taken. Cropping image.")
+            let scale = UIScreen.main.scale
+            let cropRect = CGRect(
+                x: frame.origin.x * scale,
+                y: frame.origin.y * scale,
+                width: frame.size.width * scale,
+                height: frame.size.height * scale
+            )
+
+            guard let cgImage = fullScreenImage.cgImage?.cropping(to: cropRect.integral) else {
+                print("[Export] ERROR: Cropping failed.")
+                completion(NSError(domain: "CollageApp", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to crop image."]))
+                return
+            }
+            
+            print("[Export] Cropping successful. Saving image.")
+            let croppedImage = UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+            PhotoLibraryService.save(image: croppedImage, completion: completion)
         }
-        
-        PhotoLibraryService.save(image: image, completion: completion)
     }
 
     func saveImage(_ image: UIImage, completion: @escaping (Bool) -> Void) {

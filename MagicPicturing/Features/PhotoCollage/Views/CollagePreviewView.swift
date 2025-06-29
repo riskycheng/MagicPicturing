@@ -2,34 +2,38 @@ import SwiftUI
 
 struct CollagePreviewView: View {
     @ObservedObject var viewModel: CollageViewModel
+    var isForExport: Bool = false
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // MARK: - Background Layer
-                if let gradient = viewModel.backgroundGradient {
-                    LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom)
-                        .edgesIgnoringSafeArea(.all)
-                } else {
-                    viewModel.backgroundColor
-                        .edgesIgnoringSafeArea(.all)
-                }
-
-                // MARK: - Material/Blur Layer
-                if viewModel.backgroundMaterialOpacity > 0 {
-                    Rectangle()
-                        .fill(.regularMaterial)
-                        .opacity(viewModel.backgroundMaterialOpacity)
-                        .edgesIgnoringSafeArea(.all)
-                }
-
-                // Background to dismiss selection
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewModel.selectedImageIndex = nil
+                if !isForExport {
+                    // MARK: - Background Layer (Live Preview Only)
+                    if let gradient = viewModel.backgroundGradient {
+                        LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom)
+                            .edgesIgnoringSafeArea(.all)
+                    } else {
+                        viewModel.backgroundColor
+                            .edgesIgnoringSafeArea(.all)
                     }
 
+                    // MARK: - Material/Blur Layer (Live Preview Only)
+                    if viewModel.backgroundMaterialOpacity > 0 {
+                        Rectangle()
+                            .fill(.regularMaterial)
+                            .opacity(viewModel.backgroundMaterialOpacity)
+                            .edgesIgnoringSafeArea(.all)
+                    }
+
+                    // Background to dismiss selection
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            viewModel.selectedImageIndex = nil
+                        }
+                }
+
+                // MARK: - Collage Cells (Always Visible)
                 if let layout = viewModel.selectedLayout {
                     ForEach(Array(viewModel.imageStates.enumerated()), id: \.element.id) { index, state in
                         if index < layout.cellStates.count {
@@ -62,7 +66,7 @@ struct CollagePreviewView: View {
                     }
                     
                     // MARK: - Dynamic Divider Handles
-                    if let layout = viewModel.selectedLayout, viewModel.selectedImageIndex != nil {
+                    if !isForExport, let layout = viewModel.selectedLayout, viewModel.selectedImageIndex != nil {
                         
                         // Special case for complex layouts first
                         if layout.name == "5-L-Big-Grid" {
@@ -108,7 +112,7 @@ struct CollagePreviewView: View {
                 }
             }
             .onChange(of: viewModel.selectedImageIndex) { _, newValue in
-                if newValue != nil && viewModel.selectedLayout?.parameters.isEmpty == false {
+                if !isForExport, newValue != nil && viewModel.selectedLayout?.parameters.isEmpty == false {
                     Haptics.impact(style: .medium)
                 }
             }

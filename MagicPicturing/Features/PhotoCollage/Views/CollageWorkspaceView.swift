@@ -5,11 +5,13 @@ import Photos
 struct CollageWorkspaceView: View {
 
     @StateObject private var viewModel: CollageViewModel
-    @Environment(\.presentationMode) var presentationMode
-    @State private var showSaveSuccessAlert = false
-    @State private var showImagePicker = false
-
+    @Environment(\.dismiss) private var dismiss
+    
     @State private var activeSheet: (tab: ControlTab, id: UUID)? = nil
+    @State private var showImagePicker = false
+    @State private var showSaveConfirmation = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
 
     init(assets: [PHAsset]) {
         _viewModel = StateObject(wrappedValue: CollageViewModel(initialAssets: assets))
@@ -25,8 +27,13 @@ struct CollageWorkspaceView: View {
         .navigationBarHidden(true)
         .environment(\.colorScheme, .light)
         .foregroundColor(Color(UIColor.label))
-        .alert("已保存至相册", isPresented: $showSaveSuccessAlert) {
+        .alert("已保存至相册", isPresented: $showSaveConfirmation) {
             Button("好", role: .cancel) { }
+        }
+        .alert("错误", isPresented: $showErrorAlert) {
+            Button("好", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView(
@@ -52,7 +59,8 @@ struct CollageWorkspaceView: View {
                 if !viewModel.imageStates.isEmpty, let layout = viewModel.selectedLayout {
                     CollagePreviewView(viewModel: viewModel)
                         .aspectRatio(layout.aspectRatio, contentMode: .fit)
-                        .padding(.horizontal)
+                        .padding(4)
+                        .background(ViewFinder.view(withId: "collage_preview"))
                 } else {
                     ProgressView()
                 }
@@ -76,7 +84,7 @@ struct CollageWorkspaceView: View {
     private var headerView: some View {
         HStack {
             Button(action: {
-                presentationMode.wrappedValue.dismiss()
+                dismiss()
             }) {
                 Image(systemName: "chevron.left")
                     .font(.title2)
@@ -91,41 +99,19 @@ struct CollageWorkspaceView: View {
             Spacer()
 
             Button("保存") {
-                saveCollage()
+                let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+                viewModel.exportCollage(in: windowScene) { error in
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                        self.showErrorAlert = true
+                    } else {
+                        self.showSaveConfirmation = true
+                    }
+                }
             }
             .font(.headline)
         }
         .padding()
         .background(.regularMaterial)
-    }
-    
-    private func saveCollage() {
-        guard !viewModel.imageStates.isEmpty, let layout = viewModel.selectedLayout else {
-            return
-        }
-
-        let renderWidth: CGFloat = 1080
-        let renderHeight = renderWidth / layout.aspectRatio
-        
-        let originalSelection = viewModel.selectedImageIndex
-        viewModel.selectedImageIndex = nil
-        
-        let collageToRender = CollagePreviewView(viewModel: viewModel)
-            .frame(width: renderWidth, height: renderHeight)
-            .background(Color(UIColor.systemBackground))
-
-        guard let renderedImage = collageToRender.snapshot() else {
-            print("Error: Could not render the collage view to an image.")
-            viewModel.selectedImageIndex = originalSelection
-            return
-        }
-        
-        viewModel.selectedImageIndex = originalSelection
-
-        viewModel.saveImage(renderedImage) { success in
-            if success {
-                self.showSaveSuccessAlert = true
-            }
-        }
     }
 } 
