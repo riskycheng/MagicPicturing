@@ -45,8 +45,8 @@ class CardStackViewModel: ObservableObject {
         allCards = [
             CardStackItem(title: "Keep", subtitle: "Calm", description: "Soothe your body by extending your exhale, signaling relaxation.", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], navigationTarget: .placeholder("Keep Calm")),
             CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
-            CardStackItem(title: "Box", subtitle: "Breathing", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
-            CardStackItem(title: "Relaxing", subtitle: "Breath", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage)
+            CardStackItem(title: "立体九宫格", subtitle: "3D Grid", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
+            CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage)
         ]
         loadItems()
     }
@@ -62,9 +62,6 @@ class CardStackViewModel: ObservableObject {
     }
     
     func cardTapped(item: CardStackItem) {
-        // Ensure only the top card can be tapped
-        guard item.id == cardItems.last?.id else { return }
-        
         switch item.navigationTarget {
         case .threeDGrid:
             showThreeDGridEntry = true
@@ -345,7 +342,7 @@ struct SingleCardView: View {
                         Text(item.title)
                             .font(.system(size: 34, weight: .heavy))
                         Text(item.subtitle)
-                             .font(.system(size: 34, weight: .heavy))
+                             .font(.system(size: 28, weight: .bold))
                     }
                     .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
                     
