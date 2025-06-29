@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import AudioToolbox
 
 // MARK: - Data Model & Navigation
 struct CardStackItem: Identifiable, Equatable {
@@ -207,6 +208,12 @@ struct RingView: View {
                     .offset(y: -50)
                     .contentShape(Rectangle())
                     .gesture(dragGesture)
+                    .onChange(of: snappedIndex) {
+                        // Play a light haptic feedback
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        // Play a subtle system sound (tock)
+                        AudioServicesPlaySystemSound(1104)
+                    }
                 }
             }
         }
