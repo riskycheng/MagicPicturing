@@ -288,11 +288,11 @@ struct RingView: View {
                 
                 let velocity = -value.predictedEndTranslation.width / pixelsPerIndex
                 let projectedPosition = continuousScrollPosition + velocity * 0.2
-                var targetPosition = round(projectedPosition)
+                let targetPosition = round(projectedPosition)
 
                 // Clamp to prevent over-scrolling in a non-looping list
-                let maxIndex = CGFloat(viewModel.cardItems.count - 1)
-                targetPosition = max(0, min(targetPosition, maxIndex))
+                // let maxIndex = CGFloat(viewModel.cardItems.count - 1)
+                // targetPosition = max(0, min(targetPosition, maxIndex))
 
                 let spring = Animation.interpolatingSpring(
                     mass: 0.5, stiffness: 100, damping: 20, initialVelocity: velocity
