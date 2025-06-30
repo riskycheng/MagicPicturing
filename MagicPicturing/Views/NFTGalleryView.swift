@@ -44,10 +44,10 @@ class CardStackViewModel: ObservableObject {
 
     init() {
         allCards = [
-            CardStackItem(title: "Keep", subtitle: "Calm", description: "Soothe your body by extending your exhale, signaling relaxation.", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], navigationTarget: .placeholder("Keep Calm")),
-            CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
+            CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage),
             CardStackItem(title: "立体九宫格", subtitle: "3D Grid", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
-            CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage)
+            CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
+            CardStackItem(title: "Keep", subtitle: "Calm", description: "Soothe your body by extending your exhale, signaling relaxation.", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], navigationTarget: .placeholder("Keep Calm"))
         ]
         loadItems()
     }
@@ -96,7 +96,6 @@ struct NFTGalleryView: View {
                 
                 VStack(spacing: 0) {
                     HeaderView(
-                        cardCount: viewModel.cardItems.count,
                         displayMode: $displayMode
                     )
                     .padding(.bottom, 20)
@@ -134,16 +133,15 @@ struct NFTGalleryView: View {
 
 // MARK: - Header
 private struct HeaderView: View {
-    let cardCount: Int
     @Binding var displayMode: NFTGalleryView.DisplayMode
 
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text("Sleep Collection")
+                Text("Magic Picturing")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                Text("\(cardCount) Presets")
+                Text("build your fantastic photographs")
                     .font(.headline)
                     .foregroundColor(.secondary)
             }
@@ -182,8 +180,8 @@ struct RingView: View {
 
     init(viewModel: CardStackViewModel) {
         self.viewModel = viewModel
-        // Start with the last card item at the front
-        _continuousScrollPosition = State(initialValue: CGFloat(viewModel.cardItems.count - 1))
+        // Start with the first card item at the front
+        _continuousScrollPosition = State(initialValue: 0)
     }
     
     var body: some View {
