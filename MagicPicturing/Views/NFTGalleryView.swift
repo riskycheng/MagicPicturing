@@ -38,12 +38,14 @@ class CardStackViewModel: ObservableObject {
     @Published var showThreeDGridEntry = false
     @Published var showCollageFlow = false
     @Published var showGenericView = false
+    @Published var showPhotoWatermark = false
     @Published var selectedPlaceholderTitle = ""
     
     private var allCards: [CardStackItem] = []
 
     init() {
         allCards = [
+            CardStackItem(title: "水印工坊", subtitle: "Photo Framer", description: "Add professional watermarks and frames to your photos.", number: "0000", gradientColors: [Color(hex: "#8E2DE2"), Color(hex: "#4A00E0")], navigationTarget: .placeholder("PhotoWatermark")),
             CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage),
             CardStackItem(title: "立体九宫格", subtitle: "3D Grid", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
             CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
@@ -69,8 +71,12 @@ class CardStackViewModel: ObservableObject {
         case .collage:
             showCollageFlow = true
         case .placeholder(let title):
-            selectedPlaceholderTitle = title
-            showGenericView = true
+            if title == "PhotoWatermark" {
+                showPhotoWatermark = true
+            } else {
+                selectedPlaceholderTitle = title
+                showGenericView = true
+            }
         }
     }
     
@@ -122,6 +128,9 @@ struct NFTGalleryView: View {
             }
             .fullScreenCover(isPresented: $viewModel.showCollageFlow) {
                 CollageEntryView()
+            }
+            .sheet(isPresented: $viewModel.showPhotoWatermark) {
+                PhotoWatermarkEntryView()
             }
             .sheet(isPresented: $viewModel.showGenericView) {
                 Text("\(viewModel.selectedPlaceholderTitle) feature is in development.")
