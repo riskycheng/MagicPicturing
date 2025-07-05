@@ -11,14 +11,14 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
     // This ViewBuilder returns the appropriate SwiftUI view for each template.
     // This is the core of the template-switching logic.
     @ViewBuilder
-    func makeView(image: UIImage, watermarkInfo: WatermarkInfo) -> some View {
+    func makeView(image: UIImage, watermarkInfo: WatermarkInfo, isPreview: Bool = false) -> some View {
         switch self {
         case .classic:
-            ClassicWatermarkView(image: image, watermarkInfo: watermarkInfo)
+            ClassicWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
         case .modern:
-            ModernWatermarkView(image: image, watermarkInfo: watermarkInfo)
+            ModernWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
         case .film:
-            FilmWatermarkView(image: image, watermarkInfo: watermarkInfo)
+            FilmWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
         }
     }
 } 

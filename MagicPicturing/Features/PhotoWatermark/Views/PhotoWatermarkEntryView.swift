@@ -7,66 +7,66 @@ struct PhotoWatermarkEntryView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // MARK: - Main Image Display
-                if let image = viewModel.processedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .cornerRadius(12)
-                        .padding([.horizontal, .top])
-                        .shadow(radius: 5)
-                } else {
-                    ZStack {
-                        Color(UIColor.secondarySystemBackground)
-                        Button(action: { showImagePicker = true }) {
-                            VStack {
-                                Image(systemName: "photo.on.rectangle.angled")
-                                    .font(.largeTitle)
-                                Text("Select a photo")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                }
-                
-                Spacer()
-                
-                // MARK: - Template Selector
-                if viewModel.sourceImage != nil {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("选择模板")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.leading)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(viewModel.templates) { template in
-                                    TemplatePreviewButton(
-                                        template: template,
-                                        isSelected: viewModel.selectedTemplate == template,
-                                        previewImage: UIImage(named: "beach") ?? UIImage()
-                                    ) {
-                                        viewModel.selectedTemplate = template
+                GeometryReader { geometry in
+                    VStack {
+                        // MARK: - Main Image Display
+                        if let image = viewModel.processedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: geometry.size.width)
+                                .cornerRadius(12)
+                                .shadow(radius: 5)
+                        } else {
+                            // Placeholder view
+                            ZStack {
+                                Color(UIColor.secondarySystemBackground)
+                                    .cornerRadius(12)
+                                Button(action: { showImagePicker = true }) {
+                                    VStack {
+                                        Image(systemName: "photo.on.rectangle.angled")
+                                            .font(.largeTitle)
+                                        Text("Select a photo")
+                                            .font(.headline)
                                     }
+                                    .foregroundColor(.secondary)
                                 }
                             }
-                            .padding(.horizontal)
-                            .padding(.bottom, 5)
                         }
                     }
-                    .frame(height: 95)
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .padding(.top, 16) // Add padding to push the image down from the nav bar
+                    .frame(height: geometry.size.height * 0.7, alignment: .top)
+                }
+                
+                Spacer() // Pushes the template selector to the bottom
+                
+                // MARK: - Template Gallery
+                if viewModel.sourceImage != nil {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 20) {
+                            ForEach(viewModel.templates) { template in
+                                TemplatePreviewCard(
+                                    previewImage: viewModel.templatePreviews[template],
+                                    isSelected: viewModel.selectedTemplate == template,
+                                    aspectRatio: viewModel.sourceImageAspectRatio
+                                ) {
+                                    viewModel.selectedTemplate = template
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .frame(height: 160)
+                    .background(Color(UIColor.systemBackground))
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .padding(.top)
+            .background(Color(UIColor.systemGray6).edgesIgnoringSafeArea(.all))
             .animation(.spring(), value: viewModel.sourceImage)
             .navigationTitle("Add Watermark")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Button to re-select an image, only visible when an image is loaded
                 if viewModel.sourceImage != nil {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showImagePicker = true }) {
@@ -91,44 +91,41 @@ struct PhotoWatermarkEntryView: View {
     }
 }
 
-// MARK: - Template Preview Button
-private struct TemplatePreviewButton: View {
-    let template: WatermarkTemplate
+// MARK: - Template Preview Card
+private struct TemplatePreviewCard: View {
+    let previewImage: UIImage?
     let isSelected: Bool
-    let previewImage: UIImage
+    let aspectRatio: CGFloat
     let action: () -> Void
-    
-    private static let placeholderInfo = WatermarkInfo.placeholder
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                template.makeView(image: previewImage, watermarkInfo: Self.placeholderInfo)
-                    .frame(width: 80, height: 60)
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .cornerRadius(6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
-                    )
-                    .overlay(
-                        ZStack {
-                            if isSelected {
-                                Color.black.opacity(0.4)
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 24))
-                            }
-                        }
-                        .cornerRadius(6)
-                    )
-                
-                Text(template.rawValue)
-                    .font(.caption2)
-                    .foregroundColor(isSelected ? .accentColor : .primary)
+            Group {
+                if let image = previewImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit() // Ensure the entire watermarked image is visible
+                } else {
+                    // Placeholder while rendering
+                    ZStack {
+                        Color.secondary.opacity(0.1)
+                            .aspectRatio(CGSize(width: 1, height: aspectRatio), contentMode: .fit)
+                        ProgressView()
+                    }
+                }
             }
+            .frame(height: 100) // Enforce a consistent height for all cards
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor, lineWidth: isSelected ? 3 : 0)
+            )
+            .shadow(color: .black.opacity(isSelected ? 0.2 : 0.1), radius: isSelected ? 6 : 3, y: isSelected ? 3 : 1)
         }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(), value: isSelected)
     }
 }
 

@@ -4,6 +4,7 @@ import SwiftUI
 struct FilmWatermarkView: View {
     let image: UIImage
     let watermarkInfo: WatermarkInfo
+    let isPreview: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,16 +17,16 @@ struct FilmWatermarkView: View {
             // Black bottom bar with monospaced, film-style text
             HStack {
                 Text("SHOT ON \(watermarkInfo.cameraMake?.uppercased() ?? "")")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: isPreview ? 6 : 10, weight: .bold, design: .monospaced))
                 
                 Spacer()
                 
                 Text("\(watermarkInfo.focalLength ?? "") F\(watermarkInfo.aperture?.replacingOccurrences(of: "f/", with: "") ?? "") \(watermarkInfo.shutterSpeed?.uppercased() ?? "") ISO\(watermarkInfo.iso?.replacingOccurrences(of: "ISO ", with: "") ?? "")")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: isPreview ? 6 : 10, weight: .bold, design: .monospaced))
             }
             .foregroundColor(.white.opacity(0.8))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, isPreview ? 6 : 12)
+            .padding(.vertical, isPreview ? 4 : 8)
             .background(Color.black)
         }
     }
