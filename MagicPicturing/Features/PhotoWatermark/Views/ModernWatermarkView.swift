@@ -5,70 +5,117 @@ struct ModernWatermarkView: View {
     let image: UIImage
     let watermarkInfo: WatermarkInfo
     let isPreview: Bool
+    let width: CGFloat
 
     var body: some View {
+        if isPreview {
+            previewOverlay
+        } else {
+            finalRenderView
+        }
+    }
+
+    @ViewBuilder
+    private var previewOverlay: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                VStack {
+                    Spacer()
+                    watermarkBar(width: self.width)
+                }
+            )
+    }
+
+    @ViewBuilder
+    private var finalRenderView: some View {
         VStack(spacing: 0) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
+            watermarkBar(width: self.width)
+        }
+    }
 
-            // White bottom bar with detailed layout
-            HStack(alignment: .center) {
-                // Left side: Camera and Lens info
-                VStack(alignment: .leading, spacing: isPreview ? 1 : 2) {
-                    Text(watermarkInfo.cameraModel ?? "Unknown Camera")
-                        .font(.system(size: isPreview ? 8 : 14, weight: .semibold))
-                    if let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty {
-                        Text(lensModel)
-                            .font(.system(size: isPreview ? 5 : 10, weight: .light))
+    @ViewBuilder
+    private func watermarkBar(width: CGFloat) -> some View {
+        let baseFontSize = width * 0.035
+        
+        HStack(alignment: .center) {
+            // Left side: Camera and Lens info
+            VStack(alignment: .leading, spacing: baseFontSize * 0.15) {
+                Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                    .font(.system(size: baseFontSize, weight: .semibold))
+                if let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty {
+                    Text(lensModel)
+                        .font(.system(size: baseFontSize * 0.7, weight: .light))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Right side: Logo, shot details, and date
+            HStack(alignment: .center, spacing: baseFontSize * 0.5) {
+                brandLogo(size: baseFontSize * 1.5)
+                
+                VStack(alignment: .leading, spacing: baseFontSize * 0.15) {
+                    Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
+                            .compactMap { $0 }
+                            .joined(separator: " "))
+                        .font(.system(size: baseFontSize, weight: .semibold))
+                    if let date = watermarkInfo.creationDate {
+                        Text(date)
+                            .font(.system(size: baseFontSize * 0.7, weight: .light))
                             .foregroundColor(.secondary)
                     }
                 }
-
-                Spacer()
-
-                // Right side: Logo, shot details, and date
-                HStack(alignment: .center, spacing: isPreview ? 4 : 8) {
-                    brandLogo
-                        .font(.system(size: isPreview ? 14 : 24))
-                        .opacity(0.9)
-                    
-                    VStack(alignment: .leading, spacing: isPreview ? 1 : 2) {
-                        Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
-                                .compactMap { $0 }
-                                .joined(separator: " "))
-                            .font(.system(size: isPreview ? 8 : 14, weight: .semibold))
-                        if let date = watermarkInfo.creationDate {
-                            Text(date)
-                                .font(.system(size: isPreview ? 5 : 10, weight: .light))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
             }
-            .padding(.horizontal, isPreview ? 8 : 20)
-            .padding(.vertical, isPreview ? 5 : 15)
-            .background(Color.white)
         }
+        .padding(.horizontal, baseFontSize * 1.5)
+        .padding(.vertical, baseFontSize)
+        .background(Color.white)
+        .foregroundColor(.black)
     }
 
     /// A view builder for the brand logo.
     @ViewBuilder
-    private var brandLogo: some View {
+    private func brandLogo(size: CGFloat) -> some View {
         if let make = watermarkInfo.cameraMake?.lowercased() {
             if make.contains("apple") {
-                Image(systemName: "apple.logo")
+                Image(systemName: "apple.logo").font(.system(size: size))
             } else if make.contains("fujifilm") {
-                Text("FUJIFILM")
+                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
             } else if make.contains("sony") {
-                Text("SONY")
+                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
             } else if make.contains("canon") {
-                Text("Canon")
+                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
             } else {
-                Image(systemName: "camera.fill")
+                Image(systemName: "camera.fill").font(.system(size: size * 0.9))
             }
         } else {
-            Image(systemName: "camera.fill")
+            Image(systemName: "camera.fill").font(.system(size: size * 0.9))
         }
     }
-} 
+}
+
+struct ModernWatermarkView_Previews: PreviewProvider {
+    static var previews: some View {
+        ModernWatermarkView(
+            image: UIImage(named: "beach")!,
+            watermarkInfo: .placeholder,
+            isPreview: false,
+            width: 400
+        )
+        .previewLayout(.sizeThatFits)
+        
+        ModernWatermarkView(
+            image: UIImage(named: "beach")!,
+            watermarkInfo: .placeholder,
+            isPreview: true,
+            width: 400
+        )
+        .previewLayout(.fixed(width: 400, height: 300))
+    }
+}

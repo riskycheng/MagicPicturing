@@ -5,18 +5,44 @@ struct NaturalWatermarkView: View {
     let image: UIImage
     let watermarkInfo: WatermarkInfo
     let isPreview: Bool
+    let width: CGFloat
 
     var body: some View {
+        if isPreview {
+            previewOverlay
+        } else {
+            finalRenderView
+        }
+    }
+
+    @ViewBuilder
+    private var previewOverlay: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer()
+                        naturalCorner(width: self.width)
+                    }
+                    Spacer()
+                    watermarkBar(width: self.width)
+                }
+            )
+    }
+
+    @ViewBuilder
+    private var finalRenderView: some View {
         VStack(spacing: 0) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .overlay(
-                    // Natural corner element
                     VStack {
                         HStack {
                             Spacer()
-                            naturalCorner
+                            naturalCorner(width: self.width)
                                 .padding(.top, isPreview ? 8 : 16)
                                 .padding(.trailing, isPreview ? 8 : 16)
                         }
@@ -136,34 +162,94 @@ struct NaturalWatermarkView: View {
     }
     
     @ViewBuilder
-    private var naturalCorner: some View {
-        VStack(spacing: isPreview ? 1 : 2) {
+    private func watermarkBar(width: CGFloat) -> some View {
+        let baseFontSize = width * 0.028
+        let padding = width * 0.04
+        let barCornerRadius = width * 0.03
+
+        VStack(spacing: 0) {
+            decorativeLine(size: baseFontSize * 0.15, spacing: baseFontSize * 0.1, reversed: false)
+
+            HStack(alignment: .center) {
+                // Left: Camera Info
+                VStack(alignment: .leading, spacing: baseFontSize * 0.1) {
+                    HStack(spacing: baseFontSize * 0.2) {
+                        Image(systemName: "leaf.fill").font(.system(size: baseFontSize * 0.8))
+                        Text("NATURE").font(.system(size: baseFontSize * 0.6, weight: .medium, design: .serif))
+                    }.foregroundColor(Color(red: 0.4, green: 0.6, blue: 0.3))
+                    Text(watermarkInfo.cameraModel ?? "Camera").font(.system(size: baseFontSize, weight: .medium, design: .serif))
+                        .foregroundColor(.black.opacity(0.8))
+                }
+
+                Spacer()
+
+                // Center: Logo
+                VStack(spacing: baseFontSize * 0.1) {
+                    Image(systemName: "camera.filters").font(.system(size: baseFontSize * 1.5))
+                    Text("ORGANIC").font(.system(size: baseFontSize * 0.5, weight: .medium, design: .serif)).tracking(1)
+                }.foregroundColor(Color(red: 0.4, green: 0.6, blue: 0.3))
+
+                Spacer()
+
+                // Right: Specs
+                VStack(alignment: .trailing, spacing: baseFontSize * 0.1) {
+                    HStack(spacing: baseFontSize * 0.2) {
+                        Text("PURE").font(.system(size: baseFontSize * 0.6, weight: .medium, design: .serif))
+                        Image(systemName: "drop.fill").font(.system(size: baseFontSize * 0.8))
+                    }.foregroundColor(Color(red: 0.4, green: 0.6, blue: 0.3))
+                    Text([watermarkInfo.focalLength, watermarkInfo.aperture].compactMap { $0 }.joined(separator: " "))
+                        .font(.system(size: baseFontSize, weight: .medium, design: .serif))
+                        .foregroundColor(.black.opacity(0.8))
+                }
+            }
+            .padding(.horizontal, padding)
+            .padding(.vertical, padding * 0.75)
+            .background(
+                RoundedRectangle(cornerRadius: barCornerRadius)
+                    .fill(LinearGradient(gradient: Gradient(colors: [Color(red: 0.95, green: 0.98, blue: 0.95), Color(red: 0.9, green: 0.95, blue: 0.9)]), startPoint: .top, endPoint: .bottom))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: barCornerRadius)
+                    .stroke(LinearGradient(gradient: Gradient(colors: [Color(red: 0.4, green: 0.6, blue: 0.3), Color(red: 0.5, green: 0.7, blue: 0.4)]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+            )
+
+            decorativeLine(size: baseFontSize * 0.15, spacing: baseFontSize * 0.1, reversed: true)
+        }
+    }
+
+    @ViewBuilder
+    private func decorativeLine(size: CGFloat, spacing: CGFloat, reversed: Bool) -> some View {
+        HStack(spacing: spacing) {
+            ForEach(0..<20) { index in
+                Circle()
+                    .fill(Color(red: 0.5, green: 0.7, blue: 0.4))
+                    .frame(width: size, height: size)
+                    .scaleEffect((index % 2 == 0) == reversed ? 0.7 : 1.0)
+            }
+        }
+        .padding(.vertical, spacing * 2)
+    }
+
+    @ViewBuilder
+    private func naturalCorner(width: CGFloat) -> some View {
+        let baseFontSize = width * 0.025
+
+        VStack(spacing: baseFontSize * 0.2) {
             Text("🌿")
-                .font(.system(size: isPreview ? 6 : 10))
+                .font(.system(size: baseFontSize * 1.5))
             
             Text(watermarkInfo.cameraMake ?? "NATURE")
-                .font(.system(size: isPreview ? 4 : 6, weight: .medium, design: .serif))
+                .font(.system(size: baseFontSize, weight: .medium, design: .serif))
                 .foregroundColor(.white)
         }
-        .padding(.horizontal, isPreview ? 4 : 6)
-        .padding(.vertical, isPreview ? 2 : 3)
+        .padding(.horizontal, baseFontSize * 1.5)
+        .padding(.vertical, baseFontSize)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.4, green: 0.6, blue: 0.3),
-                            Color(red: 0.3, green: 0.5, blue: 0.2)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(LinearGradient(gradient: Gradient(colors: [Color(red: 0.4, green: 0.6, blue: 0.3), Color(red: 0.3, green: 0.5, blue: 0.2)]), startPoint: .topLeading, endPoint: .bottomTrailing))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.3), lineWidth: 0.5))
+        .padding([.top, .trailing], width * 0.04)
     }
 }
 
@@ -172,15 +258,17 @@ struct NaturalWatermarkView_Previews: PreviewProvider {
         NaturalWatermarkView(
             image: UIImage(named: "beach")!,
             watermarkInfo: .placeholder,
-            isPreview: false
+            isPreview: false,
+            width: 400
         )
         .previewLayout(.sizeThatFits)
         
         NaturalWatermarkView(
             image: UIImage(named: "beach")!,
             watermarkInfo: .placeholder,
-            isPreview: true
+            isPreview: true,
+            width: 400
         )
-        .previewLayout(.fixed(width: 200, height: 150))
+        .previewLayout(.fixed(width: 400, height: 350))
     }
-} 
+}

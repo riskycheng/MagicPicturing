@@ -5,75 +5,97 @@ struct ClassicWatermarkView: View {
     let image: UIImage
     let watermarkInfo: WatermarkInfo
     let isPreview: Bool
+    let width: CGFloat
 
     var body: some View {
+        if isPreview {
+            previewOverlay
+        } else {
+            // For the final render, the view is a VStacked image and bar.
+            finalRenderView
+        }
+    }
+
+    @ViewBuilder
+    private var previewOverlay: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                VStack {
+                    Spacer()
+                    watermarkBar(width: self.width)
+                }
+            )
+    }
+
+    @ViewBuilder
+    private var finalRenderView: some View {
         VStack(spacing: 0) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
+            watermarkBar(width: self.width)
+        }
+    }
 
-            // Taller, richer white bottom bar for the watermark
-            VStack(spacing: 0) {
-                HStack(alignment: .center) {
-                    // Left side: Camera Model and Lens
-                    VStack(alignment: .leading, spacing: isPreview ? 1 : 2) {
-                        Text(watermarkInfo.cameraModel ?? "Unknown Camera")
-                            .font(.system(size: isPreview ? 8 : 14, weight: .semibold))
-                        if let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty {
-                            Text(lensModel)
-                                .font(.system(size: isPreview ? 5 : 10, weight: .light))
-                        }
-                    }
+    @ViewBuilder
+    private func watermarkBar(width: CGFloat) -> some View {
+        let barHeight = width * 0.12
+        let baseFontSize = width * 0.045
 
-                    Spacer()
+        HStack(alignment: .center) {
+            // Left side: Camera Brand and Model
+            HStack(alignment: .firstTextBaseline, spacing: baseFontSize * 0.5) {
+                brandLogo(size: baseFontSize * 1.2)
 
-                    // Center: Brand Logo
-                    brandLogo
-                        .font(.system(size: isPreview ? 12 : 22))
-                        .opacity(0.8)
+                Rectangle()
+                    .fill(Color.black.opacity(0.5))
+                    .frame(width: 1.5, height: baseFontSize)
 
-                    Spacer()
+                Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                    .font(.system(size: baseFontSize, weight: .semibold))
+            }
 
-                    // Right side: Shot details
-                    VStack(alignment: .trailing, spacing: isPreview ? 1 : 2) {
-                        Text([watermarkInfo.focalLength, watermarkInfo.aperture]
-                                .compactMap { $0 }
-                                .joined(separator: " "))
-                            .font(.system(size: isPreview ? 8 : 14, weight: .semibold))
-                        Text([watermarkInfo.shutterSpeed, watermarkInfo.iso]
-                                .compactMap { $0 }
-                                .joined(separator: " "))
-                            .font(.system(size: isPreview ? 5 : 10, weight: .light))
-                    }
+            Spacer()
+
+            // Right side: Shot details and Date
+            VStack(alignment: .trailing, spacing: baseFontSize * 0.15) {
+                Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
+                        .compactMap { $0 }
+                        .joined(separator: "   "))
+                    .font(.system(size: baseFontSize * 0.75, weight: .medium))
+
+                if let date = watermarkInfo.creationDate {
+                    Text(date)
+                        .font(.system(size: baseFontSize * 0.65, weight: .light))
+                        .foregroundColor(.black.opacity(0.7))
                 }
             }
-            .foregroundColor(.black.opacity(0.9))
-            .padding(.horizontal, isPreview ? 8 : 20)
-            .padding(.vertical, isPreview ? 5 : 15)
-            .background(Color.white)
         }
+        .padding(.horizontal, width * 0.05)
+        .frame(width: width, height: barHeight)
+        .background(Color.white)
+        .foregroundColor(.black)
     }
     
     /// A view builder for the brand logo.
     @ViewBuilder
-    private var brandLogo: some View {
+    private func brandLogo(size: CGFloat) -> some View {
         if let make = watermarkInfo.cameraMake?.lowercased() {
             if make.contains("apple") {
-                Image(systemName: "apple.logo")
+                Image(systemName: "apple.logo").font(.system(size: size, weight: .semibold))
             } else if make.contains("fujifilm") {
-                Text("FUJIFILM")
-                    .font(.system(size: isPreview ? 7 : 12, weight: .bold, design: .monospaced))
+                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
             } else if make.contains("sony") {
-                Text("SONY")
-                    .font(.system(size: isPreview ? 8 : 14, weight: .bold, design: .default))
+                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
             } else if make.contains("canon") {
-                Text("Canon")
-                    .font(.system(size: isPreview ? 9 : 16, weight: .bold, design: .serif))
+                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
             } else {
-                Image(systemName: "camera.fill")
+                Image(systemName: "camera.fill").font(.system(size: size * 0.9, weight: .semibold))
             }
         } else {
-            Image(systemName: "camera.fill")
+            Image(systemName: "camera.fill").font(.system(size: size * 0.9, weight: .semibold))
         }
     }
 }
@@ -83,15 +105,17 @@ struct ClassicWatermarkView_Previews: PreviewProvider {
         ClassicWatermarkView(
             image: UIImage(named: "beach")!,
             watermarkInfo: .placeholder,
-            isPreview: false
+            isPreview: false,
+            width: 400
         )
         .previewLayout(.sizeThatFits)
         
         ClassicWatermarkView(
             image: UIImage(named: "beach")!,
             watermarkInfo: .placeholder,
-            isPreview: true
+            isPreview: true,
+            width: 400
         )
-        .previewLayout(.fixed(width: 200, height: 150))
+        .previewLayout(.fixed(width: 400, height: 350))
     }
 } 

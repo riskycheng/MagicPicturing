@@ -7,35 +7,38 @@ struct PhotoWatermarkEntryView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                GeometryReader { geometry in
-                    VStack {
-                        // MARK: - Main Image Display
-                        if let image = viewModel.processedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geometry.size.width)
-                                .cornerRadius(12)
-                                .shadow(radius: 5)
-                        } else {
-                            // Placeholder view
-                            ZStack {
-                                Color(UIColor.secondarySystemBackground)
-                                    .cornerRadius(12)
-                                Button(action: { showImagePicker = true }) {
-                                    VStack {
-                                        Image(systemName: "photo.on.rectangle.angled")
-                                            .font(.largeTitle)
-                                        Text("Select a photo")
-                                            .font(.headline)
-                                    }
-                                    .foregroundColor(.secondary)
-                                }
+                // MARK: - Main Image Display
+                if let image = viewModel.sourceImage {
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                        if let info = viewModel.watermarkInfo {
+                            GeometryReader { geo in
+                                viewModel.selectedTemplate.makeView(image: image, watermarkInfo: info, isPreview: true, width: geo.size.width)
+                                    .id(viewModel.selectedTemplate)
                             }
                         }
                     }
-                    .padding(.top, 16) // Add padding to push the image down from the nav bar
-                    .frame(height: geometry.size.height * 0.7, alignment: .top)
+                    .cornerRadius(12)
+                    .shadow(radius: 5)
+                    .padding()
+                } else {
+                    // Placeholder view
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                            .cornerRadius(12)
+                        Button(action: { showImagePicker = true }) {
+                            VStack {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.largeTitle)
+                                Text("Select a photo")
+                                    .font(.headline)
+                            }
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
                 }
                 
                 Spacer() // Pushes the template selector to the bottom

@@ -4,11 +4,21 @@ import Combine
 class PhotoWatermarkViewModel: ObservableObject {
     
     // Input
-    @Published var sourceImage: UIImage?
+    @Published var sourceImage: UIImage? {
+        didSet {
+            updateSourceImageDerivedData()
+            generateAllTemplatePreviews()
+        }
+    }
     @Published var selectedTemplate: WatermarkTemplate = .classic
     
     // Output
-    @Published var processedImage: UIImage?
+    func export() async -> UIImage? {
+        guard let sourceImage, let watermarkInfo else { return nil }
+        let renderWidth: CGFloat = 1080
+        let watermarkView = selectedTemplate.makeView(image: sourceImage, watermarkInfo: watermarkInfo, isPreview: false, width: renderWidth)
+        return await renderViewToImage(view: watermarkView, proposedSize: .unspecified)
+    }
     @Published var watermarkInfo: WatermarkInfo?
     @Published var templates: [WatermarkTemplate] = WatermarkTemplate.allCases
     @Published var templatePreviews: [WatermarkTemplate: UIImage] = [:]
@@ -21,75 +31,43 @@ class PhotoWatermarkViewModel: ObservableObject {
         return size.height / size.width
     }
     
-    private var cancellables = Set<AnyCancellable>()
     private let exifService = EXIFService()
     
-    init() {
-        // Main rendering pipeline for the selected image
-        Publishers.CombineLatest($sourceImage, $selectedTemplate)
-            .receive(on: DispatchQueue.global(qos: .userInitiated))
-            .flatMap { optionalImage, template -> Future<(UIImage?, WatermarkInfo?), Never> in
-                Future { promise in
-                    guard let image = optionalImage else {
-                        promise(.success((nil, nil)))
-                        return
-                    }
-                    let info = self.exifService.extractWatermarkInfo(from: image)
-                    Task { @MainActor in
-                        let watermarkView = template.makeView(image: image, watermarkInfo: info, isPreview: false)
-                        let imageSize = image.size
-                        let renderWidth: CGFloat = 1080
-                        let aspectRatio = imageSize.height > 0 && imageSize.width > 0 ? imageSize.height / imageSize.width : 1.0
-                        let watermarkBarHeight: CGFloat = 80
-                        let renderSize = CGSize(width: renderWidth, height: renderWidth * aspectRatio + watermarkBarHeight)
-                        let finalImage = self.renderViewToImage(view: watermarkView, size: renderSize)
-                        promise(.success((finalImage, info)))
-                    }
-                }
-            }
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] (image, info) in
-                self?.processedImage = image
-                if info != nil {
-                    self?.watermarkInfo = info
-                }
-            }
-            .store(in: &cancellables)
-            
-        // Pre-rendering pipeline for the template previews
-        $sourceImage
-            .compactMap { $0 }
-            .receive(on: DispatchQueue.global(qos: .userInitiated))
-            .sink { [weak self] image in
-                self?.preRenderAllTemplates(with: image)
-            }
-            .store(in: &cancellables)
+    private func updateSourceImageDerivedData() {
+        guard let sourceImage else { return }
+        watermarkInfo = exifService.extractWatermarkInfo(from: sourceImage)
     }
-    
-    private func preRenderAllTemplates(with image: UIImage) {
-        let previewInfo = exifService.extractWatermarkInfo(from: image)
-        var newPreviews: [WatermarkTemplate: UIImage] = [:]
+
+    private func generateAllTemplatePreviews() {
+        guard let sourceImage, let watermarkInfo else { return }
         
-        for template in templates {
-            Task { @MainActor in
-                let previewView = template.makeView(image: image, watermarkInfo: previewInfo, isPreview: true)
-                let previewSize = CGSize(width: 120, height: 120 * self.sourceImageAspectRatio)
-                if let previewImage = self.renderViewToImage(view: previewView, size: previewSize) {
+        Task.detached(priority: .userInitiated) {
+            var newPreviews: [WatermarkTemplate: UIImage] = [:]
+            let previewSize = ProposedViewSize.unspecified
+
+            for template in self.templates {
+                let previewView = template.makeView(image: sourceImage, watermarkInfo: watermarkInfo, isPreview: true, width: 120)
+                if let previewImage = await self.renderViewToImage(view: previewView, proposedSize: previewSize) {
                     newPreviews[template] = previewImage
-                    // Update the main dictionary on the main thread once all previews are potentially ready
-                    DispatchQueue.main.async {
-                        self.templatePreviews = newPreviews
-                    }
                 }
+            }
+            
+            await MainActor.run {
+                self.templatePreviews = newPreviews
             }
         }
     }
     
     /// Renders a SwiftUI view to a `UIImage`.
     @MainActor
-    private func renderViewToImage<T: View>(view: T, size: CGSize) -> UIImage? {
+    private func renderViewToImage<T: View>(view: T, size: CGSize) async -> UIImage? {
+        await renderViewToImage(view: view, proposedSize: ProposedViewSize(size))
+    }
+
+    @MainActor
+    private func renderViewToImage<T: View>(view: T, proposedSize: ProposedViewSize) async -> UIImage? {
         let renderer = ImageRenderer(content: view)
-        renderer.proposedSize = ProposedViewSize(size)
+        renderer.proposedSize = proposedSize
         renderer.scale = UIScreen.main.scale
         return renderer.uiImage
     }
