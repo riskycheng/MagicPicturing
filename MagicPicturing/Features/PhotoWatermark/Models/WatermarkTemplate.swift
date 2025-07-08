@@ -5,6 +5,12 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
     case classic = "经典之框"
     case modern = "现代之框"
     case film = "电影之框"
+    case minimalist = "极简风格"
+    case vintage = "复古风格"
+    case magazine = "杂志风格"
+    case artistic = "艺术风格"
+    case tech = "科技风格"
+    case natural = "自然风格"
     
     var id: String { self.rawValue }
     
@@ -19,6 +25,18 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
             ModernWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
         case .film:
             FilmWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .minimalist:
+            MinimalistWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .vintage:
+            VintageWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .magazine:
+            MagazineWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .artistic:
+            ArtisticWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .tech:
+            TechWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
+        case .natural:
+            NaturalWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview)
         }
     }
 } 
