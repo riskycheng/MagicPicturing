@@ -2,57 +2,10 @@ import SwiftUI
 
 /// A futuristic tech-style watermark template.
 struct TechWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        techCorner(width: self.width)
-                    }
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .overlay(
-                    VStack(spacing: 0) {
-                        HStack {
-                            Spacer()
-                            techCorner(width: self.width)
-                        }
-                        Spacer()
-                    }
-                )
-            watermarkBar(width: self.width)
-        }
-    }
-    
-    @ViewBuilder
-    private func watermarkBar(width: CGFloat) -> some View {
         let baseFontSize = width * 0.028
         let padding = width * 0.04
 
@@ -133,9 +86,13 @@ struct TechWatermarkView: View {
             .stroke(Color.cyan.opacity(0.1), lineWidth: 0.5)
         }
     }
+}
 
-    @ViewBuilder
-    private func techCorner(width: CGFloat) -> some View {
+struct TechCornerView: View {
+    let watermarkInfo: WatermarkInfo
+    let width: CGFloat
+
+    var body: some View {
         let baseFontSize = width * 0.025
 
         VStack(spacing: baseFontSize * 0.2) {
@@ -159,20 +116,24 @@ struct TechWatermarkView: View {
 
 struct TechWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        TechWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    HStack {
+                        Spacer()
+                        VStack {
+                            TechCornerView(watermarkInfo: .placeholder, width: 400)
+                            Spacer()
+                        }
+                    }
+                )
+            TechWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
-        
-        TechWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 350))
     }
 }

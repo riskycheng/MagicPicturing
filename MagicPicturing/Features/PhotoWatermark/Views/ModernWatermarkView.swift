@@ -2,40 +2,11 @@ import SwiftUI
 
 /// A modern, stylish watermark template.
 struct ModernWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack {
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-            watermarkBar(width: self.width)
-        }
+        watermarkBar(width: self.width)
     }
 
     @ViewBuilder
@@ -102,20 +73,29 @@ struct ModernWatermarkView: View {
 
 struct ModernWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        ModernWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+            ModernWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
         
-        ModernWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 300))
+        Image("beach")
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                VStack {
+                    Spacer()
+                    ModernWatermarkView(
+                        watermarkInfo: .placeholder,
+                        width: 400
+                    )
+                }
+            )
+            .previewLayout(.fixed(width: 400, height: 300))
     }
 }

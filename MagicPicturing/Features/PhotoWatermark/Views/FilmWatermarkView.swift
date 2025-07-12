@@ -2,41 +2,11 @@ import SwiftUI
 
 /// A template that mimics the look of a cinematic film strip.
 struct FilmWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        ZStack(alignment: .bottom) {
-            // The color matrix is part of the film look, so we apply it here for the preview.
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .colorMatrix(ColorMatrix.cinematic)
-            watermarkBar(width: self.width)
-        }
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .colorMatrix(ColorMatrix.cinematic)
-
-            watermarkBar(width: self.width)
-        }
+        watermarkBar(width: self.width)
     }
 
     @ViewBuilder
@@ -60,21 +30,32 @@ struct FilmWatermarkView: View {
 
 struct FilmWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        FilmWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+                .colorMatrix(.cinematic) // Apply filter for preview
+            FilmWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
         
-        FilmWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 300))
+        Image("beach")
+            .resizable()
+            .scaledToFit()
+            .colorMatrix(.cinematic) // Apply filter for preview
+            .overlay(
+                VStack {
+                    Spacer()
+                    FilmWatermarkView(
+                        watermarkInfo: .placeholder,
+                        width: 400
+                    )
+                }
+            )
+            .previewLayout(.fixed(width: 400, height: 300))
     }
 }
 
@@ -93,4 +74,4 @@ fileprivate struct ColorMatrix {
     let brightness: Double
 
     static let cinematic = ColorMatrix(color: .init(red: 1.0, green: 0.95, blue: 0.85), contrast: 1.15, brightness: -0.05)
-} 
+}

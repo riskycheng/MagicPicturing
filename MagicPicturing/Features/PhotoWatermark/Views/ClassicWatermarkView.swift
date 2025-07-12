@@ -2,41 +2,11 @@ import SwiftUI
 
 /// A classic watermark template that displays EXIF data at the bottom of an image.
 struct ClassicWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            // For the final render, the view is a VStacked image and bar.
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack {
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-            watermarkBar(width: self.width)
-        }
+        watermarkBar(width: self.width)
     }
 
     @ViewBuilder
@@ -77,6 +47,7 @@ struct ClassicWatermarkView: View {
         .frame(width: width, height: barHeight)
         .background(Color.white)
         .foregroundColor(.black)
+
     }
     
     /// A view builder for the brand logo.
@@ -100,22 +71,32 @@ struct ClassicWatermarkView: View {
     }
 }
 
+
 struct ClassicWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        ClassicWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+            ClassicWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
         
-        ClassicWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 350))
+        Image("beach")
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                VStack {
+                    Spacer()
+                    ClassicWatermarkView(
+                        watermarkInfo: .placeholder,
+                        width: 400
+                    )
+                }
+            )
+            .previewLayout(.fixed(width: 400, height: 350))
     }
 } 

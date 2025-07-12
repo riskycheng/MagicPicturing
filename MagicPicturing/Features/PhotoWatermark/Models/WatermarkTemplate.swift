@@ -17,27 +17,26 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
     // This ViewBuilder returns the appropriate SwiftUI view for each template.
     // This is the core of the template-switching logic.
     @ViewBuilder
-    func makeView(image: UIImage, watermarkInfo: WatermarkInfo, isPreview: Bool, width: CGFloat) -> some View {
+    func makeView(watermarkInfo: WatermarkInfo, width: CGFloat) -> some View {
         switch self {
         case .classic:
-            return AnyView(ClassicWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(ClassicWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .modern:
-            return AnyView(ModernWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(ModernWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .film:
-            return AnyView(FilmWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(FilmWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .minimalist:
-            return AnyView(MinimalistWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(MinimalistWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .vintage:
-            // Assuming VintageWatermarkView and others will be updated to accept width
-            return AnyView(VintageWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(VintageWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .magazine:
-            return AnyView(MagazineWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
-        case .artistic:
-            return AnyView(ArtisticWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(MagazineWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .tech:
-            return AnyView(TechWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(TechWatermarkView(watermarkInfo: watermarkInfo, width: width))
+        case .artistic:
+            return AnyView(ArtisticWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .natural:
-            return AnyView(NaturalWatermarkView(image: image, watermarkInfo: watermarkInfo, isPreview: isPreview, width: width))
+            return AnyView(NaturalWatermarkView(watermarkInfo: watermarkInfo, width: width))
         }
     }
 } 

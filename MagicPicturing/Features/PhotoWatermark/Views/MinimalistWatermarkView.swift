@@ -2,53 +2,11 @@ import SwiftUI
 
 /// A minimalist watermark template with clean lines and modern design.
 struct MinimalistWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        cornerWatermark(width: self.width)
-                    }
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .overlay(
-                    HStack {
-                        Spacer()
-                        VStack {
-                            cornerWatermark(width: self.width)
-                            Spacer()
-                        }
-                    }
-                )
-            watermarkBar(width: self.width)
-        }
+        watermarkBar(width: self.width)
     }
     
     @ViewBuilder
@@ -90,9 +48,13 @@ struct MinimalistWatermarkView: View {
         .padding(.vertical, baseFontSize)
         .background(Color.white.opacity(0.95))
     }
-    
-    @ViewBuilder
-    private func cornerWatermark(width: CGFloat) -> some View {
+}
+
+struct MinimalistCornerView: View {
+    let watermarkInfo: WatermarkInfo
+    let width: CGFloat
+
+    var body: some View {
         let baseFontSize = width * 0.025
 
         HStack(spacing: baseFontSize * 0.4) {
@@ -114,20 +76,24 @@ struct MinimalistWatermarkView: View {
 
 struct MinimalistWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        MinimalistWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    HStack {
+                        Spacer()
+                        VStack {
+                            MinimalistCornerView(watermarkInfo: .placeholder, width: 400)
+                            Spacer()
+                        }
+                    }
+                )
+            MinimalistWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
-        
-        MinimalistWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 300))
     }
 }

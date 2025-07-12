@@ -2,53 +2,14 @@ import SwiftUI
 
 /// A magazine-style watermark template with editorial layout.
 struct MagazineWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        magazineBadge(width: self.width)
-                    }
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .overlay(
-                    HStack {
-                        Spacer()
-                        VStack {
-                            magazineBadge(width: self.width)
-                            Spacer()
-                        }
-                    }
-                )
-            watermarkBar(width: self.width)
-        }
+        // This template is unique because it has two parts: the main bar and a badge
+        // that overlays the image content. The parent view will need to handle this.
+        // Here, we just provide the bar.
+        watermarkBar(width: self.width)
     }
     
     @ViewBuilder
@@ -122,7 +83,30 @@ struct MagazineWatermarkView: View {
     }
     
     @ViewBuilder
-    private func magazineBadge(width: CGFloat) -> some View {
+    private func brandLogo(size: CGFloat) -> some View {
+        if let make = watermarkInfo.cameraMake?.lowercased() {
+            if make.contains("apple") {
+                Image(systemName: "apple.logo").font(.system(size: size))
+            } else if make.contains("fujifilm") {
+                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
+            } else if make.contains("sony") {
+                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
+            } else if make.contains("canon") {
+                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
+            } else {
+                Image(systemName: "camera.fill").font(.system(size: size * 0.9))
+            }
+        } else {
+            Image(systemName: "camera.fill").font(.system(size: size * 0.9))
+        }
+    }
+}
+
+// This view is separate because it needs to be overlaid on the image content.
+struct MagazineBadgeView: View {
+    let width: CGFloat
+    
+    var body: some View {
         let baseFontSize = width * 0.02
 
         VStack(spacing: baseFontSize * 0.2) {
@@ -144,43 +128,28 @@ struct MagazineWatermarkView: View {
         .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
         .padding([.top, .trailing], width * 0.04)
     }
-    
-    @ViewBuilder
-    private func brandLogo(size: CGFloat) -> some View {
-        if let make = watermarkInfo.cameraMake?.lowercased() {
-            if make.contains("apple") {
-                Image(systemName: "apple.logo").font(.system(size: size))
-            } else if make.contains("fujifilm") {
-                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
-            } else if make.contains("sony") {
-                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
-            } else if make.contains("canon") {
-                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
-            } else {
-                Image(systemName: "camera.fill").font(.system(size: size * 0.9))
-            }
-        } else {
-            Image(systemName: "camera.fill").font(.system(size: size * 0.9))
-        }
-    }
 }
 
 struct MagazineWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        MagazineWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    HStack {
+                        Spacer()
+                        VStack {
+                            MagazineBadgeView(width: 400)
+                            Spacer()
+                        }
+                    }
+                )
+            MagazineWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
-        
-        MagazineWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 450))
     }
 }

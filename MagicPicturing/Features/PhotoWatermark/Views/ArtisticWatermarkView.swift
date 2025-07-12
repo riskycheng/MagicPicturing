@@ -2,89 +2,10 @@ import SwiftUI
 
 /// An artistic watermark template with creative design elements.
 struct ArtisticWatermarkView: View {
-    let image: UIImage
     let watermarkInfo: WatermarkInfo
-    let isPreview: Bool
     let width: CGFloat
 
     var body: some View {
-        if isPreview {
-            previewOverlay
-        } else {
-            finalRenderView
-        }
-    }
-
-    @ViewBuilder
-    private var previewOverlay: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        artisticCorner(width: self.width)
-                    }
-                    Spacer()
-                    watermarkBar(width: self.width)
-                }
-            )
-    }
-
-    @ViewBuilder
-    private var finalRenderView: some View {
-        VStack(spacing: 0) {
-            imageWithArtisticBorder(width: self.width)
-            watermarkBar(width: self.width)
-        }
-    }
-    
-    @ViewBuilder
-    private func imageWithArtisticBorder(width: CGFloat) -> some View {
-        let padding = width * 0.01
-        let imagePadding = width * 0.02
-        let outerCornerRadius = width * 0.06
-        let innerCornerRadius = width * 0.04
-
-        ZStack {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .padding(imagePadding)
-                .background(
-                    RoundedRectangle(cornerRadius: innerCornerRadius)
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
-                .overlay(
-                    VStack {
-                        HStack {
-                            Spacer()
-                            artisticCorner(width: width)
-                        }
-                        Spacer()
-                    }
-                )
-        }
-        .background(
-            RoundedRectangle(cornerRadius: outerCornerRadius)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.9, green: 0.8, blue: 0.6),
-                            Color(red: 0.8, green: 0.7, blue: 0.5)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .padding(padding)
-    }
-
-    @ViewBuilder
-    private func watermarkBar(width: CGFloat) -> some View {
         let baseFontSize = width * 0.025
         let padding = width * 0.04
         let barCornerRadius = width * 0.03
@@ -142,9 +63,13 @@ struct ArtisticWatermarkView: View {
             )
         }
     }
+}
 
-    @ViewBuilder
-    private func artisticCorner(width: CGFloat) -> some View {
+struct ArtisticCornerView: View {
+    let watermarkInfo: WatermarkInfo
+    let width: CGFloat
+
+    var body: some View {
         let baseFontSize = width * 0.02
 
         VStack(spacing: baseFontSize * 0.2) {
@@ -170,20 +95,24 @@ struct ArtisticWatermarkView: View {
 
 struct ArtisticWatermarkView_Previews: PreviewProvider {
     static var previews: some View {
-        ArtisticWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: false,
-            width: 400
-        )
+        VStack(spacing: 0) {
+            Image("beach")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    HStack {
+                        Spacer()
+                        VStack {
+                            ArtisticCornerView(watermarkInfo: .placeholder, width: 400)
+                            Spacer()
+                        }
+                    }
+                )
+            ArtisticWatermarkView(
+                watermarkInfo: .placeholder,
+                width: 400
+            )
+        }
         .previewLayout(.sizeThatFits)
-        
-        ArtisticWatermarkView(
-            image: UIImage(named: "beach")!,
-            watermarkInfo: .placeholder,
-            isPreview: true,
-            width: 400
-        )
-        .previewLayout(.fixed(width: 400, height: 500))
     }
 }

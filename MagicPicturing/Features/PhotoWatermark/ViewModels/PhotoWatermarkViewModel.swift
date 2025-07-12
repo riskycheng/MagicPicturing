@@ -3,39 +3,52 @@ import Combine
 
 class PhotoWatermarkViewModel: ObservableObject {
     
-    // Input
+    // MARK: - Input
     @Published var sourceImage: UIImage? {
-        didSet {
-            updateSourceImageDerivedData()
-            generateAllTemplatePreviews()
-        }
+        didSet { processSourceImageUpdate() }
+    }
+    @Published var sourceImageData: Data? {
+        didSet { processSourceImageUpdate() }
     }
     @Published var selectedTemplate: WatermarkTemplate = .classic
     
-    // Output
-    func export() async -> UIImage? {
-        guard let sourceImage, let watermarkInfo else { return nil }
-        let renderWidth: CGFloat = 1080
-        let watermarkView = selectedTemplate.makeView(image: sourceImage, watermarkInfo: watermarkInfo, isPreview: false, width: renderWidth)
-        return await renderViewToImage(view: watermarkView, proposedSize: .unspecified)
-    }
+    // MARK: - Output
     @Published var watermarkInfo: WatermarkInfo?
     @Published var templates: [WatermarkTemplate] = WatermarkTemplate.allCases
     @Published var templatePreviews: [WatermarkTemplate: UIImage] = [:]
-    
+
     var sourceImageAspectRatio: CGFloat {
         guard let size = sourceImage?.size, size.width > 0, size.height > 0 else {
-            // Return a default portrait aspect ratio if no image is selected
             return 4.0 / 3.0
         }
         return size.height / size.width
     }
-    
+
+    // MARK: - Services
     private let exifService = EXIFService()
     
-    private func updateSourceImageDerivedData() {
-        guard let sourceImage else { return }
-        watermarkInfo = exifService.extractWatermarkInfo(from: sourceImage)
+    // MARK: - Public Methods
+    func export() async -> UIImage? {
+        guard let sourceImage, let watermarkInfo else { return nil }
+        
+        let renderWidth: CGFloat = sourceImage.size.width
+        let watermarkBar = selectedTemplate.makeView(watermarkInfo: watermarkInfo, width: renderWidth)
+        
+        let finalRenderView = VStack(spacing: 0) {
+            Image(uiImage: sourceImage)
+                .resizable()
+                .scaledToFit()
+            watermarkBar
+        }
+        
+        return await renderViewToImage(view: finalRenderView, size: sourceImage.size)
+    }
+    
+    // MARK: - Private Methods
+    private func processSourceImageUpdate() {
+        guard let data = sourceImageData, sourceImage != nil else { return }
+        watermarkInfo = exifService.extractWatermarkInfo(from: data)
+        generateAllTemplatePreviews()
     }
 
     private func generateAllTemplatePreviews() {
@@ -43,11 +56,23 @@ class PhotoWatermarkViewModel: ObservableObject {
         
         Task.detached(priority: .userInitiated) {
             var newPreviews: [WatermarkTemplate: UIImage] = [:]
-            let previewSize = ProposedViewSize.unspecified
+            let previewWidth: CGFloat = 120
+            let previewSize = CGSize(width: previewWidth, height: previewWidth * self.sourceImageAspectRatio)
 
             for template in self.templates {
-                let previewView = template.makeView(image: sourceImage, watermarkInfo: watermarkInfo, isPreview: true, width: 120)
-                if let previewImage = await self.renderViewToImage(view: previewView, proposedSize: previewSize) {
+                let watermarkBar = template.makeView(watermarkInfo: watermarkInfo, width: previewWidth)
+                let previewView = Image(uiImage: sourceImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: previewSize.width, height: previewSize.height)
+                    .overlay(
+                        VStack {
+                            Spacer()
+                            watermarkBar
+                        }
+                    )
+                
+                if let previewImage = await self.renderViewToImage(view: previewView, size: previewSize) {
                     newPreviews[template] = previewImage
                 }
             }
@@ -58,17 +83,11 @@ class PhotoWatermarkViewModel: ObservableObject {
         }
     }
     
-    /// Renders a SwiftUI view to a `UIImage`.
     @MainActor
     private func renderViewToImage<T: View>(view: T, size: CGSize) async -> UIImage? {
-        await renderViewToImage(view: view, proposedSize: ProposedViewSize(size))
-    }
-
-    @MainActor
-    private func renderViewToImage<T: View>(view: T, proposedSize: ProposedViewSize) async -> UIImage? {
         let renderer = ImageRenderer(content: view)
-        renderer.proposedSize = proposedSize
+        renderer.proposedSize = ProposedViewSize(size)
         renderer.scale = UIScreen.main.scale
         return renderer.uiImage
     }
-} 
+}
