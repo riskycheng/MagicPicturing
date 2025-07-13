@@ -21,7 +21,7 @@ class PhotoWatermarkViewModel: ObservableObject {
         guard let size = sourceImage?.size, size.width > 0, size.height > 0 else {
             return 4.0 / 3.0
         }
-        return size.height / size.width
+        return size.width / size.height
     }
 
     // MARK: - Services
@@ -63,8 +63,9 @@ class PhotoWatermarkViewModel: ObservableObject {
                 let watermarkBar = template.makeView(watermarkInfo: watermarkInfo, width: previewWidth)
                 let previewView = Image(uiImage: sourceImage)
                     .resizable()
-                    .scaledToFit()
+                    .scaledToFill()
                     .frame(width: previewSize.width, height: previewSize.height)
+                    .clipped()
                     .overlay(
                         VStack {
                             Spacer()

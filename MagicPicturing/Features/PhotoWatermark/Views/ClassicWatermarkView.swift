@@ -77,7 +77,9 @@ struct ClassicWatermarkView_Previews: PreviewProvider {
         VStack(spacing: 0) {
             Image("beach")
                 .resizable()
-                .scaledToFit()
+                .scaledToFill()
+                .frame(width: 400)
+                .clipped()
             ClassicWatermarkView(
                 watermarkInfo: .placeholder,
                 width: 400
@@ -87,7 +89,9 @@ struct ClassicWatermarkView_Previews: PreviewProvider {
         
         Image("beach")
             .resizable()
-            .scaledToFit()
+            .scaledToFill()
+            .frame(width: 400)
+            .clipped()
             .overlay(
                 VStack {
                     Spacer()

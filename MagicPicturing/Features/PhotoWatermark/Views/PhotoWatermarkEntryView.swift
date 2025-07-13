@@ -9,36 +9,44 @@ struct PhotoWatermarkEntryView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // MARK: - Main Image Display Area
-                if let image = viewModel.sourceImage {
-                    GeometryReader { geo in
-                        VStack(spacing: 0) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
+                GeometryReader { geo in
+                    ZStack {
+                        if let image = viewModel.sourceImage {
+                            let containerSize = calculateContainerSize(for: geo.size, aspectRatio: viewModel.sourceImageAspectRatio)
                             
-                            if let info = viewModel.watermarkInfo {
-                                viewModel.selectedTemplate
-                                    .makeView(watermarkInfo: info, width: geo.size.width)
-                                    .id(viewModel.selectedTemplate)
+                            // This is the composite view of the image and the watermark
+                            ZStack(alignment: .bottom) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: containerSize.width, height: containerSize.height)
+                                    .clipped()
+                                
+                                if let info = viewModel.watermarkInfo {
+                                    viewModel.selectedTemplate
+                                        .makeView(watermarkInfo: info, width: containerSize.width)
+                                        .id(viewModel.selectedTemplate)
+                                }
                             }
+                            .frame(width: containerSize.width, height: containerSize.height)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+                            
+                        } else {
+                            // Placeholder view for when no image is selected
+                            placeholderView
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
                     }
-                    .padding()
-                } else {
-                    // Placeholder view for when no image is selected
-                    placeholderView
+                    .frame(width: geo.size.width, height: geo.size.height) // Center content in the GeometryReader
                 }
-                
-                Spacer() // Pushes the template selector to the bottom
-                
+
+                Spacer()
+
                 // MARK: - Template Gallery
                 if viewModel.sourceImage != nil {
                     templateGallery
                 }
             }
-            .padding(.top)
             .background(Color(UIColor.systemGray6).edgesIgnoringSafeArea(.all))
             .animation(.spring(), value: viewModel.sourceImage)
             .navigationTitle("Add Watermark")
@@ -47,6 +55,26 @@ struct PhotoWatermarkEntryView: View {
             .sheet(isPresented: $showImagePicker, content: imagePickerSheet)
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
+        // Define the maximum bounding box for our preview area
+        let maxBoundingWidth = availableSize.width - 32 // 16pt padding on each side
+        let maxBoundingHeight = availableSize.height * 0.8 // Use up to 80% of the available height
+        
+        // Calculate the size if we were to fit the image to the max width
+        let sizeFittingWidth = CGSize(width: maxBoundingWidth, height: maxBoundingWidth / aspectRatio)
+        
+        // Calculate the size if we were to fit the image to the max height
+        let sizeFittingHeight = CGSize(width: maxBoundingHeight * aspectRatio, height: maxBoundingHeight)
+        
+        // If fitting to the width makes the image too tall, we must constrain by height.
+        // Otherwise, constraining by width is correct.
+        if sizeFittingWidth.height > maxBoundingHeight {
+            return sizeFittingHeight
+        } else {
+            return sizeFittingWidth
+        }
     }
     
     // MARK: - Subviews
