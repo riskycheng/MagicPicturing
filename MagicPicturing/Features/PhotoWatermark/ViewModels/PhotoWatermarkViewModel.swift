@@ -56,11 +56,10 @@ class PhotoWatermarkViewModel: ObservableObject {
         
         Task.detached(priority: .userInitiated) {
             var newPreviews: [WatermarkTemplate: UIImage] = [:]
-            let previewWidth: CGFloat = 120
-            let previewSize = CGSize(width: previewWidth, height: previewWidth * self.sourceImageAspectRatio)
+            let previewSize = CGSize(width: 120, height: 120)
 
             for template in self.templates {
-                let watermarkBar = template.makeView(watermarkInfo: watermarkInfo, width: previewWidth)
+                let watermarkBar = template.makeView(watermarkInfo: watermarkInfo, width: previewSize.width)
                 let previewView = Image(uiImage: sourceImage)
                     .resizable()
                     .scaledToFill()

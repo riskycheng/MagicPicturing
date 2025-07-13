@@ -21,7 +21,9 @@ struct ModernWatermarkView: View {
                 if let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty {
                     Text(lensModel)
                         .font(.system(size: baseFontSize * 0.7, weight: .light))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.black.opacity(0.6))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 }
             }
 
@@ -36,10 +38,12 @@ struct ModernWatermarkView: View {
                             .compactMap { $0 }
                             .joined(separator: " "))
                         .font(.system(size: baseFontSize, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                     if let date = watermarkInfo.creationDate {
                         Text(date)
                             .font(.system(size: baseFontSize * 0.7, weight: .light))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.black.opacity(0.6))
                     }
                 }
             }

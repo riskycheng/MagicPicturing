@@ -48,6 +48,11 @@ class EXIFService {
             }
         }
 
+        // Clean up lens model if it contains the camera model
+        if let cameraModel = info.cameraModel, let lensModel = info.lensModel, lensModel.contains(cameraModel) {
+            info.lensModel = lensModel.replacingOccurrences(of: cameraModel, with: "").trimmingCharacters(in: .whitespaces)
+        }
+
         print("EXIFService: Extracted info from Data: \(info)")
         return info
     }
@@ -91,6 +96,11 @@ class EXIFService {
             if let creationDate = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
                 info.creationDate = formatDate(creationDate)
             }
+        }
+
+        // Clean up lens model if it contains the camera model
+        if let cameraModel = info.cameraModel, let lensModel = info.lensModel, lensModel.contains(cameraModel) {
+            info.lensModel = lensModel.replacingOccurrences(of: cameraModel, with: "").trimmingCharacters(in: .whitespaces)
         }
 
         print("EXIFService: Extracted info from UIImage: \(info)")

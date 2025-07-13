@@ -23,7 +23,7 @@ struct ClassicWatermarkView: View {
                     .fill(Color.black.opacity(0.5))
                     .frame(width: 1.5, height: baseFontSize)
 
-                Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                Text(watermarkInfo.cameraModel?.split(separator: "\n").first?.trimmingCharacters(in: .whitespaces) ?? "Unknown Camera")
                     .font(.system(size: baseFontSize, weight: .semibold))
             }
 
@@ -35,11 +35,13 @@ struct ClassicWatermarkView: View {
                         .compactMap { $0 }
                         .joined(separator: "   "))
                     .font(.system(size: baseFontSize * 0.75, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
 
                 if let date = watermarkInfo.creationDate {
                     Text(date)
                         .font(.system(size: baseFontSize * 0.65, weight: .light))
-                        .foregroundColor(.black.opacity(0.7))
+                        .foregroundColor(.black)
                 }
             }
         }

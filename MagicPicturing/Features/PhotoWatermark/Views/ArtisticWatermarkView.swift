@@ -23,34 +23,26 @@ struct ArtisticWatermarkView: View {
 
             // Main content
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: baseFontSize * 0.1) {
-                    Text("📷").font(.system(size: baseFontSize))
-                    Text(watermarkInfo.cameraModel ?? "Camera")
-                        .font(.system(size: baseFontSize * 0.9, weight: .medium, design: .serif))
-                        .foregroundColor(.black.opacity(0.8))
-                }
+                Text(watermarkInfo.cameraModel ?? "Camera")
+                    .font(.system(size: baseFontSize, weight: .semibold, design: .serif))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
 
                 Spacer()
 
-                VStack(spacing: baseFontSize * 0.1) {
-                    Text("✧ ARTISTIC ✧")
-                        .font(.system(size: baseFontSize * 0.8, weight: .bold, design: .serif))
-                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.2))
-                    Text("PHOTOGRAPHY")
-                        .font(.system(size: baseFontSize * 0.6, weight: .medium, design: .serif))
-                        .foregroundColor(.black.opacity(0.6))
-                        .tracking(1)
-                }
+                Text("✧")
+                    .font(.system(size: baseFontSize * 1.2, weight: .light))
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: baseFontSize * 0.1) {
-                    Text("⚡").font(.system(size: baseFontSize))
-                    Text([watermarkInfo.focalLength, watermarkInfo.aperture].compactMap { $0 }.joined(separator: " "))
-                        .font(.system(size: baseFontSize * 0.9, weight: .medium, design: .serif))
-                        .foregroundColor(.black.opacity(0.8))
-                }
+                Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
+                        .compactMap { $0 }
+                        .joined(separator: " ・ "))
+                    .font(.system(size: baseFontSize * 0.9, weight: .medium, design: .serif))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
             }
+            .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.2))
             .padding(.horizontal, padding)
             .padding(.vertical, padding * 0.75)
             .background(

@@ -14,36 +14,31 @@ struct TechWatermarkView: View {
 
             HStack(alignment: .center) {
                 // Left: Device info
-                VStack(alignment: .leading, spacing: baseFontSize * 0.1) {
-                    HStack(spacing: baseFontSize * 0.2) {
-                        Image(systemName: "cpu").font(.system(size: baseFontSize * 0.8))
-                        Text("DEVICE").font(.system(size: baseFontSize * 0.6, weight: .bold, design: .monospaced))
-                    }.foregroundColor(.cyan)
-                    Text(watermarkInfo.cameraModel ?? "Device").font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
+                HStack(spacing: baseFontSize * 0.4) {
+                    Image(systemName: "cpu").font(.system(size: baseFontSize * 0.9))
+                    Text(watermarkInfo.cameraModel ?? "Device")
+                        .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 }
 
                 Spacer()
 
                 // Center: Tech logo
-                VStack(spacing: baseFontSize * 0.1) {
-                    Image(systemName: "camera.aperture").font(.system(size: baseFontSize * 1.5))
-                    Text("TECH").font(.system(size: baseFontSize * 0.5, weight: .bold, design: .monospaced)).tracking(2)
-                }.foregroundColor(.cyan)
+                Image(systemName: "camera.aperture")
+                    .font(.system(size: baseFontSize * 1.5))
 
                 Spacer()
 
                 // Right: Technical specs
-                VStack(alignment: .trailing, spacing: baseFontSize * 0.1) {
-                    HStack(spacing: baseFontSize * 0.2) {
-                        Text("SPECS").font(.system(size: baseFontSize * 0.6, weight: .bold, design: .monospaced))
-                        Image(systemName: "gearshape").font(.system(size: baseFontSize * 0.8))
-                    }.foregroundColor(.cyan)
-                    Text([watermarkInfo.focalLength, watermarkInfo.aperture].compactMap { $0 }.joined(separator: " "))
-                        .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
-                }
+                Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
+                        .compactMap { $0 }
+                        .joined(separator: " "))
+                    .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
             }
+            .foregroundColor(.white)
             .padding(.horizontal, padding)
             .padding(.vertical, padding)
             .background(LinearGradient(gradient: Gradient(colors: [Color.black.opacity(0.9), Color.black.opacity(0.8)]), startPoint: .top, endPoint: .bottom))
