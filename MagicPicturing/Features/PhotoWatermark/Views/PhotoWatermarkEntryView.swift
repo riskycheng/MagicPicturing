@@ -2,59 +2,67 @@ import SwiftUI
 import Photos
 
 struct PhotoWatermarkEntryView: View {
-    @StateObject private var viewModel = PhotoWatermarkViewModel()
-    @State private var showImagePicker = false
+    @StateObject private var viewModel: PhotoWatermarkViewModel
+    
+    // The new initializer requires both the image and the PHAsset.
+    init(image: UIImage, asset: PHAsset) {
+        _viewModel = StateObject(wrappedValue: PhotoWatermarkViewModel(initialImage: image, asset: asset))
+    }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // MARK: - Main Image Display Area
-                GeometryReader { geo in
-                    ZStack {
-                        if let image = viewModel.sourceImage {
-                            let containerSize = calculateContainerSize(for: geo.size, aspectRatio: viewModel.sourceImageAspectRatio)
+        VStack(spacing: 0) {
+            // MARK: - Main Image Display Area
+            GeometryReader { geo in
+                ZStack {
+                    if let image = viewModel.sourceImage {
+                        let containerSize = calculateContainerSize(for: geo.size, aspectRatio: viewModel.sourceImageAspectRatio)
+                        
+                        // This is the composite view of the image and the watermark
+                        ZStack(alignment: .bottom) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: containerSize.width, height: containerSize.height)
+                                .clipped()
                             
-                            // This is the composite view of the image and the watermark
-                            ZStack(alignment: .bottom) {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: containerSize.width, height: containerSize.height)
-                                    .clipped()
-                                
-                                if let info = viewModel.watermarkInfo {
-                                    viewModel.selectedTemplate
-                                        .makeView(watermarkInfo: info, width: containerSize.width)
-                                        .id(viewModel.selectedTemplate)
-                                }
+                            if let info = viewModel.watermarkInfo {
+                                viewModel.selectedTemplate
+                                    .makeView(watermarkInfo: info, width: containerSize.width)
+                                    .id(viewModel.selectedTemplate)
                             }
-                            .frame(width: containerSize.width, height: containerSize.height)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
-                            
-                        } else {
-                            // Placeholder view for when no image is selected
-                            placeholderView
                         }
+                        .frame(width: containerSize.width, height: containerSize.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+                        
+                    } else {
+                        // Placeholder view for when no image is selected
+                        placeholderView
                     }
-                    .frame(width: geo.size.width, height: geo.size.height) // Center content in the GeometryReader
                 }
+                .frame(width: geo.size.width, height: geo.size.height) // Center content in the GeometryReader
+            }
 
-                Spacer()
+            Spacer()
 
-                // MARK: - Template Gallery
-                if viewModel.sourceImage != nil {
-                    templateGallery
+            // MARK: - Template Gallery
+            if viewModel.sourceImage != nil {
+                templateGallery
+            }
+        }
+        .background(Color(UIColor.systemGray6).edgesIgnoringSafeArea(.all))
+        .animation(.spring(), value: viewModel.sourceImage)
+        .navigationTitle("Add Watermark")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink("Done") {
+                    if let image = viewModel.sourceImage, let imageData = viewModel.sourceImageData {
+                        PhotoWatermarkEditorView(image: image, imageData: imageData)
+                    }
                 }
             }
-            .background(Color(UIColor.systemGray6).edgesIgnoringSafeArea(.all))
-            .animation(.spring(), value: viewModel.sourceImage)
-            .navigationTitle("Add Watermark")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: navigationToolbar)
-            .sheet(isPresented: $showImagePicker, content: imagePickerSheet)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
@@ -83,15 +91,6 @@ struct PhotoWatermarkEntryView: View {
         ZStack {
             Color(UIColor.secondarySystemBackground)
                 .cornerRadius(12)
-            Button(action: { showImagePicker = true }) {
-                VStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .font(.largeTitle)
-                    Text("Select a photo")
-                        .font(.headline)
-                }
-                .foregroundColor(.secondary)
-            }
         }
         .padding()
     }
@@ -115,50 +114,6 @@ struct PhotoWatermarkEntryView: View {
         .frame(height: 160)
         .background(Color(UIColor.systemBackground))
         .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-    
-    @ToolbarContentBuilder
-    private func navigationToolbar() -> some ToolbarContent {
-        if viewModel.sourceImage != nil {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showImagePicker = true }) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                }
-            }
-        }
-    }
-    
-    private func imagePickerSheet() -> some View {
-        ImagePickerView(
-            onCancel: { showImagePicker = false },
-            onNext: { assets, _ in
-                guard let asset = assets.first else { return showImagePicker = false }
-                
-                let options = PHImageRequestOptions()
-                options.isNetworkAccessAllowed = true
-                options.version = .original
-                
-                PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
-                    DispatchQueue.main.async {
-                        if let error = info?[PHImageErrorKey] as? Error {
-                            print("Error fetching image data: \(error.localizedDescription)")
-                            return showImagePicker = false
-                        }
-                        
-                        guard let imageData = data, let fullImage = UIImage(data: imageData) else {
-                            print("Failed to get image data from asset.")
-                            return showImagePicker = false
-                        }
-                        
-                        viewModel.sourceImageData = imageData
-                        viewModel.sourceImage = fullImage
-                        showImagePicker = false
-                    }
-                }
-            },
-            selectionLimit: 1,
-            minSelection: 1
-        )
     }
 }
 
@@ -201,6 +156,37 @@ private struct TemplatePreviewCard: View {
 
 struct PhotoWatermarkEntryView_Previews: PreviewProvider {
     static var previews: some View {
-        PhotoWatermarkEntryView()
+        // Helper to fetch a real asset for a more realistic preview
+        let (image, asset) = getPreviewAsset()
+        
+        if let image = image, let asset = asset {
+            NavigationView {
+                PhotoWatermarkEntryView(image: image, asset: asset)
+            }
+        } else {
+            Text("No photo available for preview. Please add a photo to your library.")
+        }
+    }
+    
+    // Fetches the first available photo from the user's library to use in the preview.
+    static func getPreviewAsset() -> (UIImage?, PHAsset?) {
+        let fetchOptions = PHFetchOptions()
+        fetchOptions.fetchLimit = 1
+        let fetchResult = PHAsset.fetchAssets(with: .image, options: fetchOptions)
+        
+        guard let asset = fetchResult.firstObject else {
+            return (nil, nil)
+        }
+        
+        var fetchedImage: UIImage? = nil
+        let requestOptions = PHImageRequestOptions()
+        requestOptions.isSynchronous = true // Make the request synchronous for the preview
+        requestOptions.deliveryMode = .highQualityFormat
+        
+        PHImageManager.default().requestImage(for: asset, targetSize: CGSize(width: 800, height: 600), contentMode: .aspectFill, options: requestOptions) { image, _ in
+            fetchedImage = image
+        }
+        
+        return (fetchedImage, asset)
     }
 } 

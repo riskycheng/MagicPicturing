@@ -8,6 +8,9 @@
 import SwiftUI
 import Combine
 import AudioToolbox
+// Assuming PhotoWatermarkEditorView is in the main app target, no specific import is needed,
+// but if it were in a separate module, it would be imported here.
+// For now, let's ensure the file is part of the same target.
 
 // MARK: - Data Model & Navigation
 struct CardStackItem: Identifiable, Equatable {
@@ -38,8 +41,10 @@ class CardStackViewModel: ObservableObject {
     @Published var showThreeDGridEntry = false
     @Published var showCollageFlow = false
     @Published var showGenericView = false
-    @Published var showPhotoWatermark = false
     @Published var selectedPlaceholderTitle = ""
+
+    // Watermark flow state
+    @Published var showWatermarkFlow = false
     
     private var allCards: [CardStackItem] = []
 
@@ -72,7 +77,7 @@ class CardStackViewModel: ObservableObject {
             showCollageFlow = true
         case .placeholder(let title):
             if title == "PhotoWatermark" {
-                showPhotoWatermark = true
+                showWatermarkFlow = true
             } else {
                 selectedPlaceholderTitle = title
                 showGenericView = true
@@ -122,6 +127,7 @@ struct NFTGalleryView: View {
                     Spacer(minLength: 0)
                 }
             }
+
             .navigationBarHidden(true)
             .fullScreenCover(isPresented: $viewModel.showThreeDGridEntry) {
                 ThreeDGridEntryView()
@@ -129,11 +135,11 @@ struct NFTGalleryView: View {
             .fullScreenCover(isPresented: $viewModel.showCollageFlow) {
                 CollageEntryView()
             }
-            .sheet(isPresented: $viewModel.showPhotoWatermark) {
-                PhotoWatermarkEntryView()
-            }
             .sheet(isPresented: $viewModel.showGenericView) {
                 Text("\(viewModel.selectedPlaceholderTitle) feature is in development.")
+            }
+            .fullScreenCover(isPresented: $viewModel.showWatermarkFlow) {
+                PhotoWatermarkFlowView()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -391,3 +397,5 @@ struct NFTGalleryView_Previews: PreviewProvider {
         NFTGalleryView()
     }
 }
+
+
