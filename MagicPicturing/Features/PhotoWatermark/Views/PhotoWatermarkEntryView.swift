@@ -2,6 +2,8 @@ import SwiftUI
 import Photos
 
 struct PhotoWatermarkEntryView: View {
+    @State private var showSaveSuccessAlert = false
+    @State private var alertMessage = ""
     @StateObject private var viewModel: PhotoWatermarkViewModel
     
     // The new initializer requires both the image and the PHAsset.
@@ -14,27 +16,15 @@ struct PhotoWatermarkEntryView: View {
             // MARK: - Main Image Display Area
             GeometryReader { geo in
                 ZStack {
-                    if let image = viewModel.sourceImage {
+                    if viewModel.sourceImage != nil {
                         let containerSize = calculateContainerSize(for: geo.size, aspectRatio: viewModel.sourceImageAspectRatio)
                         
-                        // This is the composite view of the image and the watermark
-                        ZStack(alignment: .bottom) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: containerSize.width, height: containerSize.height)
-                                .clipped()
-                            
-                            if let info = viewModel.watermarkInfo {
-                                viewModel.selectedTemplate
-                                    .makeView(watermarkInfo: info, width: containerSize.width)
-                                    .id(viewModel.selectedTemplate)
-                            }
-                        }
-                        .frame(width: containerSize.width, height: containerSize.height)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        // The composed view of the image and watermark.
+                        WatermarkedImageView(
+                            viewModel: viewModel,
+                            containerSize: containerSize
+                        )
                         .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
-                        
                     } else {
                         // Placeholder view for when no image is selected
                         placeholderView
@@ -55,14 +45,58 @@ struct PhotoWatermarkEntryView: View {
         .navigationTitle("Add Watermark")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                // The close button is implicitly handled by NavigationView
+            }
             ToolbarItem(placement: .primaryAction) {
-                NavigationLink("Done") {
-                    if let image = viewModel.sourceImage, let imageData = viewModel.sourceImageData {
-                        PhotoWatermarkEditorView(image: image, imageData: imageData)
-                    }
+                Button("Save") {
+                    saveWatermarkedImage()
+                }
+                .disabled(viewModel.sourceImage == nil)
+            }
+        }
+        .alert("Success", isPresented: $showSaveSuccessAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+
+    @MainActor
+    private func saveWatermarkedImage() {
+        guard let imageToSave = renderFinalImage() else {
+            alertMessage = "Failed to render the final image."
+            showSaveSuccessAlert = true // Or a different alert for failure
+            return
+        }
+
+        PHPhotoLibrary.shared().performChanges({
+            PHAssetChangeRequest.creationRequestForAsset(from: imageToSave)
+        }) { success, error in
+            if success {
+                DispatchQueue.main.async {
+                    alertMessage = "Image saved successfully to your photo library."
+                    showSaveSuccessAlert = true
+                }
+            } else if let error = error {
+                DispatchQueue.main.async {
+                    alertMessage = "Error saving image: \(error.localizedDescription)"
+                    showSaveSuccessAlert = true // Or a different alert for failure
                 }
             }
         }
+    }
+
+    @MainActor
+    private func renderFinalImage() -> UIImage? {
+        guard let sourceImage = viewModel.sourceImage else { return nil }
+
+        // Use the original image dimensions for the highest quality snapshot.
+        let finalSize = sourceImage.size
+        let viewToRender = WatermarkedImageView(viewModel: viewModel, containerSize: finalSize)
+            .frame(width: finalSize.width, height: finalSize.height)
+
+        return viewToRender.snapshot()
     }
     
     private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
@@ -114,6 +148,32 @@ struct PhotoWatermarkEntryView: View {
         .frame(height: 160)
         .background(Color(UIColor.systemBackground))
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+}
+
+// MARK: - Watermarked Image View
+private struct WatermarkedImageView: View {
+    @ObservedObject var viewModel: PhotoWatermarkViewModel
+    let containerSize: CGSize
+
+    var body: some View {
+        if let image = viewModel.sourceImage {
+            ZStack(alignment: .bottom) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: containerSize.width, height: containerSize.height)
+                    .clipped()
+
+                if let info = viewModel.watermarkInfo {
+                    viewModel.selectedTemplate
+                        .makeView(watermarkInfo: info, width: containerSize.width)
+                        .id(viewModel.selectedTemplate.id)
+                }
+            }
+            .frame(width: containerSize.width, height: containerSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
     }
 }
 
