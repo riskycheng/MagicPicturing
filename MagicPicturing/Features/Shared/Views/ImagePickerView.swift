@@ -59,16 +59,9 @@ struct ImagePickerView: UIViewControllerRepresentable {
         // Max selection limit - This is the correct property name
         options.selectLimit = selectionLimit
         
-        // Enable editor
-        options.editorOptions = .photo
+        // Disable the built-in editor. We will use our own native editor.
+        options.editorOptions = []
         
-        // Set selection tap action
-        options.selectionTapAction = .openEditor
-        
-        // Configure editor tools
-        var editorPhotoOptions = EditorPhotoOptionsInfo()
-        editorPhotoOptions.toolOptions = [.pen, .text, .crop, .mosaic]
-        options.editorPhotoOptions = editorPhotoOptions
 
         // Set the theme to the library's default light theme.
         // This is the simplest and most reliable way to ensure a light background

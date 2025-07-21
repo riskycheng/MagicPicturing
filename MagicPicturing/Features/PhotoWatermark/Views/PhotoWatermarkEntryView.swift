@@ -5,10 +5,12 @@ struct PhotoWatermarkEntryView: View {
     @State private var showSaveSuccessAlert = false
     @State private var alertMessage = ""
     @StateObject private var viewModel: PhotoWatermarkViewModel
+    @State private var showImageEditor = false
     
     // The new initializer requires both the image and the PHAsset.
     init(image: UIImage, asset: PHAsset) {
         _viewModel = StateObject(wrappedValue: PhotoWatermarkViewModel(initialImage: image, asset: asset))
+        print("PhotoWatermarkEntryView: Initialized with selected image.")
     }
     
     var body: some View {
@@ -25,6 +27,10 @@ struct PhotoWatermarkEntryView: View {
                             containerSize: containerSize
                         )
                         .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+                        .onTapGesture {
+                            print("PhotoWatermarkEntryView: Image tapped, showing editor.")
+                            showImageEditor = true
+                        }
                     } else {
                         // Placeholder view for when no image is selected
                         placeholderView
@@ -59,6 +65,9 @@ struct PhotoWatermarkEntryView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
+        }
+        .sheet(isPresented: $showImageEditor) {
+            ImageEditorSheet(image: $viewModel.sourceImage)
         }
     }
 

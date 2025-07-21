@@ -19,6 +19,7 @@ struct PhotoWatermarkFlowView: View {
                     // While the picker is active, show a loading or placeholder view.
                     Color.clear
                         .onAppear {
+                            print("PhotoWatermarkFlowView: Appeared, triggering image picker.")
                             // Trigger the image picker as soon as the flow starts.
                             showImagePicker = true
                         }
@@ -35,6 +36,7 @@ struct PhotoWatermarkFlowView: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView(
                 onCancel: {
+                    print("PhotoWatermarkFlowView: Image picker cancelled.")
                     showImagePicker = false
                     // If the user cancels the initial image selection, dismiss the whole flow.
                     if selectedImage == nil {
@@ -42,6 +44,7 @@ struct PhotoWatermarkFlowView: View {
                     }
                 },
                 onNext: { assets, images in
+                    print("PhotoWatermarkFlowView: Image selected, transitioning to entry view.")
                     if let firstAsset = assets.first, let firstImage = images.first {
                         self.selectedAsset = firstAsset
                         self.selectedImage = firstImage
