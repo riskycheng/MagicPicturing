@@ -61,7 +61,7 @@ The application is divided into several feature modules, located in `MagicPictur
   - `Extensions/`: Swift extensions for standard types.
   - `Services/`: Shared services like image caching.
   - `Utils/`: Utility functions and helpers.
-  - `Views/`: Reusable SwiftUI views like `ImagePickerView` and `ImageGalleryView`.
+  - `Views/`: Reusable SwiftUI views like `ImagePickerView`, `ImageGalleryView`, and a native `ImageEditorView` for applying filters, adjustments, and cropping.
 
 ## 4. Getting Started
 
