@@ -44,6 +44,7 @@ struct ImageEditorView: View {
     @State private var isComparing = false
     @State private var history: [EditingState] = [EditingState()]
     @State private var historyIndex: Int = 0
+    @State private var imageDisplayAreaSize: CGSize = .zero
     private let thumbnail: UIImage
 
     fileprivate enum EditorTool: String, CaseIterable, Identifiable {
@@ -84,12 +85,19 @@ struct ImageEditorView: View {
     }
 
     private var imageDisplayArea: some View {
-        ZStack {
-            Image(uiImage: isComparing ? originalImage : displayImage)
-                .resizable().scaledToFit().padding()
-            if activeTool == .crop {
-                CropView(image: $displayImage, cropRect: $editingState.cropRect)
+        GeometryReader { geometry in
+            ZStack {
+                Image(uiImage: isComparing ? originalImage : displayImage)
+                    .resizable()
+                    .scaledToFit()
+                    .padding()
+
+                if self.activeTool == .crop {
+                    CropView(cropRect: self.$editingState.cropRect, viewSize: geometry.size)
+                }
             }
+            .onAppear { self.imageDisplayAreaSize = geometry.size }
+            .onChange(of: geometry.size) { self.imageDisplayAreaSize = $0 }
         }
     }
 
@@ -174,19 +182,39 @@ struct ImageEditorView: View {
 
     private func applyCropAndFinish() {
         let finalImage = displayImage
-        guard let cropRect = editingState.cropRect, activeTool == .crop else { onDone(finalImage); return }
-        let viewSize = UIScreen.main.bounds.size
-        let imageSize = finalImage.size
-        let imageFrameInView = AVMakeRect(aspectRatio: imageSize, insideRect: CGRect(origin: .zero, size: viewSize))
-        let scaleX = imageSize.width / imageFrameInView.width
-        let scaleY = imageSize.height / imageFrameInView.height
-        let imageCropRect = CGRect(x: (cropRect.origin.x - imageFrameInView.origin.x) * scaleX,
-                                   y: (cropRect.origin.y - imageFrameInView.origin.y) * scaleY,
-                                   width: cropRect.width * scaleX,
-                                   height: cropRect.height * scaleY)
+        guard let cropRect = editingState.cropRect, activeTool == .crop else {
+            onDone(finalImage)
+            return
+        }
+
+        // Ensure the view size has been measured.
+        guard imageDisplayAreaSize != .zero else {
+            onDone(finalImage) // Fallback if size is not available
+            return
+        }
+
+        // Calculate the actual frame of the scaled image within the view.
+        // This accounts for .scaledToFit() and the .padding().
+        let imageFrameInView = AVMakeRect(aspectRatio: finalImage.size, insideRect: CGRect(origin: .zero, size: imageDisplayAreaSize).insetBy(dx: 16, dy: 16))
+
+        // Calculate the scale factor between the view-rendered image and the actual pixel dimensions.
+        let scale = finalImage.size.width / imageFrameInView.width
+
+        // Convert the on-screen crop rectangle to the image's own coordinate space.
+        let imageCropRect = CGRect(
+            x: (cropRect.origin.x - imageFrameInView.origin.x) * scale,
+            y: (cropRect.origin.y - imageFrameInView.origin.y) * scale,
+            width: cropRect.width * scale,
+            height: cropRect.height * scale
+        )
+
+        // Perform the crop using Core Graphics.
         if let cgImage = finalImage.cgImage?.cropping(to: imageCropRect) {
-            onDone(UIImage(cgImage: cgImage, scale: finalImage.scale, orientation: finalImage.imageOrientation))
-        } else { onDone(finalImage) }
+            let croppedImage = UIImage(cgImage: cgImage, scale: finalImage.scale, orientation: finalImage.imageOrientation)
+            onDone(croppedImage)
+        } else {
+            onDone(finalImage) // Fallback if cropping fails
+        }
     }
 
     static func createFilter(for filterType: ImageFilter) -> CIFilter {
@@ -202,68 +230,116 @@ struct ImageEditorView: View {
         }
     }
 }
-
-// MARK: - Helper Views
 fileprivate struct CropView: View {
-    @Binding var image: UIImage
     @Binding var cropRect: CGRect?
-    var body: some View {
-        GeometryReader { geometry in
-            let imageFrame = AVMakeRect(aspectRatio: image.size, insideRect: geometry.frame(in: .local))
-            CropOverlayView(cropRect: $cropRect, imageFrame: imageFrame)
-                .onAppear { if cropRect == nil { cropRect = imageFrame } }
-        }
-    }
-}
+    let viewSize: CGSize
 
-fileprivate struct CropOverlayView: View {
-    @Binding var cropRect: CGRect?
-    let imageFrame: CGRect
-    @State private var currentRect: CGRect
+    @State private var internalCropRect: CGRect
+    @GestureState private var dragOffset: CGSize = .zero
+    @State private var activeCorner: Int? = nil
 
-    init(cropRect: Binding<CGRect?>, imageFrame: CGRect) {
+    init(cropRect: Binding<CGRect?>, viewSize: CGSize) {
         self._cropRect = cropRect
-        self.imageFrame = imageFrame
-        self._currentRect = State(initialValue: cropRect.wrappedValue ?? imageFrame)
+        self.viewSize = viewSize
+        self._internalCropRect = State(initialValue: cropRect.wrappedValue ?? CGRect(origin: .zero, size: viewSize))
     }
 
     var body: some View {
-        ZStack {
-            Rectangle().fill(Color.black.opacity(0.4)).mask(HoleShape(rect: currentRect).fill(style: FillStyle(eoFill: true)))
-            Rectangle().stroke(Color.white, lineWidth: 1).frame(width: currentRect.width, height: currentRect.height).position(x: currentRect.midX, y: currentRect.midY)
-            ForEach(0..<4) { i in
-                Circle().frame(width: 20, height: 20).foregroundColor(.white).position(cornerPosition(for: i, in: currentRect)).gesture(cornerDragGesture(for: i))
-            }
-        }.gesture(dragGesture)
-    }
+        let current = internalCropRect
+        let new = calculateRect(for: current, corner: activeCorner, translation: dragOffset)
 
-    private var dragGesture: some Gesture {
-        DragGesture().onChanged { v in self.currentRect.origin.x += v.translation.width; self.currentRect.origin.y += v.translation.height }.onEnded { _ in self.cropRect = self.currentRect }
+        ZStack {
+            Rectangle()
+                .fill(Color.black.opacity(0.4))
+                .mask(HoleShape(rect: new).fill(style: FillStyle(eoFill: true)))
+
+            Rectangle()
+                .stroke(Color.white, lineWidth: 1)
+                .frame(width: new.width, height: new.height)
+                .position(x: new.midX, y: new.midY)
+
+            ForEach(0..<4) { i in
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 12, height: 12)
+                    .position(cornerPosition(for: i, in: new))
+                    .gesture(cornerDragGesture(for: i))
+            }
+        }
+        .onAppear {
+            if cropRect == nil {
+                cropRect = viewSize.asRect
+            }
+            internalCropRect = cropRect ?? viewSize.asRect
+        }
     }
 
     private func cornerDragGesture(for index: Int) -> some Gesture {
-        DragGesture().onChanged { value in
-            var newRect = self.currentRect
-            let t = value.translation
-            switch index {
-            case 0: newRect.origin.x += t.width; newRect.size.width -= t.width; newRect.origin.y += t.height; newRect.size.height -= t.height
-            case 1: newRect.size.width += t.width; newRect.origin.y += t.height; newRect.size.height -= t.height
-            case 2: newRect.origin.x += t.width; newRect.size.width -= t.width; newRect.size.height += t.height
-            case 3: newRect.size.width += t.width; newRect.size.height += t.height
-            default: break
+        DragGesture()
+            .updating($dragOffset) { value, state, _ in
+                state = value.translation
             }
-            self.currentRect = newRect
-        }.onEnded { _ in self.cropRect = self.currentRect }
+            .onChanged { _ in
+                self.activeCorner = index
+            }
+            .onEnded { value in
+                self.activeCorner = nil
+                let newRect = calculateRect(for: internalCropRect, corner: index, translation: value.translation)
+                self.internalCropRect = newRect
+                self.cropRect = newRect
+            }
+    }
+
+    private func calculateRect(for rect: CGRect, corner: Int?, translation: CGSize) -> CGRect {
+        guard let corner = corner else { return rect }
+        var newRect = rect
+        
+        switch corner {
+        case 0: // Top-Left
+            newRect.origin.x += translation.width
+            newRect.origin.y += translation.height
+            newRect.size.width -= translation.width
+            newRect.size.height -= translation.height
+        case 1: // Top-Right
+            newRect.origin.y += translation.height
+            newRect.size.width += translation.width
+            newRect.size.height -= translation.height
+        case 2: // Bottom-Left
+            newRect.origin.x += translation.width
+            newRect.size.width -= translation.width
+            newRect.size.height += translation.height
+        case 3: // Bottom-Right
+            newRect.size.width += translation.width
+            newRect.size.height += translation.height
+        default: break
+        }
+        
+        if newRect.width < 20 { newRect.size.width = 20 }
+        if newRect.height < 20 { newRect.size.height = 20 }
+        
+        return newRect.standardized
     }
 
     private func cornerPosition(for i: Int, in r: CGRect) -> CGPoint {
-        switch i { case 0: return .init(x: r.minX, y: r.minY); case 1: return .init(x: r.maxX, y: r.minY); case 2: return .init(x: r.minX, y: r.maxY); case 3: return .init(x: r.maxX, y: r.maxY); default: return .zero }
+        switch i {
+        case 0: return .init(x: r.minX, y: r.minY)
+        case 1: return .init(x: r.maxX, y: r.minY)
+        case 2: return .init(x: r.minX, y: r.maxY)
+        case 3: return .init(x: r.maxX, y: r.maxY)
+        default: return .zero
+        }
     }
 }
 
 fileprivate struct HoleShape: Shape {
     let rect: CGRect
     func path(in rect: CGRect) -> Path { var path = Rectangle().path(in: rect); path.addRect(self.rect); return path }
+}
+
+fileprivate extension CGSize {
+    var asRect: CGRect {
+        CGRect(origin: .zero, size: self)
+    }
 }
 
 fileprivate struct EditorControlsView: View {
