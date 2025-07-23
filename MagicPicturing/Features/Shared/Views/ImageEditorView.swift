@@ -95,16 +95,18 @@ struct ImageEditorView: View {
 
     private var controlsArea: some View {
         VStack(spacing: 0) {
+            Spacer()
+            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail)
+                .frame(height: 120)
+            
             HStack(spacing: 40) {
                 Button(action: undo) { Image(systemName: "arrow.uturn.backward") }.disabled(!canUndo)
                 Button(action: redo) { Image(systemName: "arrow.uturn.forward") }.disabled(!canRedo)
                 Image(systemName: "square.on.square")
                     .gesture(DragGesture(minimumDistance: 0).onChanged { _ in isComparing = true }.onEnded { _ in isComparing = false })
             }
-            .font(.title).foregroundColor(.white).padding(.bottom)
+            .font(.title).foregroundColor(.white).padding(.vertical)
 
-            Spacer()
-            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail).frame(height: 120)
             toolSelectionBar.padding(.vertical).background(Color.black.opacity(0.5))
             bottomNavBar.padding().background(Color.black)
         }
