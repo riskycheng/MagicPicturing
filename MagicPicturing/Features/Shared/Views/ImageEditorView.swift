@@ -95,7 +95,8 @@ struct ImageEditorView: View {
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if self.activeTool == .crop {
-                    CropView(cropRect: self.$editingState.cropRect, viewSize: geometry.size)
+                    let imageFrame = AVMakeRect(aspectRatio: displayImage.size, insideRect: geometry.frame(in: .local))
+                    CropView(cropRect: self.$editingState.cropRect, imageFrame: imageFrame)
                 }
             }
             .onAppear { self.imageDisplayAreaSize = geometry.size }
@@ -234,62 +235,91 @@ struct ImageEditorView: View {
 }
 fileprivate struct CropView: View {
     @Binding var cropRect: CGRect?
-    let viewSize: CGSize
+    let imageFrame: CGRect
 
     @State private var internalCropRect: CGRect
     @GestureState private var dragOffset: CGSize = .zero
     @State private var activeCorner: Int? = nil
 
-    init(cropRect: Binding<CGRect?>, viewSize: CGSize) {
+    init(cropRect: Binding<CGRect?>, imageFrame: CGRect) {
         self._cropRect = cropRect
-        self.viewSize = viewSize
-        self._internalCropRect = State(initialValue: cropRect.wrappedValue ?? CGRect(origin: .zero, size: viewSize))
+        self.imageFrame = imageFrame
+        self._internalCropRect = State(initialValue: cropRect.wrappedValue ?? imageFrame)
     }
 
     var body: some View {
         let current = internalCropRect
         let new = calculateRect(for: current, corner: activeCorner, translation: dragOffset)
 
-        ZStack {
+        return ZStack {
             Rectangle()
-                .fill(Color.black.opacity(0.4))
+                .fill(Color.black.opacity(0.6))
                 .mask(HoleShape(rect: new).fill(style: FillStyle(eoFill: true)))
 
             Rectangle()
-                .stroke(Color.white, lineWidth: 1)
+                .stroke(Color.white, lineWidth: 2)
                 .frame(width: new.width, height: new.height)
                 .position(x: new.midX, y: new.midY)
 
             ForEach(0..<4) { i in
                 Circle()
-                    .fill(Color.white)
-                    .frame(width: 12, height: 12)
-                    .position(cornerPosition(for: i, in: new))
-                    .gesture(cornerDragGesture(for: i))
+                    .frame(width: 24, height: 24)
+                    .foregroundColor(.white)
+                    .position(corner(for: i, in: new))
+                    .gesture(dragCorner(for: i, in: current))
             }
         }
         .onAppear {
             if cropRect == nil {
-                cropRect = viewSize.asRect
+                cropRect = imageFrame
             }
-            internalCropRect = cropRect ?? viewSize.asRect
+            internalCropRect = cropRect ?? imageFrame
         }
+        .gesture(dragGesture)
     }
 
-    private func cornerDragGesture(for index: Int) -> some Gesture {
+    private var dragGesture: some Gesture {
         DragGesture()
             .updating($dragOffset) { value, state, _ in
                 state = value.translation
             }
-            .onChanged { _ in
-                self.activeCorner = index
+            .onEnded { value in
+                let current = internalCropRect
+                let translation = value.translation
+                let newX = max(imageFrame.minX, min(current.origin.x + translation.width, imageFrame.maxX - current.width))
+                let newY = max(imageFrame.minY, min(current.origin.y + translation.height, imageFrame.maxY - current.height))
+                internalCropRect.origin = CGPoint(x: newX, y: newY)
+                cropRect = internalCropRect
+            }
+    }
+
+    private func dragCorner(for corner: Int, in rect: CGRect) -> some Gesture {
+        DragGesture()
+            .updating($dragOffset) { value, state, _ in
+                activeCorner = corner
+                state = value.translation
             }
             .onEnded { value in
-                self.activeCorner = nil
-                let newRect = calculateRect(for: internalCropRect, corner: index, translation: value.translation)
-                self.internalCropRect = newRect
-                self.cropRect = newRect
+                activeCorner = nil
+                internalCropRect = clampRect(calculateRect(for: rect, corner: corner, translation: value.translation))
+                cropRect = internalCropRect
             }
+    }
+    
+    private func clampRect(_ rect: CGRect) -> CGRect {
+        let minSize: CGFloat = 40
+        var finalRect = rect
+        
+        if finalRect.width < minSize { finalRect.size.width = minSize }
+        if finalRect.height < minSize { finalRect.size.height = minSize }
+        
+        if finalRect.minX < imageFrame.minX { finalRect.origin.x = imageFrame.minX }
+        if finalRect.minY < imageFrame.minY { finalRect.origin.y = imageFrame.minY }
+        
+        if finalRect.maxX > imageFrame.maxX { finalRect.size.width = imageFrame.maxX - finalRect.minX }
+        if finalRect.maxY > imageFrame.maxY { finalRect.size.height = imageFrame.maxY - finalRect.minY }
+        
+        return finalRect
     }
 
     private func calculateRect(for rect: CGRect, corner: Int?, translation: CGSize) -> CGRect {
@@ -316,13 +346,10 @@ fileprivate struct CropView: View {
         default: break
         }
         
-        if newRect.width < 20 { newRect.size.width = 20 }
-        if newRect.height < 20 { newRect.size.height = 20 }
-        
         return newRect.standardized
     }
 
-    private func cornerPosition(for i: Int, in r: CGRect) -> CGPoint {
+    private func corner(for i: Int, in r: CGRect) -> CGPoint {
         switch i {
         case 0: return .init(x: r.minX, y: r.minY)
         case 1: return .init(x: r.maxX, y: r.minY)
@@ -338,11 +365,7 @@ fileprivate struct HoleShape: Shape {
     func path(in rect: CGRect) -> Path { var path = Rectangle().path(in: rect); path.addRect(self.rect); return path }
 }
 
-fileprivate extension CGSize {
-    var asRect: CGRect {
-        CGRect(origin: .zero, size: self)
-    }
-}
+
 
 fileprivate struct EditorControlsView: View {
     @Binding var activeTool: ImageEditorView.EditorTool
