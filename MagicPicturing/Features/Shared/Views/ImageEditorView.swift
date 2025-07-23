@@ -87,10 +87,12 @@ struct ImageEditorView: View {
     private var imageDisplayArea: some View {
         GeometryReader { geometry in
             ZStack {
-                Image(uiImage: isComparing ? originalImage : displayImage)
-                    .resizable()
-                    .scaledToFit()
-                    .padding()
+                ZStack {
+                    Image(uiImage: isComparing ? originalImage : displayImage)
+                        .resizable()
+                        .scaledToFit()
+                        .padding()
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if self.activeTool == .crop {
                     CropView(cropRect: self.$editingState.cropRect, viewSize: geometry.size)
