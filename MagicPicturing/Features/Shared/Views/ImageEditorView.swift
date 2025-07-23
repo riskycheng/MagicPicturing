@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import AVFoundation
+import TOCropViewController
 
 // MARK: - UIImage Extension
 extension UIImage {
@@ -23,12 +23,10 @@ enum ImageFilter: String, CaseIterable, Identifiable {
 
 // MARK: - Editing State
 private struct EditingState: Equatable {
-    var cropRect: CGRect? = nil
     var selectedFilter: ImageFilter = .original
     var brightness: Double = 0
     var contrast: Double = 1
     var saturation: Double = 1
-    var rotation: Double = 0
 }
 
 // MARK: - ImageEditorView
@@ -44,12 +42,12 @@ struct ImageEditorView: View {
     @State private var isComparing = false
     @State private var history: [EditingState] = [EditingState()]
     @State private var historyIndex: Int = 0
-    @State private var imageDisplayAreaSize: CGSize = .zero
+    @State private var showCropView = false
     private let thumbnail: UIImage
 
     fileprivate enum EditorTool: String, CaseIterable, Identifiable {
         case crop = "Crop", filters = "Filters", brightness = "Brightness",
-             contrast = "Contrast", saturation = "Saturation", rotation = "Rotation"
+             contrast = "Contrast", saturation = "Saturation"
         var id: String { self.rawValue }
         var systemImageName: String {
             switch self {
@@ -58,7 +56,6 @@ struct ImageEditorView: View {
             case .brightness: return "sun.max.fill"
             case .contrast: return "circle.lefthalf.filled"
             case .saturation: return "drop.fill"
-            case .rotation: return "crop.rotate"
             }
         }
     }
@@ -82,39 +79,34 @@ struct ImageEditorView: View {
             }
         }
         .onChange(of: editingState) { addHistory($0); applyChanges() }
+        .sheet(isPresented: $showCropView) {
+            CropViewWrapper(image: displayImage, croppedImage: $displayImage)
+        }
     }
 
     private var imageDisplayArea: some View {
         GeometryReader { geometry in
             ZStack {
-                ZStack {
-                    Image(uiImage: isComparing ? originalImage : displayImage)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                }.frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if self.activeTool == .crop {
-                    let imageFrame = AVMakeRect(aspectRatio: displayImage.size, insideRect: geometry.frame(in: .local))
-                    CropView(cropRect: self.$editingState.cropRect, imageFrame: imageFrame)
-                }
+                Image(uiImage: isComparing ? originalImage : displayImage)
+                    .resizable()
+                    .scaledToFit()
+                    .padding()
             }
-            .onAppear { self.imageDisplayAreaSize = geometry.size }
-            .onChange(of: geometry.size) { self.imageDisplayAreaSize = $0 }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
     private var controlsArea: some View {
         VStack(spacing: 0) {
             Spacer()
-            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail)
+            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail, showCropView: $showCropView)
                 .frame(height: 120)
             
             HStack(spacing: 40) {
                 Button(action: undo) { Image(systemName: "arrow.uturn.backward") }.disabled(!canUndo)
                 Button(action: redo) { Image(systemName: "arrow.uturn.forward") }.disabled(!canRedo)
-                Image(systemName: "square.on.square")
-                    .gesture(DragGesture(minimumDistance: 0).onChanged { _ in isComparing = true }.onEnded { _ in isComparing = false })
+                Button(action: { isComparing = true }) { Image(systemName: "eye") }
+                    .simultaneousGesture(DragGesture(minimumDistance: 0).onEnded { _ in isComparing = false })
             }
             .font(.title).foregroundColor(.white).padding(.vertical)
 
@@ -129,12 +121,13 @@ struct ImageEditorView: View {
                 ForEach(EditorTool.allCases) { tool in
                     Button(action: { activeTool = tool }) {
                         VStack {
-                            Image(systemName: tool.systemImageName).font(.title2)
+                            Image(systemName: tool.systemImageName)
+                                .font(.title2)
                             Text(tool.rawValue).font(.caption)
                         }.foregroundColor(activeTool == tool ? .pink : .white)
                     }
                 }
-            }.padding(.horizontal, 20)
+            }.padding(.horizontal)
         }
     }
 
@@ -144,7 +137,7 @@ struct ImageEditorView: View {
             Spacer()
             Button(action: resetAdjustments) { Text("Reset").font(.title2).bold() }
             Spacer()
-            Button(action: applyCropAndFinish) { Image(systemName: "checkmark").font(.title) }
+            Button(action: { onDone(displayImage) }) { Image(systemName: "checkmark").font(.title) }
         }.foregroundColor(.white)
     }
 
@@ -155,18 +148,15 @@ struct ImageEditorView: View {
         if editingState.selectedFilter != .original {
             let filter = Self.createFilter(for: editingState.selectedFilter)
             filter.setValue(currentCIImage, forKey: kCIInputImageKey)
-            if let output = filter.outputImage { currentCIImage = output }
+            currentCIImage = filter.outputImage ?? currentCIImage
         }
-        let adjustmentFilter = CIFilter.colorControls()
-        adjustmentFilter.setValue(currentCIImage, forKey: kCIInputImageKey)
-        adjustmentFilter.brightness = Float(editingState.brightness)
-        adjustmentFilter.contrast = Float(editingState.contrast)
-        adjustmentFilter.saturation = Float(editingState.saturation)
-        if let output = adjustmentFilter.outputImage { currentCIImage = output }
-        if editingState.rotation != 0 {
-            let transform = CGAffineTransform(rotationAngle: CGFloat(editingState.rotation * .pi / 180))
-            currentCIImage = currentCIImage.transformed(by: transform)
-        }
+
+        currentCIImage = currentCIImage.applyingFilter("CIColorControls", parameters: [
+            kCIInputBrightnessKey: editingState.brightness,
+            kCIInputContrastKey: editingState.contrast,
+            kCIInputSaturationKey: editingState.saturation
+        ])
+
         if let outputCGImage = context.createCGImage(currentCIImage, from: currentCIImage.extent) {
             displayImage = UIImage(cgImage: outputCGImage, scale: originalImage.scale, orientation: originalImage.imageOrientation)
         }
@@ -176,54 +166,17 @@ struct ImageEditorView: View {
     private var canUndo: Bool { historyIndex > 0 }
     private var canRedo: Bool { historyIndex < history.count - 1 }
     private func addHistory(_ state: EditingState) {
-        if historyIndex < history.count - 1 { history.removeLast(history.count - 1 - historyIndex) }
+        history.removeSubrange(historyIndex + 1 ..< history.count)
         history.append(state)
         historyIndex = history.count - 1
     }
     private func undo() { if canUndo { historyIndex -= 1; editingState = history[historyIndex] } }
     private func redo() { if canRedo { historyIndex += 1; editingState = history[historyIndex] } }
 
-    private func applyCropAndFinish() {
-        let finalImage = displayImage
-        guard let cropRect = editingState.cropRect, activeTool == .crop else {
-            onDone(finalImage)
-            return
-        }
-
-        // Ensure the view size has been measured.
-        guard imageDisplayAreaSize != .zero else {
-            onDone(finalImage) // Fallback if size is not available
-            return
-        }
-
-        // Calculate the actual frame of the scaled image within the view.
-        // This accounts for .scaledToFit() and the .padding().
-        let imageFrameInView = AVMakeRect(aspectRatio: finalImage.size, insideRect: CGRect(origin: .zero, size: imageDisplayAreaSize).insetBy(dx: 16, dy: 16))
-
-        // Calculate the scale factor between the view-rendered image and the actual pixel dimensions.
-        let scale = finalImage.size.width / imageFrameInView.width
-
-        // Convert the on-screen crop rectangle to the image's own coordinate space.
-        let imageCropRect = CGRect(
-            x: (cropRect.origin.x - imageFrameInView.origin.x) * scale,
-            y: (cropRect.origin.y - imageFrameInView.origin.y) * scale,
-            width: cropRect.width * scale,
-            height: cropRect.height * scale
-        )
-
-        // Perform the crop using Core Graphics.
-        if let cgImage = finalImage.cgImage?.cropping(to: imageCropRect) {
-            let croppedImage = UIImage(cgImage: cgImage, scale: finalImage.scale, orientation: finalImage.imageOrientation)
-            onDone(croppedImage)
-        } else {
-            onDone(finalImage) // Fallback if cropping fails
-        }
-    }
-
     static func createFilter(for filterType: ImageFilter) -> CIFilter {
         switch filterType {
         case .original: return CIFilter()
-        case .sepia: let f = CIFilter.sepiaTone(); f.intensity = 1.0; return f
+        case .sepia: return CIFilter.sepiaTone()
         case .noir: return CIFilter.photoEffectNoir()
         case .vintage: return CIFilter.photoEffectProcess()
         case .vivid: return CIFilter.photoEffectInstant()
@@ -233,162 +186,32 @@ struct ImageEditorView: View {
         }
     }
 }
-fileprivate struct CropView: View {
-    @Binding var cropRect: CGRect?
-    let imageFrame: CGRect
-
-    @State private var internalCropRect: CGRect
-    @GestureState private var dragOffset: CGSize = .zero
-    @State private var activeCorner: Int? = nil
-
-    init(cropRect: Binding<CGRect?>, imageFrame: CGRect) {
-        self._cropRect = cropRect
-        self.imageFrame = imageFrame
-        self._internalCropRect = State(initialValue: cropRect.wrappedValue ?? imageFrame)
-    }
-
-    var body: some View {
-        let current = internalCropRect
-        let new = calculateRect(for: current, corner: activeCorner, translation: dragOffset)
-
-        return ZStack {
-            Rectangle()
-                .fill(Color.black.opacity(0.6))
-                .mask(HoleShape(rect: new).fill(style: FillStyle(eoFill: true)))
-
-            Rectangle()
-                .stroke(Color.white, lineWidth: 2)
-                .frame(width: new.width, height: new.height)
-                .position(x: new.midX, y: new.midY)
-
-            ForEach(0..<4) { i in
-                Circle()
-                    .frame(width: 24, height: 24)
-                    .foregroundColor(.white)
-                    .position(corner(for: i, in: new))
-                    .gesture(dragCorner(for: i, in: current))
-            }
-        }
-        .onAppear {
-            if cropRect == nil {
-                cropRect = imageFrame
-            }
-            internalCropRect = cropRect ?? imageFrame
-        }
-        .gesture(dragGesture)
-    }
-
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .updating($dragOffset) { value, state, _ in
-                state = value.translation
-            }
-            .onEnded { value in
-                let current = internalCropRect
-                let translation = value.translation
-                let newX = max(imageFrame.minX, min(current.origin.x + translation.width, imageFrame.maxX - current.width))
-                let newY = max(imageFrame.minY, min(current.origin.y + translation.height, imageFrame.maxY - current.height))
-                internalCropRect.origin = CGPoint(x: newX, y: newY)
-                cropRect = internalCropRect
-            }
-    }
-
-    private func dragCorner(for corner: Int, in rect: CGRect) -> some Gesture {
-        DragGesture()
-            .updating($dragOffset) { value, state, _ in
-                activeCorner = corner
-                state = value.translation
-            }
-            .onEnded { value in
-                activeCorner = nil
-                internalCropRect = clampRect(calculateRect(for: rect, corner: corner, translation: value.translation))
-                cropRect = internalCropRect
-            }
-    }
-    
-    private func clampRect(_ rect: CGRect) -> CGRect {
-        let minSize: CGFloat = 40
-        var finalRect = rect
-        
-        if finalRect.width < minSize { finalRect.size.width = minSize }
-        if finalRect.height < minSize { finalRect.size.height = minSize }
-        
-        if finalRect.minX < imageFrame.minX { finalRect.origin.x = imageFrame.minX }
-        if finalRect.minY < imageFrame.minY { finalRect.origin.y = imageFrame.minY }
-        
-        if finalRect.maxX > imageFrame.maxX { finalRect.size.width = imageFrame.maxX - finalRect.minX }
-        if finalRect.maxY > imageFrame.maxY { finalRect.size.height = imageFrame.maxY - finalRect.minY }
-        
-        return finalRect
-    }
-
-    private func calculateRect(for rect: CGRect, corner: Int?, translation: CGSize) -> CGRect {
-        guard let corner = corner else { return rect }
-        var newRect = rect
-        
-        switch corner {
-        case 0: // Top-Left
-            newRect.origin.x += translation.width
-            newRect.origin.y += translation.height
-            newRect.size.width -= translation.width
-            newRect.size.height -= translation.height
-        case 1: // Top-Right
-            newRect.origin.y += translation.height
-            newRect.size.width += translation.width
-            newRect.size.height -= translation.height
-        case 2: // Bottom-Left
-            newRect.origin.x += translation.width
-            newRect.size.width -= translation.width
-            newRect.size.height += translation.height
-        case 3: // Bottom-Right
-            newRect.size.width += translation.width
-            newRect.size.height += translation.height
-        default: break
-        }
-        
-        return newRect.standardized
-    }
-
-    private func corner(for i: Int, in r: CGRect) -> CGPoint {
-        switch i {
-        case 0: return .init(x: r.minX, y: r.minY)
-        case 1: return .init(x: r.maxX, y: r.minY)
-        case 2: return .init(x: r.minX, y: r.maxY)
-        case 3: return .init(x: r.maxX, y: r.maxY)
-        default: return .zero
-        }
-    }
-}
-
-fileprivate struct HoleShape: Shape {
-    let rect: CGRect
-    func path(in rect: CGRect) -> Path { var path = Rectangle().path(in: rect); path.addRect(self.rect); return path }
-}
-
-
 
 fileprivate struct EditorControlsView: View {
     @Binding var activeTool: ImageEditorView.EditorTool
     @Binding var editingState: EditingState
     let thumbnail: UIImage
+    @Binding var showCropView: Bool
 
     var body: some View {
         VStack {
             if activeTool == .crop {
-                Text("Drag corners to resize crop area").font(.caption).foregroundColor(.white)
+                // This view is now just a placeholder that triggers the sheet.
+                // We show it when crop is the active tool.
+                Spacer()
+                Text("Crop & Rotate").font(.headline).foregroundColor(.white)
+                Spacer()
+                // Automatically trigger the sheet when this tool is selected.
+                .onAppear { showCropView = true }
+                .onDisappear { if activeTool == .crop { activeTool = .filters } }
             } else if activeTool == .filters {
                 FilterSelectionView(selectedFilter: $editingState.selectedFilter, thumbnail: thumbnail)
-            } else if activeTool == .rotation {
-                HStack(spacing: 40) {
-                    Button(action: { editingState.rotation -= 90 }) { Image(systemName: "rotate.left.fill").font(.largeTitle) }
-                    Button(action: { editingState.rotation += 90 }) { Image(systemName: "rotate.right.fill").font(.largeTitle) }
-                }.foregroundColor(.white)
             } else {
                 VStack {
                     if activeTool == .brightness { SliderControl(label: "Brightness", value: $editingState.brightness, range: -0.5...0.5, showsValue: true) }
                     else if activeTool == .contrast { SliderControl(label: "Contrast", value: $editingState.contrast, range: 0.5...1.5, showsValue: true) }
                     else if activeTool == .saturation { SliderControl(label: "Saturation", value: $editingState.saturation, range: 0...2, showsValue: true) }
-                }.padding(.horizontal)
+                }
             }
         }
     }

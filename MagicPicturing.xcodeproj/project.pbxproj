@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CF433DF72E31AB3600A45650 /* CropViewController in Frameworks */ = {isa = PBXBuildFile; productRef = CF433DF62E31AB3600A45650 /* CropViewController */; };
+		CF433DF92E31AB3600A45650 /* TOCropViewController in Frameworks */ = {isa = PBXBuildFile; productRef = CF433DF82E31AB3600A45650 /* TOCropViewController */; };
 		CF7D73832E02D785009D6100 /* AnyImageKit in Frameworks */ = {isa = PBXBuildFile; productRef = CF7D73822E02D785009D6100 /* AnyImageKit */; };
 		CFC1E6A02E0C5E8900E0A6E8 /* CollageTemplates in Resources */ = {isa = PBXBuildFile; fileRef = CF2767982E0C3F9E00E0DFEC /* CollageTemplates */; };
 /* End PBXBuildFile section */
@@ -29,6 +31,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF7D73832E02D785009D6100 /* AnyImageKit in Frameworks */,
+				CF433DF92E31AB3600A45650 /* TOCropViewController in Frameworks */,
+				CF433DF72E31AB3600A45650 /* CropViewController in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +92,8 @@
 			name = MagicPicturing;
 			packageProductDependencies = (
 				CF7D73822E02D785009D6100 /* AnyImageKit */,
+				CF433DF62E31AB3600A45650 /* CropViewController */,
+				CF433DF82E31AB3600A45650 /* TOCropViewController */,
 			);
 			productName = MagicPicturing;
 			productReference = CFAC6EC72DD3923A00614020 /* MagicPicturing.app */;
@@ -119,6 +125,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				CF7D73812E02D785009D6100 /* XCRemoteSwiftPackageReference "AnyImageKit" */,
+				CF433DF52E31AB3600A45650 /* XCRemoteSwiftPackageReference "TOCropViewController" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CFAC6EC82DD3923A00614020 /* Products */;
@@ -357,6 +364,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		CF433DF52E31AB3600A45650 /* XCRemoteSwiftPackageReference "TOCropViewController" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TimOliver/TOCropViewController.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.4;
+			};
+		};
 		CF7D73812E02D785009D6100 /* XCRemoteSwiftPackageReference "AnyImageKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AnyImageKit/AnyImageKit.git";
@@ -368,6 +383,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CF433DF62E31AB3600A45650 /* CropViewController */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CF433DF52E31AB3600A45650 /* XCRemoteSwiftPackageReference "TOCropViewController" */;
+			productName = CropViewController;
+		};
+		CF433DF82E31AB3600A45650 /* TOCropViewController */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CF433DF52E31AB3600A45650 /* XCRemoteSwiftPackageReference "TOCropViewController" */;
+			productName = TOCropViewController;
+		};
 		CF7D73822E02D785009D6100 /* AnyImageKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CF7D73812E02D785009D6100 /* XCRemoteSwiftPackageReference "AnyImageKit" */;
