@@ -1,7 +1,7 @@
 import UIKit
 
 struct HapticFeedback {
-    static func generate(style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        static func generate(style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.impactOccurred()
     }

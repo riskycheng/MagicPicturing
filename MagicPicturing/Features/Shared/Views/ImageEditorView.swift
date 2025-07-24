@@ -39,19 +39,16 @@ struct ImageEditorView: View {
     @State private var displayImage: UIImage
     @State private var editingState = EditingState()
     @State private var activeTool: EditorTool = .filters
-    @State private var isComparing = false
-    @State private var history: [EditingState] = [EditingState()]
-    @State private var historyIndex: Int = 0
     @State private var showCropView = false
     private let thumbnail: UIImage
 
     fileprivate enum EditorTool: String, CaseIterable, Identifiable {
-        case crop = "Adjust", filters = "Filters", brightness = "Brightness",
+        case adjust = "Adjust", filters = "Filters", brightness = "Brightness",
              contrast = "Contrast", saturation = "Saturation"
         var id: String { self.rawValue }
         var systemImageName: String {
             switch self {
-            case .crop: return "crop.rotate"
+            case .adjust: return "crop.rotate"
             case .filters: return "wand.and.stars"
             case .brightness: return "sun.max.fill"
             case .contrast: return "circle.lefthalf.filled"
@@ -78,7 +75,7 @@ struct ImageEditorView: View {
                 controlsArea
             }
         }
-        .onChange(of: editingState) { addHistory($0); applyChanges() }
+        .onChange(of: editingState) { _ in applyChanges() }
         .sheet(isPresented: $showCropView) {
             CropViewWrapper(image: displayImage, croppedImage: $displayImage)
         }
@@ -87,7 +84,7 @@ struct ImageEditorView: View {
     private var imageDisplayArea: some View {
         GeometryReader { geometry in
             ZStack {
-                Image(uiImage: isComparing ? originalImage : displayImage)
+                Image(uiImage: displayImage)
                     .resizable()
                     .scaledToFit()
                     .padding()
@@ -98,20 +95,16 @@ struct ImageEditorView: View {
 
     private var controlsArea: some View {
         VStack(spacing: 0) {
-            Spacer()
-            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail, showCropView: $showCropView)
-                .frame(height: 120)
-            
-            HStack(spacing: 40) {
-                Button(action: undo) { Image(systemName: "arrow.uturn.backward") }.disabled(!canUndo)
-                Button(action: redo) { Image(systemName: "arrow.uturn.forward") }.disabled(!canRedo)
-                Button(action: { isComparing = true }) { Image(systemName: "eye") }
-                    .simultaneousGesture(DragGesture(minimumDistance: 0).onEnded { _ in isComparing = false })
-            }
-            .font(.title).foregroundColor(.white).padding(.vertical)
+            toolSelectionBar
+                .padding(.vertical)
 
-            toolSelectionBar.padding(.vertical).background(Color.black.opacity(0.5))
-            bottomNavBar.padding().background(Color.black)
+            EditorControlsView(activeTool: $activeTool, editingState: $editingState, thumbnail: thumbnail, showCropView: $showCropView)
+                .frame(height: 80)
+                .padding(.bottom)
+
+            bottomNavBar
+                .padding()
+                .background(Color.black)
         }
     }
 
@@ -145,17 +138,19 @@ struct ImageEditorView: View {
         let context = CIContext()
         guard let ciImage = CIImage(image: originalImage) else { return }
         var currentCIImage = ciImage
+
         if editingState.selectedFilter != .original {
             let filter = Self.createFilter(for: editingState.selectedFilter)
-            filter.setValue(currentCIImage, forKey: kCIInputImageKey)
+            filter.setValue(ciImage, forKey: kCIInputImageKey)
             currentCIImage = filter.outputImage ?? currentCIImage
         }
 
-        currentCIImage = currentCIImage.applyingFilter("CIColorControls", parameters: [
-            kCIInputBrightnessKey: editingState.brightness,
-            kCIInputContrastKey: editingState.contrast,
-            kCIInputSaturationKey: editingState.saturation
-        ])
+        let adjustmentFilter = CIFilter.colorControls()
+        adjustmentFilter.inputImage = currentCIImage
+        adjustmentFilter.brightness = Float(editingState.brightness)
+        adjustmentFilter.contrast = Float(editingState.contrast)
+        adjustmentFilter.saturation = Float(editingState.saturation)
+        currentCIImage = adjustmentFilter.outputImage ?? currentCIImage
 
         if let outputCGImage = context.createCGImage(currentCIImage, from: currentCIImage.extent) {
             displayImage = UIImage(cgImage: outputCGImage, scale: originalImage.scale, orientation: originalImage.imageOrientation)
@@ -163,19 +158,10 @@ struct ImageEditorView: View {
     }
 
     private func resetAdjustments() { editingState = EditingState() }
-    private var canUndo: Bool { historyIndex > 0 }
-    private var canRedo: Bool { historyIndex < history.count - 1 }
-    private func addHistory(_ state: EditingState) {
-        history.removeSubrange(historyIndex + 1 ..< history.count)
-        history.append(state)
-        historyIndex = history.count - 1
-    }
-    private func undo() { if canUndo { historyIndex -= 1; editingState = history[historyIndex] } }
-    private func redo() { if canRedo { historyIndex += 1; editingState = history[historyIndex] } }
 
     static func createFilter(for filterType: ImageFilter) -> CIFilter {
         switch filterType {
-        case .original: return CIFilter()
+        case .original: return CIFilter.colorControls()
         case .sepia: return CIFilter.sepiaTone()
         case .noir: return CIFilter.photoEffectNoir()
         case .vintage: return CIFilter.photoEffectProcess()
@@ -195,23 +181,18 @@ fileprivate struct EditorControlsView: View {
 
     var body: some View {
         VStack {
-            if activeTool == .crop {
-                // This view is now just a placeholder that triggers the sheet.
-                // We show it when crop is the active tool.
+            if activeTool == .adjust {
                 Spacer()
-
-                Spacer()
-                // Automatically trigger the sheet when this tool is selected.
                 .onAppear { showCropView = true }
-                .onDisappear { if activeTool == .crop { activeTool = .filters } }
+                .onDisappear { if activeTool == .adjust { activeTool = .filters } }
             } else if activeTool == .filters {
                 FilterSelectionView(selectedFilter: $editingState.selectedFilter, thumbnail: thumbnail)
             } else {
                 VStack {
-                    if activeTool == .brightness { SliderControl(label: "Brightness", value: $editingState.brightness, range: -0.5...0.5, showsValue: true) }
-                    else if activeTool == .contrast { SliderControl(label: "Contrast", value: $editingState.contrast, range: 0.5...1.5, showsValue: true) }
-                    else if activeTool == .saturation { SliderControl(label: "Saturation", value: $editingState.saturation, range: 0...2, showsValue: true) }
-                }
+                    if activeTool == .brightness { SliderControl(value: $editingState.brightness, range: -0.5...0.5, showsValue: true) }
+                    else if activeTool == .contrast { SliderControl(value: $editingState.contrast, range: 0.5...1.5, showsValue: true) }
+                    else if activeTool == .saturation { SliderControl(value: $editingState.saturation, range: 0...2, showsValue: true) }
+                }.padding(.horizontal)
             }
         }
     }
@@ -230,7 +211,10 @@ fileprivate struct FilterSelectionView: View {
                             .resizable().frame(width: 60, height: 60).clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(RoundedRectangle(cornerRadius: 8).stroke(selectedFilter == filter ? Color.pink : Color.clear, lineWidth: 2))
                         Text(filter.rawValue).font(.caption).foregroundColor(.white)
-                    }.onTapGesture { selectedFilter = filter }
+                    }.onTapGesture { 
+                        selectedFilter = filter
+                        HapticFeedback.generate(style: .light)
+                    }
                 }
             }.padding(.horizontal)
         }
@@ -249,22 +233,62 @@ fileprivate struct FilterSelectionView: View {
 }
 
 fileprivate struct SliderControl: View {
-    let label: String
     @Binding var value: Double
     let range: ClosedRange<Double>
     var showsValue: Bool = false
 
+    @State private var sliderWidth: CGFloat = 0
+
+    private var percentage: Double {
+        guard range.upperBound > range.lowerBound else { return 0 }
+        return (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+    }
+
+    private var thumbOffset: CGFloat {
+        return CGFloat(percentage) * (sliderWidth - 28) // Adjust for thumb width
+    }
+
     var body: some View {
-        VStack {
-            HStack {
-                Text(label).foregroundColor(.white)
-                if showsValue {
-                    Spacer()
-                    Text(String(format: "%.0f", (value - range.lowerBound) * 100 / (range.upperBound - range.lowerBound)))
-                        .padding(.horizontal, 8).padding(.vertical, 2).background(Color.pink).cornerRadius(8)
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Background track
+                Capsule()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 6)
+
+                // Filled track
+                Capsule()
+                    .fill(Color.pink)
+                    .frame(width: thumbOffset + 14, height: 6) // Center the fill
+
+                // Thumb with value inside
+                ZStack {
+                    Circle()
+                        .fill(Color.pink)
+                        .frame(width: 28, height: 28)
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    
+                    if showsValue {
+                        Text(String(format: "%.0f", percentage * 100))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
+                .offset(x: thumbOffset)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { gestureValue in
+                            let newPercentage = min(max(0, gestureValue.location.x / geometry.size.width), 1)
+                            self.value = range.lowerBound + newPercentage * (range.upperBound - range.lowerBound)
+                            HapticFeedback.generate()
+                        }
+                )
             }
-            Slider(value: $value, in: range).accentColor(.pink)
+            .frame(height: 30) // Ensure enough vertical space for the thumb
+            .onAppear {
+                self.sliderWidth = geometry.size.width
+            }
         }
+        .frame(height: 30) // Set a fixed height for the whole control
     }
 }
