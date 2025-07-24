@@ -60,8 +60,24 @@ The application is divided into several feature modules, located in `MagicPictur
 - **Structure**:
   - `Extensions/`: Swift extensions for standard types.
   - `Services/`: Shared services like image caching.
-  - `Utils/`: Utility functions and helpers.
-  - `Views/`: Reusable SwiftUI views like `ImagePickerView`, `ImageGalleryView`, and a native `ImageEditorView` for applying filters, adjustments, and cropping.
+  - `Utils/`: Utility functions and helpers like `HapticFeedback`.
+  - `Views/`: Reusable SwiftUI views like `ImagePickerView`, `ImageGalleryView`, and the powerful `ImageEditorView`.
+
+#### 3.4.1. ImageEditorView
+
+The `ImageEditorView` is a powerful, reusable, and fully native SwiftUI component for image editing. It is designed to be easily integrated into any feature module requiring image manipulation capabilities.
+
+**Key Features:**
+
+*   **100% Native SwiftUI**: Built from the ground up using SwiftUI and Core Image, ensuring a lightweight footprint and seamless integration with the app's design.
+*   **Modern Cropping & Rotation**: Integrates `TOCropViewController` to provide a polished, intuitive interface for cropping and rotating images, accessible via a single "Adjust" tool.
+*   **Rich Filter Library**: Includes a set of 8 professional Core Image filters: Original, Sepia, Noir, Vintage, Vivid, Dramatic, Mono, and Fade.
+*   **Fine-Grained Adjustments**: Allows users to adjust Brightness, Contrast, and Saturation with custom-built sliders.
+*   **Polished User Interface**:
+    *   A clean, dark-mode-first design with pink accents consistent with the app's branding.
+    *   Custom slider controls that display the current value directly inside the thumb for a clean, unobtrusive look.
+    *   Haptic feedback on interactions for an enhanced tactile experience.
+*   **Simplified Controls**: A streamlined UI that removes unnecessary buttons (like Undo/Redo) to focus on the core editing experience.
 
 ## 4. Getting Started
 
