@@ -46,12 +46,12 @@ struct ImageEditorView: View {
     private let thumbnail: UIImage
 
     fileprivate enum EditorTool: String, CaseIterable, Identifiable {
-        case crop = "Crop", filters = "Filters", brightness = "Brightness",
+        case crop = "Adjust", filters = "Filters", brightness = "Brightness",
              contrast = "Contrast", saturation = "Saturation"
         var id: String { self.rawValue }
         var systemImageName: String {
             switch self {
-            case .crop: return "crop"
+            case .crop: return "crop.rotate"
             case .filters: return "wand.and.stars"
             case .brightness: return "sun.max.fill"
             case .contrast: return "circle.lefthalf.filled"
@@ -199,7 +199,7 @@ fileprivate struct EditorControlsView: View {
                 // This view is now just a placeholder that triggers the sheet.
                 // We show it when crop is the active tool.
                 Spacer()
-                Text("Crop & Rotate").font(.headline).foregroundColor(.white)
+
                 Spacer()
                 // Automatically trigger the sheet when this tool is selected.
                 .onAppear { showCropView = true }

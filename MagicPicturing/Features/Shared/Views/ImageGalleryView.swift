@@ -131,6 +131,7 @@ struct ImageGalleryView: View {
                 }
             }
         }
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 }
 

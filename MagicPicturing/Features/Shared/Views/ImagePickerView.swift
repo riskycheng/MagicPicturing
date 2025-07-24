@@ -66,7 +66,7 @@ struct ImagePickerView: UIViewControllerRepresentable {
         // Set the theme to the library's default light theme.
         // This is the simplest and most reliable way to ensure a light background
         // and to avoid any further compilation errors.
-        options.theme = PickerTheme(style: .light)
+        options.theme = PickerTheme(style: .dark)
         
         let controller = ImagePickerController(options: options, delegate: context.coordinator)
         controller.modalPresentationStyle = .fullScreen

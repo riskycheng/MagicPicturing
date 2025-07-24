@@ -33,7 +33,7 @@ struct PhotoWatermarkFlowView: View {
                 }
             }
         }
-        .sheet(isPresented: $showImagePicker) {
+        .fullScreenCover(isPresented: $showImagePicker) {
             ImagePickerView(
                 onCancel: {
                     print("PhotoWatermarkFlowView: Image picker cancelled.")
