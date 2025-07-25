@@ -167,12 +167,11 @@ private struct WatermarkedImageView: View {
 
     var body: some View {
         if let image = viewModel.sourceImage {
-            ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: containerSize.width, height: containerSize.height)
-                    .clipped()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: containerSize.width)
 
                 if let info = viewModel.watermarkInfo {
                     viewModel.selectedTemplate
@@ -180,7 +179,7 @@ private struct WatermarkedImageView: View {
                         .id(viewModel.selectedTemplate.id)
                 }
             }
-            .frame(width: containerSize.width, height: containerSize.height)
+            .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
