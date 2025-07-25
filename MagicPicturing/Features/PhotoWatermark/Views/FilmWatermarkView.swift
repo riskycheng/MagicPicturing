@@ -27,10 +27,10 @@ struct FilmWatermarkView: View {
                 // Right side: Logo
                 brandLogo(size: baseFontSize * 1.8)
             }
-            .foregroundColor(.white.opacity(0.9))
+            .foregroundColor(.black)
             .padding(.horizontal, baseFontSize * 1.5)
             .frame(height: barHeight)
-            .background(Color.black)
+            .background(Color.white)
         }
         .frame(width: width, height: width * 0.13)
     }

@@ -6,13 +6,13 @@ struct TechWatermarkView: View {
     let width: CGFloat
 
     var body: some View {
-        let baseFontSize = width * 0.028
+        let baseFontSize = width * 0.035
         let padding = width * 0.04
 
         HStack(alignment: .center) {
             // Left: Camera Model
             Text(watermarkInfo.cameraModel ?? "Unknown Camera")
-                .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                .font(.system(size: baseFontSize, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
@@ -25,7 +25,7 @@ struct TechWatermarkView: View {
 
             // Right: Shot Details
             Text(cameraDetails())
-                .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                .font(.system(size: baseFontSize, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }

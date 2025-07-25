@@ -122,20 +122,31 @@ struct PhotoWatermarkEntryView: View {
     
     @ViewBuilder
     private var templateGallery: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
-                ForEach(viewModel.templates) { template in
-                    TemplateIndicatorCard(
-                        template: template,
-                        isSelected: viewModel.selectedTemplate == template
-                    ) {
-                        viewModel.selectedTemplate = template
+        VStack(alignment: .leading) {
+            Text("Templates")
+                .font(.headline)
+                .padding(.horizontal)
+                .padding(.top, 10)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
+                    ForEach(viewModel.templates) { template in
+                        TemplateIndicatorCard(
+                            template: template,
+                            isSelected: viewModel.selectedTemplate == template
+                        ) {
+                            viewModel.selectedTemplate = template
+                            // Add haptic feedback
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                        }
+
                     }
                 }
+                .padding(.horizontal)
+
             }
-            .padding()
         }
-        .frame(height: 160)
         .background(Color(UIColor.systemBackground))
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
@@ -220,6 +231,7 @@ private struct TemplateIndicatorCard: View {
         .buttonStyle(PlainButtonStyle())
         .scaleEffect(isSelected ? 1.05 : 1.0)
         .animation(.spring(), value: isSelected)
+        .padding(.vertical, 8) // Add padding to the button to provide space for the animation
     }
 }
 

@@ -81,12 +81,24 @@ struct ClassicWatermarkView: View {
     }
 
     private func formattedShotDetails() -> String {
-        let focalLength = watermarkInfo.focalLength ?? ""
-        let aperture = (watermarkInfo.aperture ?? "").replacingOccurrences(of: "f/", with: "F")
-        let shutter = watermarkInfo.shutterSpeed ?? ""
-        let iso = (watermarkInfo.iso ?? "").uppercased()
+        var details: [String] = []
         
-        return [focalLength, aperture, shutter, iso].filter { !$0.isEmpty }.joined(separator: " | ")
+        if let focalLength = watermarkInfo.focalLength, !focalLength.isEmpty {
+            details.append(focalLength)
+        }
+        if let aperture = watermarkInfo.aperture, !aperture.isEmpty {
+            details.append(aperture.replacingOccurrences(of: "f/", with: "F"))
+        }
+        if let shutter = watermarkInfo.shutterSpeed, !shutter.isEmpty {
+            details.append(shutter)
+        }
+        
+        // Only add ISO if there's room (i.e., less than 3 items already)
+        if details.count < 3, let iso = watermarkInfo.iso, !iso.isEmpty {
+            details.append(iso.uppercased())
+        }
+        
+        return details.joined(separator: " | ")
     }
     
     /// A view builder for the brand logo.

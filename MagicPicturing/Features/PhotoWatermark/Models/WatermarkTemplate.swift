@@ -11,11 +11,7 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
     case modern = "现代之框"
     case film = "电影之框"
     case minimalist = "极简风格"
-    case vintage = "复古风格"
-    case magazine = "杂志风格"
-    case artistic = "艺术风格"
     case tech = "科技风格"
-    case natural = "自然风格"
     
     var id: String { self.rawValue }
 
@@ -29,8 +25,7 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
             return [.text, .logo]
         case .minimalist:
             return [.logo]
-        default:
-            return [.logo, .text]
+
         }
     }
 
@@ -40,11 +35,7 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
         case .modern: return "Modern"
         case .film: return "Film"
         case .minimalist: return "Minimalist"
-        case .vintage: return "Vintage"
-        case .magazine: return "Magazine"
-        case .artistic: return "Artistic"
         case .tech: return "Tech"
-        case .natural: return "Natural"
         }
     }
     
@@ -61,16 +52,8 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
             return AnyView(FilmWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .minimalist:
             return AnyView(MinimalistWatermarkView(watermarkInfo: watermarkInfo, width: width))
-        case .vintage:
-            return AnyView(VintageWatermarkView(watermarkInfo: watermarkInfo, width: width))
-        case .magazine:
-            return AnyView(MagazineWatermarkView(watermarkInfo: watermarkInfo, width: width))
         case .tech:
             return AnyView(TechWatermarkView(watermarkInfo: watermarkInfo, width: width))
-        case .artistic:
-            return AnyView(ArtisticWatermarkView(watermarkInfo: watermarkInfo, width: width))
-        case .natural:
-            return AnyView(NaturalWatermarkView(watermarkInfo: watermarkInfo, width: width))
         }
     }
 } 

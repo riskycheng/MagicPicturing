@@ -21,72 +21,42 @@ The project follows the **Model-View-ViewModel (MVVM)** design pattern. This sep
 
 ## 3. Module Breakdown
 
-The application is divided into several feature modules, located in `MagicPicturing/Features/`. Each module is self-contained, with its own Models, Views, and ViewModels.
+The application is divided into several feature modules, located in `MagicPicturing/Features/`.
 
-### 3.1. PhotoCollage
+### 3.1. PhotoWatermark
 
-- **Purpose**: Allows users to create photo collages.
-- **Location**: `MagicPicturing/Features/PhotoCollage`
-- **Structure**:
-  - `Models/`: Data structures for collage layouts and items.
-  - `Services/`: Logic for generating collage images.
-  - `ViewModels/`: State and logic for the collage creation process.
-  - `Views/`: SwiftUI views for the collage feature.
+- **Purpose**: Enables users to add professional-grade watermarks to their photos.
+- **Available Templates**: `Classic`, `Modern`, `Minimalist`, `Tech`, `Film`.
+- **Key Features**:
+  - **Dynamic Layouts**: Each template intelligently adapts to display key EXIF data like camera model, lens, and shot details.
+  - **Consistent Design**: All templates share a standardized height and clean aesthetic for a cohesive user experience.
+  - **Interactive Selection**: Haptic feedback provides a tactile response when switching between templates.
 
-### 3.2. PhotoWatermark
+### 3.2. Shared
 
-- **Purpose**: Enables users to add watermarks to their photos.
-- **Location**: `MagicPicturing/Features/PhotoWatermark`
-- **Structure**:
-  - `Models/`: Data models for watermark templates and information.
-  - `Services/`: EXIF data handling and other utility services.
-  - `ViewModels/`: Manages the state for the watermarking flow.
-  - `Views/`: UI for selecting images, choosing watermark styles, and previewing the result.
-  - `README_WATERMARK_STYLES.md`: A document detailing the different watermark styles available.
+- **Purpose**: Contains reusable components and utilities shared across all feature modules, including the powerful `ImageEditorView`.
 
-### 3.3. ThreeDGrid
+## 4. Recent Progress (July 2025)
 
-- **Purpose**: Applies a 3D grid effect to images.
-- **Location**: `MagicPicturing/Features/ThreeDGrid`
-- **Structure**:
-  - `Models/`: Data models for the 3D grid.
-  - `Services/`: Business logic for applying the 3D effect.
-  - `Views/`: SwiftUI views for the 3D grid feature.
+- **Watermark Template Refinement**:
+  - Standardized all watermark templates to a consistent height for a uniform look and feel.
+  - Overhauled the `Tech` template with a clean, high-contrast design (white background, black text), a bold monospaced font, and removed decorative elements.
+  - Implemented intelligent text display for both `Tech` and `Classic` templates to ensure key camera details are shown concisely on a single line without font scaling.
 
-### 3.4. Shared
+- **Enhanced User Experience**:
+  - Added subtle haptic feedback when switching between templates, making the UI more interactive and responsive.
 
-- **Purpose**: Contains reusable components and utilities shared across all feature modules.
-- **Location**: `MagicPicturing/Features/Shared`
-- **Structure**:
-  - `Extensions/`: Swift extensions for standard types.
-  - `Services/`: Shared services like image caching.
-  - `Utils/`: Utility functions and helpers like `HapticFeedback`.
-  - `Views/`: Reusable SwiftUI views like `ImagePickerView`, `ImageGalleryView`, and the powerful `ImageEditorView`.
+- **Codebase Cleanup**:
+  - Identified and removed four unused watermark template files (`Artistic`, `Magazine`, `Natural`, `Vintage`), streamlining the project and improving maintainability.
 
-#### 3.4.1. ImageEditorView
+## 5. Future Work
 
-The `ImageEditorView` is a powerful, reusable, and fully native SwiftUI component for image editing. It is designed to be easily integrated into any feature module requiring image manipulation capabilities.
+- **User-Customizable Templates**: Allow users to choose which metadata to display or adjust font sizes and colors.
+- **Export Quality Settings**: Provide options to select the resolution and compression quality for exported images.
+- **Batch Processing**: Enable users to apply the same watermark to multiple images at once.
+- **Localization**: Translate the app into multiple languages to reach a wider audience.
 
-**Key Features:**
-
-*   **100% Native SwiftUI**: Built from the ground up using SwiftUI and Core Image, ensuring a lightweight footprint and seamless integration with the app's design.
-*   **Modern Cropping & Rotation**: Integrates `TOCropViewController` to provide a polished, intuitive interface for cropping and rotating images, accessible via a single "Adjust" tool.
-*   **Rich Filter Library**: Includes a set of 8 professional Core Image filters: Original, Sepia, Noir, Vintage, Vivid, Dramatic, Mono, and Fade.
-*   **Fine-Grained Adjustments**: Allows users to adjust Brightness, Contrast, and Saturation with custom-built sliders.
-*   **Polished User Interface**:
-    *   A clean, dark-mode-first design with pink accents consistent with the app's branding.
-    *   Custom slider controls that display the current value directly inside the thumb for a clean, unobtrusive look.
-    *   Haptic feedback on interactions for an enhanced tactile experience.
-*   **Simplified Controls**: A streamlined UI that removes unnecessary buttons (like Undo/Redo) to focus on the core editing experience.
-
-## 4. Getting Started
-
-1.  **Clone the repository**.
-2.  **Open `MagicPicturing.xcodeproj` in Xcode**.
-3.  **Select a simulator or a physical device**.
-4.  **Build and run the project (Cmd+R)**.
-
-## 5. How to Contribute
+## 6. How to Contribute
 
 - **Create a new branch** for each new feature or bug fix.
 - **Follow the MVVM architecture** when adding new functionality.
