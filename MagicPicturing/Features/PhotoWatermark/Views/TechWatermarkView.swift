@@ -9,78 +9,68 @@ struct TechWatermarkView: View {
         let baseFontSize = width * 0.028
         let padding = width * 0.04
 
-        VStack(spacing: 0) {
-            techBorder(width: width, reversed: false)
+        HStack(alignment: .center) {
+            // Left: Camera Model
+            Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
-            HStack(alignment: .center) {
-                // Left: Device info
-                HStack(spacing: baseFontSize * 0.4) {
-                    Image(systemName: "cpu").font(.system(size: baseFontSize * 0.9))
-                    Text(watermarkInfo.cameraModel ?? "Device")
-                        .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                }
+            Spacer()
 
-                Spacer()
+            // Center: Logo
+            brandLogo(size: baseFontSize * 1.8)
 
-                // Center: Tech logo
-                Image(systemName: "camera.aperture")
-                    .font(.system(size: baseFontSize * 1.5))
+            Spacer()
 
-                Spacer()
-
-                // Right: Technical specs
-                Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
-                        .compactMap { $0 }
-                        .joined(separator: " "))
-                    .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, padding)
-            .padding(.vertical, padding)
-            .background(LinearGradient(gradient: Gradient(colors: [Color.black.opacity(0.9), Color.black.opacity(0.8)]), startPoint: .top, endPoint: .bottom))
-            .overlay(techGridOverlay(gridSize: baseFontSize))
-
-            techBorder(width: width, reversed: true)
+            // Right: Shot Details
+            Text(cameraDetails())
+                .font(.system(size: baseFontSize, weight: .medium, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .foregroundColor(.black)
+        .padding(.horizontal, padding)
+        .frame(width: width, height: width * 0.13)
+        .background(Color.white)
+    }
+
+    private func cameraDetails() -> String {
+        let allDetails = [
+            watermarkInfo.focalLength,
+            watermarkInfo.aperture,
+            watermarkInfo.shutterSpeed,
+            watermarkInfo.iso
+        ].compactMap { $0 }
+
+        if allDetails.count <= 2 {
+            return allDetails.joined(separator: " | ")
+        }
+
+        let primaryDetails = Array(allDetails.prefix(2))
+        return primaryDetails.joined(separator: " | ")
     }
 
     @ViewBuilder
-    private func techBorder(width: CGFloat, reversed: Bool) -> some View {
-        let barWidth = width / 25
-        HStack(spacing: 0) {
-            ForEach(0..<25) { index in
-                Rectangle()
-                    .fill(LinearGradient(gradient: Gradient(colors: reversed ? [Color.blue, Color.cyan] : [Color.cyan, Color.blue]), startPoint: .top, endPoint: .bottom))
-                    .frame(width: barWidth, height: width * 0.005)
-                    .opacity((index % 2 == 0) == reversed ? 0.3 : 1.0)
+    private func brandLogo(size: CGFloat) -> some View {
+        if let make = watermarkInfo.cameraMake?.lowercased() {
+            if make.contains("apple") {
+                Image(systemName: "apple.logo").font(.system(size: size))
+            } else if make.contains("fujifilm") {
+                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
+            } else if make.contains("sony") {
+                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
+            } else if make.contains("canon") {
+                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
+            } else {
+                Image(systemName: "camera.fill").font(.system(size: size * 0.9))
             }
+        } else {
+            Image(systemName: "camera.fill").font(.system(size: size * 0.9))
         }
     }
 
-    @ViewBuilder
-    private func techGridOverlay(gridSize: CGFloat) -> some View {
-        GeometryReader { geometry in
-            Path { path in
-                let width = geometry.size.width
-                let height = geometry.size.height
-                
-                for x in stride(from: 0, through: width, by: gridSize) {
-                    path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x, y: height))
-                }
-                
-                for y in stride(from: 0, through: height, by: gridSize) {
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: width, y: y))
-                }
-            }
-            .stroke(Color.cyan.opacity(0.1), lineWidth: 0.5)
-        }
-    }
+
 }
 
 struct TechCornerView: View {

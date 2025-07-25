@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum IndicatorComponent {
+    case logo
+    case text
+}
+
 // Using an enum for templates ensures type safety and makes it easy to manage all available styles.
 enum WatermarkTemplate: String, CaseIterable, Identifiable {
     case classic = "经典之框"
@@ -13,6 +18,35 @@ enum WatermarkTemplate: String, CaseIterable, Identifiable {
     case natural = "自然风格"
     
     var id: String { self.rawValue }
+
+    var indicatorLayout: [IndicatorComponent] {
+        switch self {
+        case .classic, .tech:
+            return [.text, .logo, .text]
+        case .modern:
+            return [.logo, .text]
+        case .film:
+            return [.text, .logo]
+        case .minimalist:
+            return [.logo]
+        default:
+            return [.logo, .text]
+        }
+    }
+
+    var name: String {
+        switch self {
+        case .classic: return "Classic"
+        case .modern: return "Modern"
+        case .film: return "Film"
+        case .minimalist: return "Minimalist"
+        case .vintage: return "Vintage"
+        case .magazine: return "Magazine"
+        case .artistic: return "Artistic"
+        case .tech: return "Tech"
+        case .natural: return "Natural"
+        }
+    }
     
     // This ViewBuilder returns the appropriate SwiftUI view for each template.
     // This is the core of the template-switching logic.

@@ -6,52 +6,37 @@ struct ModernWatermarkView: View {
     let width: CGFloat
 
     var body: some View {
-        watermarkBar(width: self.width)
-    }
+        GeometryReader { geometry in
+            let barHeight = geometry.size.width * 0.13
+            let baseFontSize = geometry.size.width * 0.035
 
-    @ViewBuilder
-    private func watermarkBar(width: CGFloat) -> some View {
-        let baseFontSize = width * 0.035
-        
-        HStack(alignment: .center) {
-            // Left side: Camera and Lens info
-            VStack(alignment: .leading, spacing: baseFontSize * 0.15) {
-                Text(watermarkInfo.cameraModel ?? "Unknown Camera")
-                    .font(.system(size: baseFontSize, weight: .semibold))
-                if let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty {
-                    Text(lensModel)
-                        .font(.system(size: baseFontSize * 0.7, weight: .light))
-                        .foregroundColor(.black.opacity(0.6))
+            HStack(alignment: .center) {
+                // Left side: Logo
+                brandLogo(size: baseFontSize * 1.8)
+
+                Spacer()
+
+                // Right side: Camera info, shot details, and date
+                VStack(alignment: .trailing, spacing: baseFontSize * 0.2) {
+                    Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                        .font(.system(size: baseFontSize * 1.1, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                }
-            }
-
-            Spacer()
-
-            // Right side: Logo, shot details, and date
-            HStack(alignment: .center, spacing: baseFontSize * 0.5) {
-                brandLogo(size: baseFontSize * 1.5)
-                
-                VStack(alignment: .leading, spacing: baseFontSize * 0.15) {
+                    
                     Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
                             .compactMap { $0 }
-                            .joined(separator: " "))
-                        .font(.system(size: baseFontSize, weight: .semibold))
+                            .joined(separator: "   "))
+                        .font(.system(size: baseFontSize * 0.9, weight: .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                    if let date = watermarkInfo.creationDate {
-                        Text(date)
-                            .font(.system(size: baseFontSize * 0.7, weight: .light))
-                            .foregroundColor(.black.opacity(0.6))
-                    }
                 }
             }
+            .padding(.horizontal, baseFontSize * 1.5)
+            .frame(height: barHeight)
+            .background(Color.white)
+            .foregroundColor(.black)
         }
-        .padding(.horizontal, baseFontSize * 1.5)
-        .padding(.vertical, baseFontSize)
-        .background(Color.white)
-        .foregroundColor(.black)
+        .frame(width: width, height: width * 0.13)
     }
 
     /// A view builder for the brand logo.

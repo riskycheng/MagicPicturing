@@ -47,7 +47,7 @@ struct NaturalWatermarkView: View {
                 }
             }
             .padding(.horizontal, padding)
-            .padding(.vertical, padding * 0.75)
+            .frame(height: width * 0.13)
             .background(
                 RoundedRectangle(cornerRadius: barCornerRadius)
                     .fill(LinearGradient(gradient: Gradient(colors: [Color(red: 0.95, green: 0.98, blue: 0.95), Color(red: 0.9, green: 0.95, blue: 0.9)]), startPoint: .top, endPoint: .bottom))

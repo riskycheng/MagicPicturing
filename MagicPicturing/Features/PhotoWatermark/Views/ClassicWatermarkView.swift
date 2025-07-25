@@ -3,53 +3,90 @@ import SwiftUI
 /// A classic watermark template that displays EXIF data at the bottom of an image.
 struct ClassicWatermarkView: View {
     let watermarkInfo: WatermarkInfo
-    let width: CGFloat
+    var width: CGFloat
 
     var body: some View {
-        watermarkBar(width: self.width)
+        GeometryReader { geometry in
+            let barHeight = geometry.size.width * 0.13
+            let baseFontSize = geometry.size.width * 0.04
+
+            HStack(alignment: .center, spacing: 0) {
+                // Left side: Camera and Lens
+                VStack(alignment: .leading, spacing: baseFontSize * 0.1) {
+                    Text(watermarkInfo.cameraModel ?? "Unknown Camera")
+                        .font(.system(size: baseFontSize * 0.8, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    Text(formattedLensModel())
+                        .font(.system(size: baseFontSize * 0.65, weight: .medium))
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Spacer()
+
+                // Center: Logo
+                brandLogo(size: baseFontSize * 1.5)
+
+                Spacer()
+
+                // Right side: Shot details and Date
+                VStack(alignment: .trailing, spacing: baseFontSize * 0.1) {
+                    Text(formattedShotDetails())
+                        .font(.system(size: baseFontSize * 0.8, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    
+                    if let date = watermarkInfo.creationDate {
+                        Text(date)
+                            .font(.system(size: baseFontSize * 0.65, weight: .medium))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(.horizontal, geometry.size.width * 0.05)
+            .frame(width: geometry.size.width, height: barHeight)
+            .background(Color.white)
+            .foregroundColor(.black)
+        }
+        .frame(width: width, height: width * 0.13)
     }
 
-    @ViewBuilder
-    private func watermarkBar(width: CGFloat) -> some View {
-        let barHeight = width * 0.12
-        let baseFontSize = width * 0.045
-
-        HStack(alignment: .center) {
-            // Left side: Camera Brand and Model
-            HStack(alignment: .firstTextBaseline, spacing: baseFontSize * 0.5) {
-                brandLogo(size: baseFontSize * 1.2)
-
-                Rectangle()
-                    .fill(Color.black.opacity(0.5))
-                    .frame(width: 1.5, height: baseFontSize)
-
-                Text(watermarkInfo.cameraModel?.split(separator: "\n").first?.trimmingCharacters(in: .whitespaces) ?? "Unknown Camera")
-                    .font(.system(size: baseFontSize, weight: .semibold))
-            }
-
-            Spacer()
-
-            // Right side: Shot details and Date
-            VStack(alignment: .trailing, spacing: baseFontSize * 0.15) {
-                Text([watermarkInfo.focalLength, watermarkInfo.aperture, watermarkInfo.shutterSpeed, watermarkInfo.iso]
-                        .compactMap { $0 }
-                        .joined(separator: "   "))
-                    .font(.system(size: baseFontSize * 0.75, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-
-                if let date = watermarkInfo.creationDate {
-                    Text(date)
-                        .font(.system(size: baseFontSize * 0.65, weight: .light))
-                        .foregroundColor(.black)
-                }
-            }
+    private func formattedLensModel() -> String {
+        guard let lensModel = watermarkInfo.lensModel, !lensModel.isEmpty else { return "" }
+        
+        // Best case: Regex finds the specific "mm f/..." pattern.
+        let pattern = "(\\d+\\.?\\d*mm f/\\d+\\.?\\d*)"
+        if let range = lensModel.range(of: pattern, options: .regularExpression) {
+            return String(lensModel[range])
         }
-        .padding(.horizontal, width * 0.05)
-        .frame(width: width, height: barHeight)
-        .background(Color.white)
-        .foregroundColor(.black)
+        
+        // Fallback: Aggressively clean the string.
+        let cameraModel = watermarkInfo.cameraModel ?? ""
+        var cleanedLens = lensModel.replacingOccurrences(of: cameraModel, with: "")
+        
+        // Remove common verbose phrases.
+        let verbosePhrases = ["back triple camera", "back dual camera", "back camera", "front camera"]
+        for phrase in verbosePhrases {
+            cleanedLens = cleanedLens.replacingOccurrences(of: phrase, with: "")
+        }
 
+        return cleanedLens.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func formattedShotDetails() -> String {
+        let focalLength = watermarkInfo.focalLength ?? ""
+        let aperture = (watermarkInfo.aperture ?? "").replacingOccurrences(of: "f/", with: "F")
+        let shutter = watermarkInfo.shutterSpeed ?? ""
+        let iso = (watermarkInfo.iso ?? "").uppercased()
+        
+        return [focalLength, aperture, shutter, iso].filter { !$0.isEmpty }.joined(separator: " | ")
     }
     
     /// A view builder for the brand logo.

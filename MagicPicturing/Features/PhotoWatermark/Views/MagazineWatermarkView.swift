@@ -72,7 +72,8 @@ struct MagazineWatermarkView: View {
                 }
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(baseFontSize)
+            .padding(.horizontal, baseFontSize)
+            .frame(height: width * 0.13)
             .background(Color.white)
 
             // Bottom accent line

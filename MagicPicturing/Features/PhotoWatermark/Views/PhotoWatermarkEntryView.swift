@@ -26,7 +26,6 @@ struct PhotoWatermarkEntryView: View {
                             viewModel: viewModel,
                             containerSize: containerSize
                         )
-                        .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
                         .onTapGesture {
                             print("PhotoWatermarkEntryView: Image tapped, showing editor.")
                             showImageEditor = true
@@ -36,7 +35,6 @@ struct PhotoWatermarkEntryView: View {
                         placeholderView
                     }
                 }
-                .frame(width: geo.size.width, height: geo.size.height) // Center content in the GeometryReader
             }
 
             Spacer()
@@ -102,30 +100,15 @@ struct PhotoWatermarkEntryView: View {
 
         // Use the original image dimensions for the highest quality snapshot.
         let finalSize = sourceImage.size
-        let viewToRender = WatermarkedImageView(viewModel: viewModel, containerSize: finalSize)
-            .frame(width: finalSize.width, height: finalSize.height)
+        let viewToRender = WatermarkedImageView(viewModel: viewModel, containerSize: finalSize, isForExport: true)
 
         return viewToRender.snapshot()
     }
     
     private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
-        // Define the maximum bounding box for our preview area
-        let maxBoundingWidth = availableSize.width - 32 // 16pt padding on each side
-        let maxBoundingHeight = availableSize.height * 0.8 // Use up to 80% of the available height
-        
-        // Calculate the size if we were to fit the image to the max width
-        let sizeFittingWidth = CGSize(width: maxBoundingWidth, height: maxBoundingWidth / aspectRatio)
-        
-        // Calculate the size if we were to fit the image to the max height
-        let sizeFittingHeight = CGSize(width: maxBoundingHeight * aspectRatio, height: maxBoundingHeight)
-        
-        // If fitting to the width makes the image too tall, we must constrain by height.
-        // Otherwise, constraining by width is correct.
-        if sizeFittingWidth.height > maxBoundingHeight {
-            return sizeFittingHeight
-        } else {
-            return sizeFittingWidth
-        }
+        let width = availableSize.width
+        let height = width / aspectRatio
+        return CGSize(width: width, height: height)
     }
     
     // MARK: - Subviews
@@ -135,7 +118,6 @@ struct PhotoWatermarkEntryView: View {
             Color(UIColor.secondarySystemBackground)
                 .cornerRadius(12)
         }
-        .padding()
     }
     
     @ViewBuilder
@@ -143,10 +125,9 @@ struct PhotoWatermarkEntryView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 20) {
                 ForEach(viewModel.templates) { template in
-                    TemplatePreviewCard(
-                        previewImage: viewModel.templatePreviews[template],
-                        isSelected: viewModel.selectedTemplate == template,
-                        aspectRatio: viewModel.sourceImageAspectRatio
+                    TemplateIndicatorCard(
+                        template: template,
+                        isSelected: viewModel.selectedTemplate == template
                     ) {
                         viewModel.selectedTemplate = template
                     }
@@ -164,14 +145,16 @@ struct PhotoWatermarkEntryView: View {
 private struct WatermarkedImageView: View {
     @ObservedObject var viewModel: PhotoWatermarkViewModel
     let containerSize: CGSize
+    var isForExport: Bool = false
 
     var body: some View {
         if let image = viewModel.sourceImage {
-            VStack(spacing: 0) {
+            let composedView = VStack(spacing: 0) {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
                     .frame(width: containerSize.width)
+                    .clipped()
 
                 if let info = viewModel.watermarkInfo {
                     viewModel.selectedTemplate
@@ -179,42 +162,60 @@ private struct WatermarkedImageView: View {
                         .id(viewModel.selectedTemplate.id)
                 }
             }
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            if isForExport {
+                composedView
+            } else {
+                composedView
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
         }
     }
 }
 
-// MARK: - Template Preview Card
-private struct TemplatePreviewCard: View {
-    let previewImage: UIImage?
+// MARK: - Template Indicator Card
+private struct TemplateIndicatorCard: View {
+    let template: WatermarkTemplate
     let isSelected: Bool
-    let aspectRatio: CGFloat
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
-            Group {
-                if let image = previewImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                } else {
-                    ZStack {
-                        Color.secondary.opacity(0.1)
-                            .aspectRatio(CGSize(width: 1, height: aspectRatio), contentMode: .fit)
-                        ProgressView()
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(UIColor.systemGray4))
+                        .frame(width: 80, height: 60)
+
+                    VStack(spacing: 0) {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(UIColor.systemGray6))
+                            .frame(height: 20)
+                            .overlay(
+                                HStack(spacing: 5) {
+                                    ForEach(Array(template.indicatorLayout.enumerated()), id: \.offset) { _, component in
+                                        switch component {
+                                        case .logo:
+                                            Circle().fill(Color.green).frame(width: 10, height: 10)
+                                        case .text:
+                                            Rectangle().fill(Color.black).frame(width: 20, height: 6)
+                                        }
+                                    }
+                                }
+                            )
                     }
+                    .frame(width: 80, height: 60)
                 }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.accentColor, lineWidth: isSelected ? 3 : 0)
+                )
+
+                Text(template.name)
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .accentColor : .primary)
             }
-            .frame(height: 100)
-            .background(Color.secondary.opacity(0.1))
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.accentColor, lineWidth: isSelected ? 3 : 0)
-            )
-            .shadow(color: .black.opacity(isSelected ? 0.2 : 0.1), radius: isSelected ? 6 : 3, y: isSelected ? 3 : 1)
         }
         .buttonStyle(PlainButtonStyle())
         .scaleEffect(isSelected ? 1.05 : 1.0)

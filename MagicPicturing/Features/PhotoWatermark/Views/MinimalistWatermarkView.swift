@@ -6,47 +6,40 @@ struct MinimalistWatermarkView: View {
     let width: CGFloat
 
     var body: some View {
-        watermarkBar(width: self.width)
-    }
-    
-    @ViewBuilder
-    private func watermarkBar(width: CGFloat) -> some View {
-        let baseFontSize = width * 0.03
+        GeometryReader { geometry in
+            let barHeight = geometry.size.width * 0.13
+            let baseFontSize = geometry.size.width * 0.04
 
-        HStack(alignment: .center) {
-            // Camera info
-            VStack(alignment: .leading, spacing: baseFontSize * 0.1) {
-                Text(watermarkInfo.cameraModel ?? "Unknown Camera")
-                    .font(.system(size: baseFontSize, weight: .medium))
-                    .foregroundColor(.black.opacity(0.7))
+            HStack {
+                Spacer()
+                brandLogo(size: baseFontSize * 1.5)
+                Spacer()
             }
-
-            Spacer()
-
-            // Separator line
-            Rectangle()
-                .fill(Color.black.opacity(0.3))
-                .frame(width: 1, height: baseFontSize * 1.5)
-
-            Spacer()
-
-            // Shot details
-            VStack(alignment: .trailing, spacing: baseFontSize * 0.1) {
-                Text([watermarkInfo.focalLength, watermarkInfo.aperture]
-                        .compactMap { $0 }
-                        .joined(separator: " "))
-                    .font(.system(size: baseFontSize, weight: .medium))
-                    .foregroundColor(.black.opacity(0.7))
-                if let date = watermarkInfo.creationDate {
-                    Text(date)
-                        .font(.system(size: baseFontSize * 0.8, weight: .light))
-                        .foregroundColor(.black.opacity(0.5))
-                }
-            }
+            .frame(height: barHeight)
+            .background(Color.white)
+            .foregroundColor(.black)
         }
-        .padding(.horizontal, baseFontSize * 1.5)
-        .padding(.vertical, baseFontSize)
-        .background(Color.white.opacity(0.95))
+        .frame(width: width, height: width * 0.13)
+    }
+
+    /// A view builder for the brand logo.
+    @ViewBuilder
+    private func brandLogo(size: CGFloat) -> some View {
+        if let make = watermarkInfo.cameraMake?.lowercased() {
+            if make.contains("apple") {
+                Image(systemName: "apple.logo").font(.system(size: size))
+            } else if make.contains("fujifilm") {
+                Text("FUJIFILM").font(.custom("Tungsten-Semibold", size: size))
+            } else if make.contains("sony") {
+                Text("SONY").font(.system(size: size * 0.8, weight: .bold))
+            } else if make.contains("canon") {
+                Text("Canon").font(.custom("Trajan Pro", size: size * 0.9))
+            } else {
+                Image(systemName: "camera.fill").font(.system(size: size * 0.9))
+            }
+        } else {
+            Image(systemName: "camera.fill").font(.system(size: size * 0.9))
+        }
     }
 }
 

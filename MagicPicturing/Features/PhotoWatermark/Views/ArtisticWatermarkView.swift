@@ -44,7 +44,7 @@ struct ArtisticWatermarkView: View {
             }
             .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.2))
             .padding(.horizontal, padding)
-            .padding(.vertical, padding * 0.75)
+            .frame(height: width * 0.13)
             .background(
                 RoundedRectangle(cornerRadius: barCornerRadius)
                     .fill(LinearGradient(gradient: Gradient(colors: [Color(red: 0.95, green: 0.9, blue: 0.8), Color(red: 0.9, green: 0.85, blue: 0.75)]), startPoint: .top, endPoint: .bottom))

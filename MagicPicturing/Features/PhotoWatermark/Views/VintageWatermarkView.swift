@@ -55,7 +55,7 @@ struct VintageWatermarkView: View {
                 }
             }
             .padding(.horizontal, baseFontSize * 1.5)
-            .padding(.vertical, baseFontSize)
+            .frame(height: width * 0.13)
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [Color.black, Color.black.opacity(0.9)]),

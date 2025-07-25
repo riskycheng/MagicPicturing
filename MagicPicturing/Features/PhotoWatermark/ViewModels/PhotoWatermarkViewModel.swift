@@ -12,8 +12,8 @@ class PhotoWatermarkViewModel: ObservableObject {
     
     // MARK: - Output
     @Published var watermarkInfo: WatermarkInfo?
-    @Published var templates: [WatermarkTemplate] = WatermarkTemplate.allCases
-    @Published var templatePreviews: [WatermarkTemplate: UIImage] = [:]
+    @Published var templates: [WatermarkTemplate] = [.classic, .modern, .minimalist, .tech, .film]
+
 
     var sourceImageAspectRatio: CGFloat {
         guard let size = sourceImage?.size, size.width > 0, size.height > 0 else {
@@ -122,41 +122,10 @@ class PhotoWatermarkViewModel: ObservableObject {
                 focalLength: focalLength, aperture: aperture, shutterSpeed: shutterSpeed, iso: iso,
                 location: location, creationDate: creationDate
             )
-            self.generateAllTemplatePreviews()
         }
     }
 
-    private func generateAllTemplatePreviews() {
-        guard let sourceImage, let watermarkInfo else { return }
-        
-        Task.detached(priority: .userInitiated) {
-            var newPreviews: [WatermarkTemplate: UIImage] = [:]
-            let previewSize = CGSize(width: 120, height: 120)
 
-            for template in self.templates {
-                let watermarkBar = template.makeView(watermarkInfo: watermarkInfo, width: previewSize.width)
-                let previewView = Image(uiImage: sourceImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: previewSize.width, height: previewSize.height)
-                    .clipped()
-                    .overlay(
-                        VStack {
-                            Spacer()
-                            watermarkBar
-                        }
-                    )
-                
-                if let previewImage = await self.renderViewToImage(view: previewView, size: previewSize) {
-                    newPreviews[template] = previewImage
-                }
-            }
-            
-            await MainActor.run {
-                self.templatePreviews = newPreviews
-            }
-        }
-    }
     
     @MainActor
     private func renderViewToImage<T: View>(view: T, size: CGSize) async -> UIImage? {
