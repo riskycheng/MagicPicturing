@@ -101,7 +101,12 @@ struct PhotoWatermarkEntryView: View {
         let finalSize = sourceImage.size
         let viewToRender = WatermarkedImageView(viewModel: viewModel, containerSize: finalSize, isForExport: true)
 
-        return viewToRender.snapshot()
+        let renderer = ImageRenderer(content: viewToRender)
+        
+        // Preserve the original image's scale to maintain quality.
+        renderer.scale = sourceImage.scale
+        
+        return renderer.uiImage
     }
     
     private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
