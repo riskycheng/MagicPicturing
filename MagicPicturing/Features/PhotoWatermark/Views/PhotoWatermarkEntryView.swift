@@ -35,9 +35,8 @@ struct PhotoWatermarkEntryView: View {
                         placeholderView
                     }
                 }
+                .frame(width: geo.size.width, height: geo.size.height)
             }
-
-            Spacer()
 
             // MARK: - Template Gallery
             if viewModel.sourceImage != nil {
@@ -106,9 +105,22 @@ struct PhotoWatermarkEntryView: View {
     }
     
     private func calculateContainerSize(for availableSize: CGSize, aspectRatio: CGFloat) -> CGSize {
-        let width = availableSize.width
-        let height = width / aspectRatio
-        return CGSize(width: width, height: height)
+        // Estimate watermark height. This is an approximation. A more robust solution might involve PreferenceKey.
+        // Assuming the watermark is roughly 10-15% of the width.
+        let watermarkHeight = availableSize.width * 0.15
+        
+        var containerWidth = availableSize.width
+        var containerHeight = containerWidth / aspectRatio
+        
+        let totalHeight = containerHeight + watermarkHeight
+        
+        if totalHeight > availableSize.height {
+            // The combined view is too tall, so we need to scale down based on the height.
+            containerHeight = availableSize.height - watermarkHeight
+            containerWidth = containerHeight * aspectRatio
+        }
+        
+        return CGSize(width: containerWidth, height: containerHeight)
     }
     
     // MARK: - Subviews
@@ -123,10 +135,6 @@ struct PhotoWatermarkEntryView: View {
     @ViewBuilder
     private var templateGallery: some View {
         VStack(alignment: .leading) {
-            Text("Templates")
-                .font(.headline)
-                .padding(.horizontal)
-                .padding(.top, 10)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
@@ -163,8 +171,8 @@ private struct WatermarkedImageView: View {
             let composedView = VStack(spacing: 0) {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: containerSize.width)
+                    .scaledToFill()
+                    .frame(width: containerSize.width, height: containerSize.height)
                     .clipped()
 
                 if let info = viewModel.watermarkInfo {
