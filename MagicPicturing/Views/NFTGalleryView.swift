@@ -51,7 +51,7 @@ class CardStackViewModel: ObservableObject {
     init() {
         allCards = [
             CardStackItem(title: "水印工坊", subtitle: "Photo Framer", description: "Add professional watermarks and frames to your photos.", number: "0000", gradientColors: [Color(hex: "#8E2DE2"), Color(hex: "#4A00E0")], navigationTarget: .placeholder("PhotoWatermark")),
-            CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage),
+            // CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage),
             CardStackItem(title: "立体九宫格", subtitle: "3D Grid", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
             CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
             CardStackItem(title: "Keep", subtitle: "Calm", description: "Soothe your body by extending your exhale, signaling relaxation.", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], navigationTarget: .placeholder("Keep Calm"))
