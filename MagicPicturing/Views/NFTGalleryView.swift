@@ -24,6 +24,7 @@ struct CardStackItem: Identifiable, Equatable {
     let description: String
     let number: String
     let gradientColors: [Color]
+    let imageName: String?
     let navigationTarget: NavigationTarget
 }
 
@@ -50,11 +51,11 @@ class CardStackViewModel: ObservableObject {
 
     init() {
         allCards = [
-            CardStackItem(title: "水印工坊", subtitle: "Photo Framer", description: "Add professional watermarks and frames to your photos.", number: "0000", gradientColors: [Color(hex: "#8E2DE2"), Color(hex: "#4A00E0")], navigationTarget: .placeholder("PhotoWatermark")),
+            CardStackItem(title: "水印工坊", subtitle: "", description: "智能添加相机EXIF等信息，为你的照片增添专业级水印。", number: "0000", gradientColors: [Color(hex: "#8E2DE2"), Color(hex: "#4A00E0")], imageName: "demo_watermark", navigationTarget: .placeholder("PhotoWatermark")),
             // CardStackItem(title: "拼图", subtitle: "photo collage", description: "A famous technique to calm your nervous system for deep sleep.", number: "0001", gradientColors: [Color(hex: "#36D1DC"), Color(hex: "#5B86E5")], navigationTarget: .collage),
-            CardStackItem(title: "立体九宫格", subtitle: "3D Grid", description: "Find your center and calm your mind with this rhythmic pattern.", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], navigationTarget: .threeDGrid),
-            CardStackItem(title: "Body Scan", subtitle: "Drift", description: "Focus on your body and let go of tension with each progressive motion.", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], navigationTarget: .placeholder("Body Scan Drift")),
-            CardStackItem(title: "Keep", subtitle: "Calm", description: "Soothe your body by extending your exhale, signaling relaxation.", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], navigationTarget: .placeholder("Keep Calm"))
+            CardStackItem(title: "立体九宫格", subtitle: "", description: "将你的照片分割成令人惊叹的3D网格，创造出独特的视觉效果。", number: "0002", gradientColors: [Color(hex: "#136a8a"), Color(hex: "#267871")], imageName: "demo_threegrid", navigationTarget: .threeDGrid),
+            CardStackItem(title: "Body Scan", subtitle: "", description: "引导你关注身体的每一部分，在渐进的放松中释放所有紧张感。", number: "0003", gradientColors: [Color(hex: "#5D4157"), Color(hex: "#A8CABA")], imageName: nil, navigationTarget: .placeholder("Body Scan Drift")),
+            CardStackItem(title: "Keep", subtitle: "", description: "通过延长呼气来舒缓身体，向大脑传递放松的信号。", number: "0004", gradientColors: [Color(hex: "#2B32B2"), Color(hex: "#1488CC")], imageName: nil, navigationTarget: .placeholder("Keep Calm"))
         ]
         loadItems()
     }
@@ -353,39 +354,53 @@ struct SingleCardView: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 25)
-                .fill(LinearGradient(gradient: Gradient(colors: item.gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing))
-            
+            // Card background is always the gradient
+            LinearGradient(gradient: Gradient(colors: item.gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing)
+
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title)
                             .font(.system(size: 34, weight: .heavy))
-                        Text(item.subtitle)
-                             .font(.system(size: 28, weight: .bold))
+                        if !item.subtitle.isEmpty {
+                            Text(item.subtitle)
+                                 .font(.system(size: 28, weight: .bold))
+                        }
                     }
                     .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
-                    
+
                     Spacer()
-                    
+
                     Text(item.number)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.5))
                         .padding(.top, 5)
                 }
-                
-                Spacer()
-                
+
+                Spacer(minLength: 10)
+
+                // Display the image in the center if it exists
+                if let imageName = item.imageName {
+                    Image(imageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                        .padding(.horizontal, 10) // Make image larger
+                }
+
+                Spacer(minLength: 10)
+
                 Text(item.description)
                     .font(.system(size: 16, weight: .medium))
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
-
             }
             .foregroundColor(.white)
             .padding(25)
         }
         .frame(width: 320, height: isFocused ? 500 : 420)
+        .clipShape(RoundedRectangle(cornerRadius: 25))
         .shadow(color: .black.opacity(0.2), radius: 12, y: 8)
     }
 }
