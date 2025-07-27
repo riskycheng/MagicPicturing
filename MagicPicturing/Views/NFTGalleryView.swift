@@ -276,7 +276,7 @@ struct RingView: View {
         let geo = geometry(for: angle)
         let isFocused = abs(angle) < (angularSpacing / 2.0)
 
-        SingleCardView(item: item, isFocused: isFocused)
+        SingleCardView(item: item, isFocused: isFocused, isListView: false)
             .scaleEffect(geo.scale)
             .offset(x: geo.xOffset, y: geo.yOffset)
             .zIndex(geo.zIndex)
@@ -334,7 +334,7 @@ struct CardListView: View {
         ScrollView {
             LazyVStack(spacing: 20) {
                 ForEach(Array(viewModel.cardItems.enumerated()), id: \.element.id) { index, item in
-                    SingleCardView(item: item)
+                    SingleCardView(item: item, isListView: true)
                         .onTapGesture { viewModel.cardTapped(item: item) }
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .offset(y: 30)),
@@ -351,53 +351,58 @@ struct CardListView: View {
 struct SingleCardView: View {
     let item: CardStackItem
     var isFocused: Bool = false
+    var isListView: Bool = false
     
     var body: some View {
         ZStack(alignment: .topLeading) {
             // Card background is always the gradient
             LinearGradient(gradient: Gradient(colors: item.gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(spacing: 0) {
+                // Header: Title, Subtitle, Number
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title)
                             .font(.system(size: 34, weight: .heavy))
                         if !item.subtitle.isEmpty {
                             Text(item.subtitle)
-                                 .font(.system(size: 28, weight: .bold))
+                                .font(.system(size: 28, weight: .bold))
                         }
                     }
                     .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
-
                     Spacer()
-
                     Text(item.number)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.5))
                         .padding(.top, 5)
                 }
+                .padding(EdgeInsets(top: 25, leading: 25, bottom: 0, trailing: 25))
 
+                // Spacer to push content apart
                 Spacer(minLength: 10)
 
-                // Display the image in the center if it exists
+                // Centered Image
                 if let imageName = item.imageName {
                     Image(imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 15))
                         .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-                        .padding(.horizontal, 10) // Make image larger
+                        .padding(.horizontal, isListView ? 10 : 35) // Conditional padding for list vs. ring view
                 }
-
+                
+                // Spacer
                 Spacer(minLength: 10)
 
+                // Footer Description
                 Text(item.description)
                     .font(.system(size: 16, weight: .medium))
                     .lineLimit(2)
                     .shadow(color: .black.opacity(0.1), radius: 1, y: 1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 0, leading: 25, bottom: 25, trailing: 25))
             }
             .foregroundColor(.white)
-            .padding(25)
         }
         .frame(width: 320, height: isFocused ? 500 : 420)
         .clipShape(RoundedRectangle(cornerRadius: 25))
